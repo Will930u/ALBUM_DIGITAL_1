@@ -293,9 +293,8 @@
       bcvRate: 36.5, userId: localStorage.getItem('active_user_id') || null,
       userStickersCount: 0, userBalanceBs: 0, claimedMilestones: [], selectedMilestone: null,
       isProcessingWithdrawal: false, logoClicks: 0, clickTimer: null,
-      // URL y Anon Key corregidas y limpias
       supabase: supabase.createClient(
-        "https://dxicbitnnesjsqxzisea.supabase.co", 
+        "https://dxicbitnnesjsqxzisea.supabase.co",
         "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4aWNiaXRubmVzanNxeHppc2VhIiwicm9sZSI6ImFub24iLCJpYXQiOjktMjAyNi0wMyIsImV4cCI6MjA1NDU5NzI1Mn0.h3SPwV1UBb9m630AFPtw"
       )
     };
@@ -349,15 +348,22 @@
       const username = document.getElementById('loginUsername').value.trim();
       const pass = document.getElementById('loginPassword').value.trim();
 
-      const { data, error } = await STATE.supabase.from('usuarios').select('*').eq('username', username).single();
-      if (error || !data || data.password_hash !== pass) { alert('Usuario o contraseña incorrectos.'); return; }
+      const { data, error } = await STATE.supabase
+        .from('usuarios')
+        .select('*')
+        .eq('username', username)
+        .maybeSingle();
+
+      if (error || !data || data.password_hash !== pass) {
+        alert('Usuario o contraseña incorrectos.');
+        return;
+      }
 
       STATE.userId = data.id;
       localStorage.setItem('active_user_id', STATE.userId);
       document.getElementById('authSection').classList.add('hidden');
       startGame();
     }
-
     function logoutUser() {
       localStorage.removeItem('active_user_id');
       window.location.reload();
