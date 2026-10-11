@@ -378,11 +378,28 @@
       const e = document.getElementById('recEmail').value.trim();
       const t = document.getElementById('recTelefono').value.trim();
 
-      const { data, error } = await STATE.supabase.from('usuarios').select('*').eq('username', u).eq('gmail', e).eq('telefono', t).single();
-      if (error || !data) { alert('Los datos proporcionados no coinciden con ningún registro.'); return; }
+      // Consultar directamente a Supabase
+      const { data, error } = await STATE.supabase
+        .from('usuarios')
+        .select('*')
+        .eq('username', u)
+        .maybeSingle();
 
-      document.getElementById('recoveryStep1').classList.add('hidden');
-      document.getElementById('recoveryStep2').classList.remove('hidden');
+      if (error || !data) {
+        alert('El usuario no existe o hay un problema de conexión.');
+        return;
+      }
+
+      // Validar correo y teléfono ignorando mayúsculas/minúsculas
+      if (
+        data.gmail.toLowerCase() === e.toLowerCase() &&
+        data.telefono.trim() === t.trim()
+      ) {
+        document.getElementById('recoveryStep1').classList.add('hidden');
+        document.getElementById('recoveryStep2').classList.remove('hidden');
+      } else {
+        alert('Los datos proporcionados no coinciden con nuestros registros.');
+      }
     }
 
     function sendChatMessage() {
