@@ -25,6 +25,9 @@
 </head>
 <body class="flex flex-col min-h-screen">
 
+  <!-- ========================================== -->
+  <!-- 01. CABECERA PRINCIPAL Y NAVEGACIÓN        -->
+  <!-- ========================================== -->
   <header id="mainHeader" class="hidden sticky top-0 z-40 metal-card rounded-none px-6 py-4 flex flex-wrap justify-between items-center gap-4">
     <div class="flex items-center space-x-3 cursor-pointer select-none" id="appLogo">
       <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center font-bold text-xl shadow-lg border border-white/20">Á</div>
@@ -56,7 +59,9 @@
 
   <main class="flex-grow flex items-center justify-center p-4">
 
-    <!-- LOGIN / REGISTRO -->
+    <!-- ========================================== -->
+    <!-- 02. MÓDULO DE AUTENTICACIÓN (LOGIN/REGISTRO)-->
+    <!-- ========================================== -->
     <section id="authSection" class="max-w-md w-full p-8 metal-card space-y-6">
       <div class="text-center space-y-2">
         <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center shadow-xl border border-white/20">
@@ -105,7 +110,9 @@
       </form>
     </section>
 
-    <!-- ÁLBUM -->
+    <!-- ========================================== -->
+    <!-- 03. MÓDULO DEL ÁLBUM DIGITAL (2000 BARAJITAS)-->
+    <!-- ========================================== -->
     <section id="albumSection" class="hidden w-full max-w-6xl space-y-6">
       <div class="metal-card p-4 flex flex-col md:flex-row justify-between items-center gap-4">
         <div class="flex items-center space-x-4">
@@ -126,7 +133,9 @@
       <div id="stickersGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4"></div>
     </section>
 
-    <!-- TIENDA -->
+    <!-- ========================================== -->
+    <!-- 04. MÓDULO DE TIENDA Y PAGOS MÓVILES       -->
+    <!-- ========================================== -->
     <section id="tiendaSection" class="hidden w-full max-w-2xl">
       <div class="metal-card p-6 md:p-8 space-y-6">
         <div class="border-b border-purple-500/30 pb-4 flex justify-between items-center">
@@ -160,7 +169,9 @@
       </div>
     </section>
 
-    <!-- PANEL DE ADMINISTRACIÓN -->
+    <!-- ========================================== -->
+    <!-- 05. MÓDULO DE PANEL DE ADMINISTRACIÓN      -->
+    <!-- ========================================== -->
     <section id="adminSection" class="hidden w-full max-w-5xl space-y-6">
       <div class="metal-card p-6 md:p-8 space-y-6">
         <div class="flex justify-between items-center border-b border-purple-500/30 pb-4">
@@ -175,6 +186,7 @@
           <button onclick="switchAdminTab('usuarios')" id="tabAdminUsuarios" class="pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap">Usuarios</button>
         </div>
 
+        <!-- Sub-tab: Pagos -->
         <div id="adminContentPagos" class="space-y-4">
           <table class="w-full text-left text-sm text-slate-300">
             <thead class="bg-slate-900/80 text-xs uppercase text-purple-300">
@@ -184,6 +196,7 @@
           </table>
         </div>
 
+        <!-- Sub-tab: Retiros -->
         <div id="adminContentRetiros" class="hidden space-y-4">
           <table class="w-full text-left text-sm text-slate-300">
             <thead class="bg-slate-900/80 text-xs uppercase text-amber-300">
@@ -193,6 +206,7 @@
           </table>
         </div>
 
+        <!-- Sub-tab: Imágenes / Carga Masiva -->
         <div id="adminContentImagenes" class="hidden space-y-4">
           <div class="bg-slate-950/60 p-5 rounded-xl border border-purple-500/30 space-y-4">
             <h3 class="text-base font-bold text-purple-200">Subida Masiva de Barajitas a Supabase Storage</h3>
@@ -207,6 +221,7 @@
           </div>
         </div>
 
+        <!-- Sub-tab: Métricas 30/70 -->
         <div id="adminContentMetricas" class="hidden space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
             <div class="bg-slate-950/60 p-4 rounded-xl border border-purple-500/20"><span class="text-xs text-slate-400">Ventas Totales (100%)</span><p id="metricTotalSales" class="text-lg font-bold text-blue-400">Bs. 0.00</p></div>
@@ -216,6 +231,7 @@
           <div class="bg-slate-950/60 p-4 rounded-xl border border-purple-500/20 h-64"><canvas id="financialChart"></canvas></div>
         </div>
 
+        <!-- Sub-tab: Usuarios -->
         <div id="adminContentUsuarios" class="hidden space-y-4">
           <table class="w-full text-left text-sm text-slate-300">
             <thead class="bg-slate-900/80 text-xs uppercase text-purple-300">
@@ -228,7 +244,9 @@
       </div>
     </section>
 
-    <!-- MODAL DE RECUPERACIÓN -->
+    <!-- ========================================== -->
+    <!-- 06. MODALES AUXILIARES (RECUPERACIÓN Y RETIRO)-->
+    <!-- ========================================== -->
     <div id="recoveryModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div class="metal-card max-w-lg w-full p-6 space-y-4 border border-amber-500/50">
         <div class="flex justify-between items-center border-b border-amber-500/30 pb-3">
@@ -255,7 +273,6 @@
       </div>
     </div>
 
-    <!-- MODAL RETIRO / HITO -->
     <div id="withdrawModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div class="metal-card max-w-lg w-full p-6 space-y-5 border border-amber-500/50">
         <div class="flex justify-between items-center border-b border-amber-500/30 pb-3">
@@ -274,9 +291,12 @@
 
   </main>
 
+  <!-- ========================================== -->
+  <!-- 07. LÓGICA DE JAVASCRIPT GLOBAL BLINDADA    -->
+  <!-- ========================================== -->
   <script>
     const API_URL = "https://album-digital-1.onrender.com";
-    const SUPABASE_URL = "https://dxicbitnnesjsqzxisea.supabase.co";
+    const SUPABASE_URL = "https://dxicbitnnesjsqxzisea.supabase.co";
     const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4aWNiaXRubmVzanNxenhpc2VhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0MTQzMTMsImV4cCI6MjEwNjk5MDMxM30.0xUXIa0Bby7xpJAF_N3y-n_H3SPwVlUBb9m630AFPtw";
     
     const STATE = {
@@ -288,13 +308,18 @@
     };
 
     document.addEventListener('DOMContentLoaded', async () => {
-      lucide.createIcons();
-      setupLogoClickCounter();
-      await fetchBcvRate();
-      if (STATE.userId) { await loadUserDataFromDB(); } 
-      else { document.getElementById('authSection').classList.remove('hidden'); }
+      try {
+        lucide.createIcons();
+        setupLogoClickCounter();
+        await fetchBcvRate();
+        if (STATE.userId) { await loadUserDataFromDB(); } 
+        else { document.getElementById('authSection').classList.remove('hidden'); }
+      } catch (err) {
+        console.error("Error en inicialización:", err);
+      }
     });
 
+    // --- BLOQUE A: AUTENTICACIÓN Y SESIÓN ---
     function switchAuthMode(mode) {
       if (mode === 'register') {
         document.getElementById('loginForm').classList.add('hidden');
@@ -309,41 +334,45 @@
 
     async function handleRegister(e) {
       e.preventDefault();
-      const username = document.getElementById('regUsername').value.trim();
-      const email = document.getElementById('regEmail').value.trim();
-      const pass = document.getElementById('regPassword').value.trim();
-      const banco = document.getElementById('regBanco').value.trim();
-      const cedula = document.getElementById('regCedula').value.trim();
-      const telefono = document.getElementById('regTelefono').value.trim();
-      const userId = 'USR-' + username.toUpperCase();
+      try {
+        const username = document.getElementById('regUsername').value.trim();
+        const email = document.getElementById('regEmail').value.trim();
+        const pass = document.getElementById('regPassword').value.trim();
+        const banco = document.getElementById('regBanco').value.trim();
+        const cedula = document.getElementById('regCedula').value.trim();
+        const telefono = document.getElementById('regTelefono').value.trim();
+        const userId = 'USR-' + username.toUpperCase();
 
-      const { error } = await STATE.supabase.from('usuarios').insert([{
-        id: userId, username: username, password_hash: pass, gmail: email,
-        banco: banco, cedula: cedula, telefono: telefono, cantidad_barajitas: 0, saldo_bs: 0, claimed_milestones: []
-      }]);
+        const { error } = await STATE.supabase.from('usuarios').insert([{
+          id: userId, username: username, password_hash: pass, gmail: email,
+          banco: banco, cedula: cedula, telefono: telefono, cantidad_barajitas: 0, saldo_bs: 0, claimed_milestones: []
+        }]);
 
-      if (error) { alert('Error en registro: ' + error.message); return; }
-      alert('¡Registro exitoso! Inicia sesión ahora.');
-      switchAuthMode('login');
+        if (error) { alert('Error en registro: ' + error.message); return; }
+        alert('¡Registro exitoso! Inicia sesión ahora.');
+        switchAuthMode('login');
+      } catch (err) { console.error(err); }
     }
 
     async function handleLogin(e) {
       e.preventDefault();
-      const username = document.getElementById('loginUsername').value.trim();
-      const pass = document.getElementById('loginPassword').value.trim();
+      try {
+        const username = document.getElementById('loginUsername').value.trim();
+        const pass = document.getElementById('loginPassword').value.trim();
 
-      const { data, error } = await STATE.supabase
-        .from('usuarios').select('*').eq('username', username).maybeSingle();
+        const { data, error } = await STATE.supabase
+          .from('usuarios').select('*').eq('username', username).maybeSingle();
 
-      if (error || !data || data.password_hash !== pass) {
-        alert('Usuario o contraseña incorrectos.');
-        return;
-      }
+        if (error || !data || data.password_hash !== pass) {
+          alert('Usuario o contraseña incorrectos.');
+          return;
+        }
 
-      STATE.userId = data.id;
-      localStorage.setItem('active_user_id', STATE.userId);
-      document.getElementById('authSection').classList.add('hidden');
-      startGame();
+        STATE.userId = data.id;
+        localStorage.setItem('active_user_id', STATE.userId);
+        document.getElementById('authSection').classList.add('hidden');
+        startGame();
+      } catch (err) { console.error(err); }
     }
 
     function logoutUser() {
@@ -351,89 +380,7 @@
       window.location.reload();
     }
 
-    function openRecoveryModal() { document.getElementById('recoveryModal').classList.remove('hidden'); }
-    function closeRecoveryModal() { document.getElementById('recoveryModal').classList.add('hidden'); }
-
-    async function verifyRecoveryData() {
-      const u = document.getElementById('recUsername').value.trim();
-      const e = document.getElementById('recEmail').value.trim();
-      const t = document.getElementById('recTelefono').value.trim();
-
-      const { data, error } = await STATE.supabase.from('usuarios').select('*').eq('username', u).maybeSingle();
-      if (error || !data) { alert('El usuario no existe.'); return; }
-
-      if (data.gmail.toLowerCase() === e.toLowerCase() && data.telefono.trim() === t.trim()) {
-        document.getElementById('recoveryStep1').classList.add('hidden');
-        document.getElementById('recoveryStep2').classList.remove('hidden');
-      } else {
-        alert('Los datos proporcionados no coinciden.');
-      }
-    }
-
-    function sendChatMessage() {
-      const input = document.getElementById('chatInput');
-      const box = document.getElementById('telegramChatBox');
-      const val = input.value.trim();
-      if (!val) return;
-      box.innerHTML += `<div class="text-right text-blue-300"><b>Tú:</b> ${val}</div>`;
-      input.value = '';
-      setTimeout(() => {
-        box.innerHTML += `<div class="bg-purple-900/40 p-2 rounded text-purple-200">🤖 <b>Bot Telegram:</b> Solicitud procesada. Contacta al admin con el código #TG-SECURE-99.</div>`;
-        box.scrollTop = box.scrollHeight;
-      }, 1000);
-    }
-
-    async function fetchBcvRate() {
-      try {
-        const res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
-        const data = await res.json();
-        if (data.promedio) { STATE.bcvRate = data.promedio; document.getElementById('bcvRateDisplay').innerText = `Bs. ${STATE.bcvRate.toFixed(2)}`; calculateTotal(); }
-      } catch (e) {}
-    }
-
-    async function loadUserDataFromDB() {
-      if (!STATE.supabase) return;
-      let { data: user } = await STATE.supabase.from('usuarios').select('*').eq('id', STATE.userId).single();
-      if (user) {
-        STATE.userStickersCount = user.cantidad_barajitas || 0;
-        STATE.userBalanceBs = user.saldo_bs || 0;
-        STATE.claimedMilestones = user.claimed_milestones || [];
-      }
-      const { data: pendingW } = await STATE.supabase.from('retiros_premios').select('id').eq('usuario_id', STATE.userId).eq('estado', 'pendiente');
-      STATE.isProcessingWithdrawal = (pendingW && pendingW.length > 0);
-      updateUIHeader();
-    }
-
-    function updateUIHeader() {
-      const balanceUSD = STATE.bcvRate > 0 ? (STATE.userBalanceBs / STATE.bcvRate).toFixed(2) : '0.00';
-      document.getElementById('userBalanceBs').innerText = `Bs. ${STATE.userBalanceBs.toFixed(2)} ($${balanceUSD})`;
-      const progressPct = ((STATE.userStickersCount / STATE.totalStickers) * 100).toFixed(1);
-      document.getElementById('albumProgressText').innerText = `${STATE.userStickersCount} / ${STATE.totalStickers} (${progressPct}%)`;
-      document.getElementById('albumProgressBar').style.width = `${progressPct}%`;
-
-      // Regla de bloqueo de Liquidación Total si hay hitos reclamados o pendientes
-      const btnLiq = document.getElementById('btnHeaderTotalLiquidate');
-      if (STATE.claimedMilestones.length > 0 || STATE.isProcessingWithdrawal) {
-        btnLiq.disabled = true;
-        btnLiq.title = "Bloqueado por tener hitos reclamados/activos";
-      } else {
-        btnLiq.disabled = false;
-        btnLiq.title = "Liquidar saldo total";
-      }
-    }
-
-    function setupLogoClickCounter() {
-      const logo = document.getElementById('appLogo');
-      if (logo) {
-        logo.addEventListener('click', () => {
-          STATE.logoClicks++;
-          clearTimeout(STATE.clickTimer);
-          if (STATE.logoClicks >= 10) { STATE.logoClicks = 0; openAdminPanel(); }
-          else { STATE.clickTimer = setTimeout(() => { STATE.logoClicks = 0; }, 3000); }
-        });
-      }
-    }
-
+    // --- BLOQUE B: NAVEGACIÓN Y TABS ---
     function startGame() {
       document.getElementById('authSection').classList.add('hidden');
       document.getElementById('mainHeader').classList.remove('hidden');
@@ -448,6 +395,7 @@
       else if (tab === 'tienda') { document.getElementById('tiendaSection').classList.remove('hidden'); }
     }
 
+    // --- BLOQUE C: ÁLBUM Y BARAJITAS ---
     function renderAlbumPage() {
       const grid = document.getElementById('stickersGrid');
       grid.innerHTML = '';
@@ -475,6 +423,15 @@
       if (p >= 1 && p <= STATE.totalPages) { STATE.currentPage = p; document.getElementById('currentPageNum').innerText = p; renderAlbumPage(); }
     }
 
+    // --- BLOQUE D: TIENDA Y COMPRAS ---
+    async function fetchBcvRate() {
+      try {
+        const res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
+        const data = await res.json();
+        if (data.promedio) { STATE.bcvRate = data.promedio; document.getElementById('bcvRateDisplay').innerText = `Bs. ${STATE.bcvRate.toFixed(2)}`; calculateTotal(); }
+      } catch (e) {}
+    }
+
     function calculateTotal() {
       const qty = parseInt(document.getElementById('stickerQty').value) || 0;
       const totalUSD = qty * 0.62;
@@ -485,70 +442,70 @@
 
     async function submitPurchase(e) {
       e.preventDefault();
-      
       const qty = parseInt(document.getElementById('stickerQty').value) || 0;
       const ref = document.getElementById('refInput').value.trim();
       const btnSubmit = document.getElementById('btnSubmitPurchase');
       
-      if (qty <= 0 || !ref) {
-        alert('Por favor, ingresa una cantidad válida y el número de referencia.');
-        return;
-      }
+      if (qty <= 0 || !ref) { alert('Ingresa cantidad y referencia válida.'); return; }
 
       const totalUSD = qty * 0.62;
       const totalBs = totalUSD * STATE.bcvRate;
-
       btnSubmit.disabled = true;
-      btnSubmit.innerText = "REPORTANDO PAGO...";
+      btnSubmit.innerText = "REPORTANDO...";
 
       try {
-        // 1. Sincronización directa con Supabase (Tabla 'transacciones')
-        const { error: dbError } = await STATE.supabase
-          .from('transacciones')
-          .insert([
-            {
-              usuario_id: STATE.userId,
-              barajitas_qty: qty,
-              monto_bs: totalBs.toFixed(2),
-              monto_usd: totalUSD.toFixed(2),
-              referencia: ref,
-              estado: 'pendiente'
-            }
-          ]);
+        const { error: dbError } = await STATE.supabase.from('transacciones').insert([{
+          usuario_id: STATE.userId, barajitas_qty: qty, monto_bs: totalBs.toFixed(2),
+          monto_usd: totalUSD.toFixed(2), referencia: ref, estado: 'pendiente'
+        }]);
 
-        if (dbError) {
-          console.error("Error al guardar en Supabase:", dbError);
-          alert('Error al reportar: ' + (dbError.message || 'La referencia podría estar duplicada.'));
-          btnSubmit.disabled = false;
-          btnSubmit.innerText = "REPORTAR PAGO Y SOLICITAR BARAJITAS";
-          return;
-        }
+        if (dbError) { alert('Error: ' + dbError.message); btnSubmit.disabled = false; btnSubmit.innerText = "REPORTAR PAGO Y SOLICITAR BARAJITAS"; return; }
 
-        // 2. Notificación al backend para que alerte por Telegram al administrador
         await fetch(`${API_URL}/api/notificar-compra`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            usuario_id: STATE.userId,
-            barajitas_qty: qty,
-            monto_bs: totalBs,
-            monto_usd: totalUSD,
-            referencia: ref
-          })
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ usuario_id: STATE.userId, barajitas_qty: qty, monto_bs: totalBs, monto_usd: totalUSD, referencia: ref })
         });
 
-        alert('¡Pago reportado con éxito! Ya se encuentra en revisión en el sistema.');
+        alert('¡Pago reportado con éxito! En revisión.');
         document.getElementById('refInput').value = '';
         switchTab('album');
-
-      } catch (err) {
-        console.error("Fallo de red:", err);
-        alert('Ocurrió un error de conexión al enviar el reporte.');
-      } finally {
+      } catch (err) { console.error(err); } finally {
         btnSubmit.disabled = false;
         btnSubmit.innerText = "REPORTAR PAGO Y SOLICITAR BARAJITAS";
       }
     }
+
+    // --- BLOQUE E: HITOS, PREMIOS Y RETIROS ---
+    async function loadUserDataFromDB() {
+      if (!STATE.supabase) return;
+      let { data: user } = await STATE.supabase.from('usuarios').select('*').eq('id', STATE.userId).single();
+      if (user) {
+        STATE.userStickersCount = user.cantidad_barajitas || 0;
+        STATE.userBalanceBs = user.saldo_bs || 0;
+        STATE.claimedMilestones = user.claimed_milestones || [];
+      }
+      const { data: pendingW } = await STATE.supabase.from('retiros_premios').select('id').eq('usuario_id', STATE.userId).eq('estado', 'pendiente');
+      STATE.isProcessingWithdrawal = (pendingW && pendingW.length > 0);
+      updateUIHeader();
+    }
+
+    function updateUIHeader() {
+      const balanceUSD = STATE.bcvRate > 0 ? (STATE.userBalanceBs / STATE.bcvRate).toFixed(2) : '0.00';
+      document.getElementById('userBalanceBs').innerText = `Bs. ${STATE.userBalanceBs.toFixed(2)} ($${balanceUSD})`;
+      const progressPct = ((STATE.userStickersCount / STATE.totalStickers) * 100).toFixed(1);
+      document.getElementById('albumProgressText').innerText = `${STATE.userStickersCount} / ${STATE.totalStickers} (${progressPct}%)`;
+      document.getElementById('albumProgressBar').style.width = `${progressPct}%`;
+
+      const btnLiq = document.getElementById('btnHeaderTotalLiquidate');
+      if (STATE.claimedMilestones.length > 0 || STATE.isProcessingWithdrawal) {
+        btnLiq.disabled = true;
+        btnLiq.title = "Bloqueado por tener hitos activos";
+      } else {
+        btnLiq.disabled = false;
+        btnLiq.title = "Liquidar saldo total";
+      }
+    }
+
     function openWithdrawModal() {
       if (STATE.isProcessingWithdrawal) return alert('Tienes una solicitud de retiro activa.');
       const container = document.getElementById('milestoneOptions');
@@ -568,7 +525,6 @@
 
     function closeWithdrawModal() { document.getElementById('withdrawModal').classList.add('hidden'); }
 
-    // 1. Envío de solicitud de hito o ciclo completo
     async function submitWithdrawalRequest(e) {
       e.preventDefault();
       const bank = document.getElementById('wBank').value.trim();
@@ -578,58 +534,38 @@
       const tipoRetiro = STATE.selectedMilestone === 2000 ? 'ciclo_completo' : 'hito_parcial';
 
       const res = await fetch(`${API_URL}/api/notificar-retiro`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          usuario_id: STATE.userId, 
-          tipo: tipoRetiro, 
-          milestone: STATE.selectedMilestone, 
-          monto_bs: bsVal, 
-          monto_usd: 200.00, 
-          datos_pago: `${bank} | ${phone} | ${id}` 
-        })
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuario_id: STATE.userId, tipo: tipoRetiro, milestone: STATE.selectedMilestone, monto_bs: bsVal, monto_usd: 200.00, datos_pago: `${bank} | ${phone} | ${id}` })
       });
 
-      if (res.ok) { 
-        alert('Solicitud de premio enviada con éxito. En revisión.'); 
-        closeWithdrawModal(); 
-        loadUserDataFromDB(); 
-      } else { 
-        alert('Error al enviar la solicitud de retiro.'); 
-      }
+      if (res.ok) { alert('Solicitud enviada.'); closeWithdrawModal(); loadUserDataFromDB(); }
+      else { alert('Error al enviar solicitud.'); }
     }
 
-    // 2. Envío de solicitud de Liquidación Total
     async function confirmTotalLiquidate() {
-      if (STATE.userBalanceBs <= 0) return alert('Sin saldo disponible para liquidar.');
-      if (!confirm('¿Estás seguro de solicitar la liquidación total de tu saldo y reiniciar el álbum?')) return;
-      
-      const bank = prompt("Ingresa tu Banco:"); 
-      const phone = prompt("Ingresa tu Teléfono de Pago Móvil:"); 
-      const id = prompt("Ingresa tu Cédula de Identidad:");
-      
+      if (STATE.userBalanceBs <= 0) return alert('Sin saldo.');
+      if (!confirm('¿Liquidar saldo total y reiniciar álbum?')) return;
+      const bank = prompt("Banco:"); const phone = prompt("Teléfono:"); const id = prompt("Cédula:");
       if (!bank || !phone || !id) return;
 
-      const montoUSD = (STATE.userBalanceBs / STATE.bcvRate).toFixed(2);
-
-      const res = await fetch(`${API_URL}/api/notificar-retiro`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          usuario_id: STATE.userId, 
-          tipo: 'liquidacion_total', 
-          milestone: 0, 
-          monto_bs: STATE.userBalanceBs.toFixed(2), 
-          monto_usd: parseFloat(montoUSD), 
-          datos_pago: `${bank} | ${phone} | ${id}` 
-        })
+      await fetch(`${API_URL}/api/notificar-retiro`, {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuario_id: STATE.userId, tipo: 'liquidacion_total', milestone: 0, monto_bs: STATE.userBalanceBs.toFixed(2), monto_usd: (STATE.userBalanceBs/STATE.bcvRate).toFixed(2), datos_pago: `${bank} | ${phone} | ${id}` })
       });
+      alert('Liquidación solicitada.');
+      loadUserDataFromDB();
+    }
 
-      if (res.ok) {
-        alert('Liquidación total solicitada correctamente. En espera de aprobación.');
-        loadUserDataFromDB();
-      } else {
-        alert('Error al procesar la solicitud de liquidación.');
+    // --- BLOQUE F: PANEL DE ADMINISTRACIÓN ---
+    function setupLogoClickCounter() {
+      const logo = document.getElementById('appLogo');
+      if (logo) {
+        logo.addEventListener('click', () => {
+          STATE.logoClicks++;
+          clearTimeout(STATE.clickTimer);
+          if (STATE.logoClicks >= 10) { STATE.logoClicks = 0; openAdminPanel(); }
+          else { STATE.clickTimer = setTimeout(() => { STATE.logoClicks = 0; }, 3000); }
+        });
       }
     }
 
@@ -670,12 +606,11 @@
 
     async function processAdminPayment(txId, accion) {
       const res = await fetch(`${API_URL}/api/procesar-compra-admin`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ tx_id: txId, accion: accion })
       });
-      if (res.ok) { alert(`Pago ${accion}do con éxito.`); loadPendingPayments(); }
-      else { alert('Error al procesar acción.'); }
+      if (res.ok) { alert(`Pago ${accion}do.`); loadPendingPayments(); }
+      else { alert('Error.'); }
     }
 
     async function loadPendingWithdrawals() {
@@ -690,12 +625,11 @@
 
     async function processAdminWithdrawal(wId, accion) {
       const res = await fetch(`${API_URL}/api/procesar-retiro-admin`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ w_id: wId, accion: accion })
       });
       if (res.ok) { alert(`Retiro ${accion}do.`); loadPendingWithdrawals(); }
-      else { alert('Error al procesar retiro.'); }
+      else { alert('Error.'); }
     }
 
     async function uploadStickerImagesBatch(e) {
@@ -705,39 +639,21 @@
       const bar = document.getElementById('uploadProgressBar');
       container.classList.remove('hidden');
       
-      let exitosas = 0;
-      const totalFiles = fileInput.files.length;
-
+      let exitosas = 0; const totalFiles = fileInput.files.length;
       for (let i = 0; i < totalFiles; i++) {
         const file = fileInput.files[i];
-        // Extrae el número inicial del nombre del archivo (Ej: "125.jpg" -> "125")
         const numMatch = file.name.match(/^(\d+)\./);
-        
         if (numMatch) {
           const stickerNum = parseInt(numMatch[1]);
-          
-          // 1. Subir la imagen al Storage de Supabase (Bucket 'barajitas')
-          const { error: storageError } = await STATE.supabase.storage
-            .from('barajitas')
-            .upload(`${stickerNum}.jpg`, file, { upsert: true });
-
+          const { error: storageError } = await STATE.supabase.storage.from('barajitas').upload(`${stickerNum}.jpg`, file, { upsert: true });
           if (!storageError) {
             exitosas++;
-            
-            // 2. (Opcional) Registrar/Actualizar en la tabla 'barajitas' de la Base de Datos si la usas
-            await STATE.supabase
-              .from('barajitas')
-              .upsert([
-                { id: stickerNum, imagen_url: `https://dxicbitnnesjsqxzisea.supabase.co/storage/v1/object/public/barajitas/${stickerNum}.jpg` }
-              ], { onConflict: 'id' });
+            await STATE.supabase.from('barajitas').upsert([{ id: stickerNum, imagen_url: `https://dxicbitnnesjsqxzisea.supabase.co/storage/v1/object/public/barajitas/${stickerNum}.jpg` }], { onConflict: 'id' });
           }
         }
-        
-        // Actualizar barra de progreso visual
         bar.style.width = `${Math.round(((i + 1) / totalFiles) * 100)}%`;
       }
-
-      alert(`Carga masiva finalizada. Se subieron ${exitosas} de ${totalFiles} barajitas correctamente al Storage y BD.`);
+      alert(`Carga finalizada: ${exitosas}/${totalFiles} subidas.`);
       container.classList.add('hidden');
     }
 
@@ -769,11 +685,40 @@
     }
 
     async function purgeAllData() {
-      if (!confirm("⚠️ ¿Estás seguro de purgar el sistema?")) return;
+      if (!confirm("⚠️ ¿Purgar el sistema?")) return;
       await STATE.supabase.from('transacciones').delete().neq('usuario_id', '');
       await STATE.supabase.from('retiros_premios').delete().neq('usuario_id', '');
       alert('Sistema purgado.');
       window.location.reload();
+    }
+
+    // --- BLOQUE G: RECUPERACIÓN Y MODALES ---
+    function openRecoveryModal() { document.getElementById('recoveryModal').classList.remove('hidden'); }
+    function closeRecoveryModal() { document.getElementById('recoveryModal').classList.add('hidden'); }
+
+    async function verifyRecoveryData() {
+      const u = document.getElementById('recUsername').value.trim();
+      const e = document.getElementById('recEmail').value.trim();
+      const t = document.getElementById('recTelefono').value.trim();
+      const { data, error } = await STATE.supabase.from('usuarios').select('*').eq('username', u).maybeSingle();
+      if (error || !data) { alert('Usuario no existe.'); return; }
+      if (data.gmail.toLowerCase() === e.toLowerCase() && data.telefono.trim() === t.trim()) {
+        document.getElementById('recoveryStep1').classList.add('hidden');
+        document.getElementById('recoveryStep2').classList.remove('hidden');
+      } else { alert('Datos no coinciden.'); }
+    }
+
+    function sendChatMessage() {
+      const input = document.getElementById('chatInput');
+      const box = document.getElementById('telegramChatBox');
+      const val = input.value.trim();
+      if (!val) return;
+      box.innerHTML += `<div class="text-right text-blue-300"><b>Tú:</b> ${val}</div>`;
+      input.value = '';
+      setTimeout(() => {
+        box.innerHTML += `<div class="bg-purple-900/40 p-2 rounded text-purple-200">🤖 <b>Bot Telegram:</b> Solicitud procesada. Código #TG-SECURE-99.</div>`;
+        box.scrollTop = box.scrollHeight;
+      }, 1000);
     }
   </script>
 </body>
