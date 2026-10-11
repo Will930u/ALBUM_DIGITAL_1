@@ -3,22 +3,27 @@ import requests
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from supabase import create_client, Client
+from supabase.lib.client_options import ClientOptions
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
-SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "")
-TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "")
-TELEGRAM_ADMIN_CHAT_ID = os.environ.get("TELEGRAM_ADMIN_CHAT_ID", "")
+SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip()
+SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "").strip()
+TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
+TELEGRAM_ADMIN_CHAT_ID = os.environ.get("TELEGRAM_ADMIN_CHAT_ID", "").strip()
 
 supabase_client: Client = None
 if SUPABASE_URL and SUPABASE_KEY:
     try:
-        supabase_client = create_client(SUPABASE_URL, SUPABASE_KEY)
+        # Inicialización segura compatible con versiones recientes
+        supabase_client = create_client(
+            SUPABASE_URL, 
+            SUPABASE_KEY,
+            options=ClientOptions(postgrest_client_timeout=10)
+        )
     except Exception as e:
         print(f"Error al inicializar Supabase: {e}")
-
 def send_telegram_message(chat_id: str, text: str):
     if not TELEGRAM_BOT_TOKEN or not chat_id:
         return False
