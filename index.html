@@ -288,15 +288,26 @@
 
   <script>
     const API_URL = "https://album-digital-1.onrender.com";
+    
+    // Inicialización limpia de Supabase sin caracteres ocultos
+    const SUPABASE_URL = "https://dxicbitnnesjsqzxisea.supabase.co";
+    const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4aWNiaXRubmVzanNxeHppc2VhIiwicm9sZSI6ImFub24iLCJpYXQiOjktMjAyNi0wMyIsImV4cCI6MjA1NDU5NzI1Mn0.h3SPwV1UBb9m630AFPtw";
+    
     const STATE = {
-      currentPage: 1, totalPages: 80, stickersPerPage: 25, totalStickers: 2000,
-      bcvRate: 36.5, userId: localStorage.getItem('active_user_id') || null,
-      userStickersCount: 0, userBalanceBs: 0, claimedMilestones: [], selectedMilestone: null,
-      isProcessingWithdrawal: false, logoClicks: 0, clickTimer: null,
-      supabase: supabase.createClient(
-        "https://dxicbitnnesjsqxzisea.supabase.co",
-        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4aWNiaXRubmVzanNxeHppc2VhIiwicm9sZSI6ImFub24iLCJpYXQiOjktMjAyNi0wMyIsImV4cCI6MjA1NDU5NzI1Mn0.h3SPwV1UBb9m630AFPtw"
-      )
+      currentPage: 1, 
+      totalPages: 80, 
+      stickersPerPage: 25, 
+      totalStickers: 2000,
+      bcvRate: 36.5, 
+      userId: localStorage.getItem('active_user_id') || null,
+      userStickersCount: 0, 
+      userBalanceBs: 0, 
+      claimedMilestones: [], 
+      selectedMilestone: null,
+      isProcessingWithdrawal: false, 
+      logoClicks: 0, 
+      clickTimer: null,
+      supabase: supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
     };
 
     document.addEventListener('DOMContentLoaded', async () => {
