@@ -485,19 +485,70 @@
 
     async function submitPurchase(e) {
       e.preventDefault();
-      const qty = parseInt(document.getElementById('stickerQty').value);
+      
+      const qty = parseInt(document.getElementById('stickerQty').value) || 0;
       const ref = document.getElementById('refInput').value.trim();
-      const totalBs = (qty * 0.62) * STATE.bcvRate;
+      const btnSubmit = document.getElementById('btnSubmitPurchase');
+      
+      if (qty <= 0 || !ref) {
+        alert('Por favor, ingresa una cantidad válida y el número de referencia.');
+        return;
+      }
 
-      const res = await fetch(`${API_URL}/api/notificar-compra`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuario_id: STATE.userId, barajitas_qty: qty, monto_bs: totalBs, monto_usd: qty * 0.62, referencia: ref })
-      });
-      if (res.ok) { alert('¡Pago reportado con éxito! Pendiente de aprobación.'); document.getElementById('refInput').value = ''; switchTab('album'); }
-      else { alert('Error al reportar pago o referencia duplicada.'); }
+      const totalUSD = qty * 0.62;
+      const totalBs = totalUSD * STATE.bcvRate;
+
+      btnSubmit.disabled = true;
+      btnSubmit.innerText = "REPORTANDO PAGO...";
+
+      try {
+        // 1. Sincronización directa con Supabase (Tabla 'transacciones')
+        const { error: dbError } = await STATE.supabase
+          .from('transacciones')
+          .insert([
+            {
+              usuario_id: STATE.userId,
+              barajitas_qty: qty,
+              monto_bs: totalBs.toFixed(2),
+              monto_usd: totalUSD.toFixed(2),
+              referencia: ref,
+              estado: 'pendiente'
+            }
+          ]);
+
+        if (dbError) {
+          console.error("Error al guardar en Supabase:", dbError);
+          alert('Error al reportar: ' + (dbError.message || 'La referencia podría estar duplicada.'));
+          btnSubmit.disabled = false;
+          btnSubmit.innerText = "REPORTAR PAGO Y SOLICITAR BARAJITAS";
+          return;
+        }
+
+        // 2. Notificación al backend para que alerte por Telegram al administrador
+        await fetch(`${API_URL}/api/notificar-compra`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            usuario_id: STATE.userId,
+            barajitas_qty: qty,
+            monto_bs: totalBs,
+            monto_usd: totalUSD,
+            referencia: ref
+          })
+        });
+
+        alert('¡Pago reportado con éxito! Ya se encuentra en revisión en el sistema.');
+        document.getElementById('refInput').value = '';
+        switchTab('album');
+
+      } catch (err) {
+        console.error("Fallo de red:", err);
+        alert('Ocurrió un error de conexión al enviar el reporte.');
+      } finally {
+        btnSubmit.disabled = false;
+        btnSubmit.innerText = "REPORTAR PAGO Y SOLICITAR BARAJITAS";
+      }
     }
-
     function openWithdrawModal() {
       if (STATE.isProcessingWithdrawal) return alert('Tienes una solicitud de retiro activa.');
       const container = document.getElementById('milestoneOptions');
@@ -517,33 +568,69 @@
 
     function closeWithdrawModal() { document.getElementById('withdrawModal').classList.add('hidden'); }
 
+    // 1. Envío de solicitud de hito o ciclo completo
     async function submitWithdrawalRequest(e) {
       e.preventDefault();
-      const bank = document.getElementById('wBank').value;
-      const phone = document.getElementById('wPhone').value;
-      const id = document.getElementById('wId').value;
+      const bank = document.getElementById('wBank').value.trim();
+      const phone = document.getElementById('wPhone').value.trim();
+      const id = document.getElementById('wId').value.trim();
       const bsVal = (200 * STATE.bcvRate).toFixed(2);
+      const tipoRetiro = STATE.selectedMilestone === 2000 ? 'ciclo_completo' : 'hito_parcial';
 
       const res = await fetch(`${API_URL}/api/notificar-retiro`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuario_id: STATE.userId, tipo: STATE.selectedMilestone === 2000 ? 'ciclo_completo' : 'hito_parcial', milestone: STATE.selectedMilestone, monto_bs: bsVal, monto_usd: 200.00, datos_pago: `${bank} | ${phone} | ${id}` })
+        body: JSON.stringify({ 
+          usuario_id: STATE.userId, 
+          tipo: tipoRetiro, 
+          milestone: STATE.selectedMilestone, 
+          monto_bs: bsVal, 
+          monto_usd: 200.00, 
+          datos_pago: `${bank} | ${phone} | ${id}` 
+        })
       });
-      if (res.ok) { alert('Solicitud de premio enviada al admin.'); closeWithdrawModal(); loadUserDataFromDB(); }
+
+      if (res.ok) { 
+        alert('Solicitud de premio enviada con éxito. En revisión.'); 
+        closeWithdrawModal(); 
+        loadUserDataFromDB(); 
+      } else { 
+        alert('Error al enviar la solicitud de retiro.'); 
+      }
     }
 
+    // 2. Envío de solicitud de Liquidación Total
     async function confirmTotalLiquidate() {
-      if (STATE.userBalanceBs <= 0) return alert('Sin saldo para liquidar.');
-      if (!confirm('¿Liquidar saldo total y reiniciar álbum?')) return;
-      const bank = prompt("Banco:"); const phone = prompt("Teléfono:"); const id = prompt("Cédula:");
+      if (STATE.userBalanceBs <= 0) return alert('Sin saldo disponible para liquidar.');
+      if (!confirm('¿Estás seguro de solicitar la liquidación total de tu saldo y reiniciar el álbum?')) return;
+      
+      const bank = prompt("Ingresa tu Banco:"); 
+      const phone = prompt("Ingresa tu Teléfono de Pago Móvil:"); 
+      const id = prompt("Ingresa tu Cédula de Identidad:");
+      
       if (!bank || !phone || !id) return;
-      await fetch(`${API_URL}/api/notificar-retiro`, {
+
+      const montoUSD = (STATE.userBalanceBs / STATE.bcvRate).toFixed(2);
+
+      const res = await fetch(`${API_URL}/api/notificar-retiro`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuario_id: STATE.userId, tipo: 'liquidacion_total', milestone: 0, monto_bs: STATE.userBalanceBs.toFixed(2), monto_usd: (STATE.userBalanceBs/STATE.bcvRate).toFixed(2), datos_pago: `${bank} | ${phone} | ${id}` })
+        body: JSON.stringify({ 
+          usuario_id: STATE.userId, 
+          tipo: 'liquidacion_total', 
+          milestone: 0, 
+          monto_bs: STATE.userBalanceBs.toFixed(2), 
+          monto_usd: parseFloat(montoUSD), 
+          datos_pago: `${bank} | ${phone} | ${id}` 
+        })
       });
-      alert('Liquidación total solicitada.');
-      loadUserDataFromDB();
+
+      if (res.ok) {
+        alert('Liquidación total solicitada correctamente. En espera de aprobación.');
+        loadUserDataFromDB();
+      } else {
+        alert('Error al procesar la solicitud de liquidación.');
+      }
     }
 
     function openAdminPanel() {
@@ -618,16 +705,40 @@
       const bar = document.getElementById('uploadProgressBar');
       container.classList.remove('hidden');
       
-      for (let i = 0; i < fileInput.files.length; i++) {
+      let exitosas = 0;
+      const totalFiles = fileInput.files.length;
+
+      for (let i = 0; i < totalFiles; i++) {
         const file = fileInput.files[i];
+        // Extrae el número inicial del nombre del archivo (Ej: "125.jpg" -> "125")
         const numMatch = file.name.match(/^(\d+)\./);
+        
         if (numMatch) {
-          const stickerNum = numMatch[1];
-          await STATE.supabase.storage.from('barajitas').upload(`${stickerNum}.jpg`, file, { upsert: true });
-          bar.style.width = `${Math.round(((i+1)/fileInput.files.length)*100)}%`;
+          const stickerNum = parseInt(numMatch[1]);
+          
+          // 1. Subir la imagen al Storage de Supabase (Bucket 'barajitas')
+          const { error: storageError } = await STATE.supabase.storage
+            .from('barajitas')
+            .upload(`${stickerNum}.jpg`, file, { upsert: true });
+
+          if (!storageError) {
+            exitosas++;
+            
+            // 2. (Opcional) Registrar/Actualizar en la tabla 'barajitas' de la Base de Datos si la usas
+            await STATE.supabase
+              .from('barajitas')
+              .upsert([
+                { id: stickerNum, imagen_url: `https://dxicbitnnesjsqxzisea.supabase.co/storage/v1/object/public/barajitas/${stickerNum}.jpg` }
+              ], { onConflict: 'id' });
+          }
         }
+        
+        // Actualizar barra de progreso visual
+        bar.style.width = `${Math.round(((i + 1) / totalFiles) * 100)}%`;
       }
-      alert('Carga masiva finalizada.');
+
+      alert(`Carga masiva finalizada. Se subieron ${exitosas} de ${totalFiles} barajitas correctamente al Storage y BD.`);
+      container.classList.add('hidden');
     }
 
     async function renderFinancialMetrics() {
