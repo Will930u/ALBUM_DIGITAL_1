@@ -1,4 +1,4 @@
-﻿import os
+import os
 import requests
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -37,7 +37,7 @@ def send_telegram_message(chat_id: str, text: str):
 
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "2.1.0"}), 200
+    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "2.2.0"}), 200
 
 @app.route("/api/bcv", methods=["GET"])
 def get_bcv_rate():
@@ -64,12 +64,10 @@ def notificar_compra():
 
     if supabase_client:
         try:
-            # Validar si la referencia ya existe para evitar fraude por reutilización
             existing = supabase_client.table("transacciones").select("id").eq("referencia", referencia).execute()
             if existing.data and len(existing.data) > 0:
                 return jsonify({"status": "error", "message": "El número de referencia ya fue reportado anteriormente."}), 400
 
-            # Registrar en transacciones
             supabase_client.table("transacciones").insert({
                 "usuario_id": str(usuario_id),
                 "barajitas_qty": int(barajitas_qty),
@@ -109,7 +107,6 @@ def notificar_retiro():
 
     if supabase_client:
         try:
-            # Validar si ya tiene un retiro pendiente
             pending = supabase_client.table("retiros_premios").select("id").eq("usuario_id", str(usuario_id)).eq("estado", "pendiente").execute()
             if pending.data and len(pending.data) > 0:
                 return jsonify({"status": "error", "message": "Ya posees una solicitud de retiro en proceso."}), 400
