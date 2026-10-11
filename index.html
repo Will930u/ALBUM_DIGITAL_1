@@ -1,4 +1,4 @@
-﻿<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="es">
 <head>
   <meta charset="UTF-8">
@@ -13,13 +13,19 @@
     body { background: radial-gradient(circle at center, #1a0b36 0%, #080314 100%); color: #e2e8f0; font-family: 'Segoe UI', sans-serif; min-height: 100vh; }
     .metal-card { background: linear-gradient(135deg, rgba(30, 27, 75, 0.8) 0%, rgba(88, 28, 135, 0.8) 100%); border: 1px solid rgba(168, 85, 247, 0.4); box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5); backdrop-filter: blur(12px); border-radius: 16px; }
     .metal-button { background: linear-gradient(135deg, #3b82f6 0%, #9333ea 100%); border: 1px solid rgba(255, 255, 255, 0.3); transition: all 0.3s ease; }
+    .metal-button:hover { background: linear-gradient(135deg, #2563eb 0%, #7e22ce 100%); transform: translateY(-2px); }
     .metal-slot { background: linear-gradient(135deg, #0f172a 0%, #1e1b4b 100%); border: 2px dashed rgba(139, 92, 246, 0.4); }
     .metal-slot.filled { border: 2px solid #a855f7; box-shadow: 0 0 10px rgba(168, 85, 247, 0.5); }
     .metal-slot.milestone-slot { border: 2px solid #f59e0b; box-shadow: 0 0 15px rgba(245, 158, 11, 0.6); }
     .glow-text { text-shadow: 0 0 10px rgba(168, 85, 247, 0.8); }
+    ::-webkit-scrollbar { width: 8px; }
+    ::-webkit-scrollbar-track { background: #080314; }
+    ::-webkit-scrollbar-thumb { background: #581c87; border-radius: 4px; }
   </style>
 </head>
 <body class="flex flex-col min-h-screen">
+
+  <!-- CABECERA PRINCIPAL -->
   <header id="mainHeader" class="hidden sticky top-0 z-40 metal-card rounded-none px-6 py-4 flex flex-wrap justify-between items-center gap-4">
     <div class="flex items-center space-x-3 cursor-pointer select-none" id="appLogo">
       <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center font-bold text-xl shadow-lg border border-white/20">Á</div>
@@ -29,7 +35,7 @@
       </div>
     </div>
     <div class="flex items-center space-x-3">
-      <button id="btnHeaderMilestone" onclick="openWithdrawModal()" class="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-emerald-600 text-white font-bold text-xs flex items-center space-x-1.5 shadow-lg transition disabled:opacity-50 disabled:cursor-not-allowed">
+      <button id="btnHeaderMilestone" onclick="openWithdrawModal()" class="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-emerald-600 text-white font-bold text-xs flex items-center space-x-1.5 shadow-lg transition disabled:opacity-50">
         <i data-lucide="award" class="w-4 h-4"></i>
         <span>Premio Hito ($200)</span>
       </button>
@@ -37,31 +43,72 @@
         <i data-lucide="wallet" class="w-4 h-4 text-purple-400"></i>
         <span class="text-xs text-slate-400">Valor Neto:</span>
         <span id="userBalanceBs" class="font-bold text-emerald-400 text-sm">Bs. 0.00 ($0.00)</span>
-        <button id="btnHeaderTotalLiquidate" onclick="confirmTotalLiquidate()" class="ml-1 px-2 py-0.5 rounded-full bg-red-600 hover:bg-red-500 text-white font-extrabold text-[10px] uppercase transition disabled:opacity-50 disabled:cursor-not-allowed">
+        <button id="btnHeaderTotalLiquidate" onclick="confirmTotalLiquidate()" class="ml-1 px-2 py-0.5 rounded-full bg-red-600 hover:bg-red-500 text-white font-extrabold text-[10px] uppercase transition disabled:opacity-50">
           Liquidar Todo
         </button>
       </div>
       <nav class="flex space-x-2">
         <button onclick="switchTab('album')" class="px-4 py-2 rounded-lg text-sm font-semibold transition bg-purple-600/30 text-purple-200 border border-purple-500/30" id="navAlbum">Álbum</button>
         <button onclick="switchTab('tienda')" class="px-4 py-2 rounded-lg text-sm font-semibold transition bg-slate-800 text-slate-300 hover:bg-purple-600/30" id="navTienda">Tienda</button>
+        <button onclick="logoutUser()" class="px-3 py-2 rounded-lg text-sm font-semibold transition bg-red-900/40 text-red-200 border border-red-500/30">Salir</button>
       </nav>
     </div>
   </header>
 
   <main class="flex-grow flex items-center justify-center p-4">
-    <section id="introSection" class="text-center max-w-lg w-full p-8 metal-card flex flex-col items-center justify-center space-y-6">
-      <div id="introLogo" class="w-28 h-28 rounded-full bg-gradient-to-tr from-blue-600 via-purple-600 to-indigo-800 flex items-center justify-center shadow-2xl border-2 border-white/30 cursor-pointer select-none">
-        <i data-lucide="trophy" class="w-14 h-14 text-white"></i>
+
+    <!-- 1. PANTALLA DE LOGIN / REGISTRO / RECUPERACIÓN -->
+    <section id="authSection" class="max-w-md w-full p-8 metal-card space-y-6">
+      <div class="text-center space-y-2">
+        <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center shadow-xl border border-white/20">
+          <i data-lucide="lock" class="w-8 h-8 text-white"></i>
+        </div>
+        <h2 class="text-2xl font-extrabold glow-text" id="authTitle">ACCESO AL SISTEMA</h2>
+        <p class="text-xs text-purple-200/80">Inicia sesión o regístrate para gestionar tu álbum.</p>
       </div>
-      <div>
-        <h2 class="text-3xl font-extrabold glow-text mb-2">COLECCIÓN METALIZADA</h2>
-        <p class="text-sm text-purple-200/80">Completa las 80 páginas y colecciona las 2000 barajitas exclusivas.</p>
-      </div>
-      <button onclick="startGame()" class="metal-button w-full py-4 rounded-xl font-bold text-lg text-white tracking-wider flex items-center justify-center space-x-2">
-        <span>ENTRAR AL ÁLBUM</span>
-      </button>
+
+      <!-- Formulario Login -->
+      <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+        <div>
+          <label class="block text-xs font-semibold text-purple-200 mb-1">Usuario / Username:</label>
+          <input type="text" id="loginUsername" required class="w-full bg-slate-900 border border-purple-500/40 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-purple-200 mb-1">Contraseña:</label>
+          <input type="password" id="loginPassword" required class="w-full bg-slate-900 border border-purple-500/40 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none">
+        </div>
+        <button type="submit" class="metal-button w-full py-3 rounded-xl font-bold text-white text-sm">INICIAR SESIÓN</button>
+        <div class="flex justify-between text-xs text-purple-300 pt-2">
+          <button type="button" onclick="switchAuthMode('register')" class="hover:underline">¿No tienes cuenta? Regístrate</button>
+          <button type="button" onclick="openRecoveryModal()" class="hover:underline text-amber-400">¿Olvidaste tu contraseña?</button>
+        </div>
+      </form>
+
+      <!-- Formulario Registro -->
+      <form id="registerForm" onsubmit="handleRegister(event)" class="hidden space-y-3">
+        <div>
+          <label class="block text-xs font-semibold text-purple-200 mb-1">Usuario (Username):</label>
+          <input type="text" id="regUsername" required class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white text-xs">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-purple-200 mb-1">Correo Electrónico (Gmail):</label>
+          <input type="email" id="regEmail" required class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white text-xs">
+        </div>
+        <div>
+          <label class="block text-xs font-semibold text-purple-200 mb-1">Contraseña:</label>
+          <input type="password" id="regPassword" required class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white text-xs">
+        </div>
+        <div class="grid grid-cols-3 gap-2">
+          <div><label class="block text-[10px] text-purple-200">Banco:</label><input type="text" id="regBanco" required placeholder="0134" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white text-xs"></div>
+          <div><label class="block text-[10px] text-purple-200">Cédula:</label><input type="text" id="regCedula" required placeholder="21101658" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white text-xs"></div>
+          <div><label class="block text-[10px] text-purple-200">Teléfono:</label><input type="text" id="regTelefono" required placeholder="0412..." class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white text-xs"></div>
+        </div>
+        <button type="submit" class="metal-button w-full py-3 rounded-xl font-bold text-white text-sm mt-2">REGISTRARSE</button>
+        <button type="button" onclick="switchAuthMode('login')" class="w-full text-center text-xs text-purple-300 hover:underline pt-2">¿Ya tienes cuenta? Inicia sesión</button>
+      </form>
     </section>
 
+    <!-- 2. ÁLBUM DE BARAJITAS -->
     <section id="albumSection" class="hidden w-full max-w-6xl space-y-6">
       <div class="metal-card p-4 flex flex-col md:flex-row justify-between items-center gap-4">
         <div class="flex items-center space-x-4">
@@ -82,12 +129,13 @@
       <div id="stickersGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4"></div>
     </section>
 
+    <!-- 3. TIENDA -->
     <section id="tiendaSection" class="hidden w-full max-w-2xl">
       <div class="metal-card p-6 md:p-8 space-y-6">
         <div class="border-b border-purple-500/30 pb-4 flex justify-between items-center">
           <div>
             <h2 class="text-2xl font-bold glow-text">TIENDA DE BARAJITAS</h2>
-            <p class="text-xs text-purple-300">Adquiere tus barajitas y recíbelas al ser aprobadas.</p>
+            <p class="text-xs text-purple-300">Adquiere tus barajitas mediante Pago Móvil.</p>
           </div>
           <div class="text-right">
             <span class="text-xs text-slate-400">Tasa Oficial BCV:</span>
@@ -105,33 +153,32 @@
             <div class="flex justify-between text-lg font-bold text-emerald-400 pt-2 border-t border-slate-800"><span>Total a Pagar en Bs.:</span><span id="totalBsDisplay">Bs. 0.00</span></div>
           </div>
         </div>
-        <div class="bg-purple-950/30 border border-purple-500/40 p-4 rounded-xl space-y-2 text-xs">
-          <h3 class="font-bold text-purple-300 uppercase">Datos para Pago Móvil</h3>
-          <p>Banco: <b>0134 (Banesco)</b> | Cédula: <b>21101658</b> | Teléfono: <b>04129830982</b></p>
-        </div>
         <form onsubmit="submitPurchase(event)" class="space-y-4">
           <div>
             <label class="block text-sm font-semibold text-purple-200 mb-1">Número de Referencia (Hasta 12 dígitos):</label>
             <input type="text" id="refInput" required placeholder="Ej: 748201" pattern="[0-9]{6,12}" maxlength="12" class="w-full bg-slate-900 border border-purple-500/40 rounded-xl px-4 py-3 text-white focus:outline-none font-mono">
           </div>
-          <button type="submit" id="btnSubmitPurchase" class="metal-button w-full py-4 rounded-xl font-bold text-white flex items-center justify-center space-x-2">
-            <span>REPORTAR PAGO Y SOLICITAR BARAJITAS</span>
-          </button>
+          <button type="submit" id="btnSubmitPurchase" class="metal-button w-full py-4 rounded-xl font-bold text-white">REPORTAR PAGO Y SOLICITAR BARAJITAS</button>
         </form>
       </div>
     </section>
 
-    <!-- PANEL DE ADMINISTRACIÓN -->
+    <!-- 4. PANEL DE ADMINISTRACIÓN COMPLETO -->
     <section id="adminSection" class="hidden w-full max-w-5xl space-y-6">
       <div class="metal-card p-6 md:p-8 space-y-6">
         <div class="flex justify-between items-center border-b border-purple-500/30 pb-4">
           <h2 class="text-2xl font-bold glow-text">PANEL DE ADMINISTRACIÓN</h2>
           <button onclick="exitAdmin()" class="px-4 py-2 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold">Cerrar Panel</button>
         </div>
-        <div class="flex border-b border-slate-800 space-x-4">
-          <button onclick="switchAdminTab('pagos')" id="tabAdminPagos" class="pb-3 font-semibold text-sm border-b-2 border-purple-500 text-purple-300">Pagos Pendientes</button>
-          <button onclick="switchAdminTab('retiros')" id="tabAdminRetiros" class="pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400">Solicitudes de Retiro</button>
+        <div class="flex border-b border-slate-800 space-x-4 overflow-x-auto">
+          <button onclick="switchAdminTab('pagos')" id="tabAdminPagos" class="pb-3 font-semibold text-sm border-b-2 border-purple-500 text-purple-300 whitespace-nowrap">Pagos Pendientes</button>
+          <button onclick="switchAdminTab('retiros')" id="tabAdminRetiros" class="pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap">Solicitudes de Retiro</button>
+          <button onclick="switchAdminTab('imagenes')" id="tabAdminImagenes" class="pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap">Carga Masiva (2000 Imgs)</button>
+          <button onclick="switchAdminTab('metricas')" id="tabAdminMetricas" class="pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap">Métricas y Caja (30%/70%)</button>
+          <button onclick="switchAdminTab('usuarios')" id="tabAdminUsuarios" class="pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap">Usuarios y Expedientes</button>
         </div>
+
+        <!-- TAB 1: Pagos -->
         <div id="adminContentPagos" class="space-y-4">
           <table class="w-full text-left text-sm text-slate-300">
             <thead class="bg-slate-900/80 text-xs uppercase text-purple-300">
@@ -140,6 +187,8 @@
             <tbody id="pendingPaymentsTable"></tbody>
           </table>
         </div>
+
+        <!-- TAB 2: Retiros -->
         <div id="adminContentRetiros" class="hidden space-y-4">
           <table class="w-full text-left text-sm text-slate-300">
             <thead class="bg-slate-900/80 text-xs uppercase text-amber-300">
@@ -148,8 +197,75 @@
             <tbody id="pendingWithdrawalsTable"></tbody>
           </table>
         </div>
+
+        <!-- TAB 3: Carga Masiva de Imágenes -->
+        <div id="adminContentImagenes" class="hidden space-y-4">
+          <div class="bg-slate-950/60 p-5 rounded-xl border border-purple-500/30 space-y-4">
+            <h3 class="text-base font-bold text-purple-200">Subida Masiva de Barajitas a Supabase Storage (ZIP o Múltiples)</h3>
+            <form onsubmit="uploadStickerImagesBatch(event)" class="space-y-3">
+              <input type="file" id="imgFileAssetBatch" accept="image/*,application/zip" multiple required class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-xs text-slate-300">
+              <button type="submit" class="metal-button w-full py-3 rounded-lg text-xs font-bold text-white">Iniciar Carga Masiva</button>
+            </form>
+            <div id="uploadProgressContainer" class="hidden space-y-1">
+              <span id="uploadProgressLabel" class="text-xs text-purple-300">Procesando...</span>
+              <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden"><div id="uploadProgressBar" class="bg-purple-600 h-full w-0"></div></div>
+            </div>
+          </div>
+        </div>
+
+        <!-- TAB 4: Métricas Financieras (Caja 30% vs 70%) -->
+        <div id="adminContentMetricas" class="hidden space-y-4">
+          <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
+            <div class="bg-slate-950/60 p-4 rounded-xl border border-purple-500/20"><span class="text-xs text-slate-400">Ventas Totales (100%)</span><p id="metricTotalSales" class="text-lg font-bold text-blue-400">Bs. 0.00</p></div>
+            <div class="bg-slate-950/60 p-4 rounded-xl border border-purple-500/20"><span class="text-xs text-slate-400">Caja Plataforma (30%)</span><p id="metricPlatformProfit" class="text-lg font-bold text-purple-400">Bs. 0.00</p></div>
+            <div class="bg-slate-950/60 p-4 rounded-xl border border-purple-500/20"><span class="text-xs text-slate-400">Valor Neto Usuarios (70%)</span><p id="metricUserNetValue" class="text-lg font-bold text-emerald-400">Bs. 0.00</p></div>
+          </div>
+          <div class="bg-slate-950/60 p-4 rounded-xl border border-purple-500/20 h-64"><canvas id="financialChart"></canvas></div>
+        </div>
+
+        <!-- TAB 5: Usuarios -->
+        <div id="adminContentUsuarios" class="hidden space-y-4">
+          <table class="w-full text-left text-sm text-slate-300">
+            <thead class="bg-slate-900/80 text-xs uppercase text-purple-300">
+              <tr><th class="p-3">Usuario</th><th class="p-3">Gmail</th><th class="p-3">Barajitas</th><th class="p-3">Saldo Bs.</th><th class="p-3 text-center">Acciones</th></tr>
+            </thead>
+            <tbody id="userListTable"></tbody>
+          </table>
+          <button onclick="purgeAllData()" class="px-4 py-2 bg-red-600/30 text-red-300 rounded-lg text-xs font-bold border border-red-500/40">PURGA TOTAL DEL SISTEMA</button>
+        </div>
       </div>
     </section>
+
+    <!-- MODAL DE RECUPERACIÓN DE CONTRASEÑA (ESTILO CHAT TELEGRAM + DATOS SECRETOS) -->
+    <div id="recoveryModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+      <div class="metal-card max-w-lg w-full p-6 space-y-4 border border-amber-500/50">
+        <div class="flex justify-between items-center border-b border-amber-500/30 pb-3">
+          <h3 class="text-lg font-bold text-amber-400">Recuperación de Contraseña (Soporte Telegram)</h3>
+          <button onclick="closeRecoveryModal()" class="text-slate-400 font-bold">✕</button>
+        </div>
+
+        <!-- Paso 1: Preguntas secretas de validación -->
+        <div id="recoveryStep1" class="space-y-3 text-xs">
+          <p class="text-purple-200">Para verificar tu identidad, responde los datos con los que te registraste:</p>
+          <input type="text" id="recUsername" placeholder="Tu Usuario" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white">
+          <input type="email" id="recEmail" placeholder="Tu Correo Electrónico (Gmail)" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white">
+          <input type="text" id="recTelefono" placeholder="Tu Teléfono de Pago Móvil" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white">
+          <button onclick="verifyRecoveryData()" class="w-full py-2.5 bg-purple-600 text-white font-bold rounded-lg">Verificar Datos</button>
+        </div>
+
+        <!-- Paso 2: Ventana simulada de chat con el Bot de Telegram -->
+        <div id="recoveryStep2" class="hidden space-y-3">
+          <div class="bg-slate-950 p-3 rounded-xl border border-purple-500/30 h-40 overflow-y-auto space-y-2 text-xs" id="telegramChatBox">
+            <div class="bg-purple-900/40 p-2 rounded text-purple-200">🤖 <b>Bot Telegram:</b> Identidad verificada correctamente. Escribe el comando para restablecer tu contraseña o contactar al admin.</div>
+          </div>
+          <div class="flex space-x-2">
+            <input type="text" id="chatInput" placeholder="Escribe al bot..." class="flex-grow bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-xs text-white">
+            <button onclick="sendChatMessage()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold">Enviar</button>
+          </div>
+          <button onclick="closeRecoveryModal()" class="w-full py-2 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold">Finalizar y Cerrar</button>
+        </div>
+      </div>
+    </div>
 
     <!-- MODAL RETIRO -->
     <div id="withdrawModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -160,22 +276,23 @@
         </div>
         <div id="milestoneOptions" class="grid grid-cols-2 gap-2 text-xs"></div>
         <form onsubmit="submitWithdrawalRequest(event)" class="space-y-3 pt-2">
-          <input type="text" id="wBank" required placeholder="Banco (Ej: 0134 Banesco)" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2.5 text-xs text-white">
+          <input type="text" id="wBank" required placeholder="Banco" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2.5 text-xs text-white">
           <input type="text" id="wPhone" required placeholder="Teléfono" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2.5 text-xs text-white">
           <input type="text" id="wId" required placeholder="Cédula" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2.5 text-xs text-white">
           <button type="submit" id="btnSendWithdraw" class="w-full py-3 bg-gradient-to-r from-amber-500 to-emerald-600 text-white font-bold rounded-xl text-sm">CONFIRMAR RETIRO</button>
         </form>
       </div>
     </div>
+
   </main>
 
   <script>
     const API_URL = "https://album-digital.onrender.com";
     const STATE = {
       currentPage: 1, totalPages: 80, stickersPerPage: 25, totalStickers: 2000,
-      bcvRate: 36.5, userId: getOrCreateUserId(), userStickersCount: 0, userBalanceBs: 0,
-      claimedMilestones: [], selectedMilestone: null, isProcessingWithdrawal: false,
-      logoClicks: 0, clickTimer: null,
+      bcvRate: 36.5, userId: localStorage.getItem('active_user_id') || null,
+      userStickersCount: 0, userBalanceBs: 0, claimedMilestones: [], selectedMilestone: null,
+      isProcessingWithdrawal: false, logoClicks: 0, clickTimer: null,
       supabase: supabase.createClient("https://dxicbitnnesjsqxzisea.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4aWNiaXRubmVzanNxeHppc2VhIiwicm9sZSI6ImFub24iLCJpYXQiOjktMjAyNi0wMyIsImV4cCI6MjA1NDU5NzI1Mn0.h3SPwV1UBb9m630AFPtw")
     };
 
@@ -183,13 +300,94 @@
       lucide.createIcons();
       setupLogoClickCounter();
       await fetchBcvRate();
-      await loadUserDataFromDB();
+      if (STATE.userId) {
+        await loadUserDataFromDB();
+      } else {
+        document.getElementById('authSection').classList.remove('hidden');
+      }
     });
 
-    function getOrCreateUserId() {
-      let id = localStorage.getItem('album_user_id');
-      if (!id) { id = 'USR-' + Math.floor(100000 + Math.random() * 900000); localStorage.setItem('album_user_id', id); }
-      return id;
+    // SISTEMA DE AUTH (LOGIN / REGISTRO)
+    function switchAuthMode(mode) {
+      if (mode === 'register') {
+        document.getElementById('loginForm').classList.add('hidden');
+        document.getElementById('registerForm').classList.remove('hidden');
+        document.getElementById('authTitle').innerText = 'REGISTRO DE USUARIO';
+      } else {
+        document.getElementById('registerForm').classList.add('hidden');
+        document.getElementById('loginForm').classList.remove('hidden');
+        document.getElementById('authTitle').innerText = 'ACCESO AL SISTEMA';
+      }
+    }
+
+    async function handleRegister(e) {
+      e.preventDefault();
+      const username = document.getElementById('regUsername').value.trim();
+      const email = document.getElementById('regEmail').value.trim();
+      const pass = document.getElementById('regPassword').value.trim();
+      const banco = document.getElementById('regBanco').value.trim();
+      const cedula = document.getElementById('regCedula').value.trim();
+      const telefono = document.getElementById('regTelefono').value.trim();
+      const userId = 'USR-' + username.toUpperCase();
+
+      const { error } = await STATE.supabase.from('usuarios').insert([{
+        id: userId, username: username, password_hash: pass, gmail: email,
+        banco: banco, cedula: cedula, telefono: telefono, cantidad_barajitas: 0, saldo_bs: 0
+      }]);
+
+      if (error) { alert('Error en registro: ' + error.message); return; }
+      alert('¡Registro exitoso! Inicia sesión ahora.');
+      switchAuthMode('login');
+    }
+
+    async function handleLogin(e) {
+      e.preventDefault();
+      const username = document.getElementById('loginUsername').value.trim();
+      const pass = document.getElementById('loginPassword').value.trim();
+
+      const { data, error } = await STATE.supabase.from('usuarios').select('*').eq('username', username).single();
+      if (error || !data || data.password_hash !== pass) { alert('Usuario o contraseña incorrectos.'); return; }
+
+      STATE.userId = data.id;
+      localStorage.setItem('active_user_id', STATE.userId);
+      document.getElementById('authSection').classList.add('hidden');
+      startGame();
+    }
+
+    function logoutUser() {
+      localStorage.removeItem('active_user_id');
+      window.location.reload();
+    }
+
+    // RECUPERACIÓN DE CONTRASEÑA CON CHAT TELEGRAM
+    function openRecoveryModal() { document.getElementById('recoveryModal').classList.remove('hidden'); }
+    function closeRecoveryModal() { document.getElementById('recoveryModal').classList.add('hidden'); }
+
+    async function verifyRecoveryData() {
+      const u = document.getElementById('recUsername').value.trim();
+      const e = document.getElementById('recEmail').value.trim();
+      const t = document.getElementById('recTelefono').value.trim();
+
+      const { data, error } = await STATE.supabase.from('usuarios').select('*').eq('username', u).eq('gmail', e).eq('telefono', t).single();
+      if (error || !data) { alert('Los datos proporcionados no coinciden con ningún registro.'); return; }
+
+      document.getElementById('recoveryStep1').classList.add('hidden');
+      document.getElementById('recoveryStep2').classList.remove('hidden');
+    }
+
+    function sendChatMessage() {
+      const input = document.getElementById('chatInput');
+      const box = document.getElementById('telegramChatBox');
+      const val = input.value.trim();
+      if (!val) return;
+
+      box.innerHTML += `<div class="text-right text-blue-300"><b>Tú:</b> ${val}</div>`;
+      input.value = '';
+
+      setTimeout(() => {
+        box.innerHTML += `<div class="bg-purple-900/40 p-2 rounded text-purple-200">🤖 <b>Bot Telegram:</b> Solicitud procesada. Para cambiar tu contraseña de forma segura, contacta al administrador con el código de validación #TG-SECURE-99.</div>`;
+        box.scrollTop = box.scrollHeight;
+      }, 1000);
     }
 
     async function fetchBcvRate() {
@@ -202,18 +400,12 @@
 
     async function loadUserDataFromDB() {
       if (!STATE.supabase) return;
-      // Consultar datos reales de la tabla 'usuarios'
       let { data: user } = await STATE.supabase.from('usuarios').select('*').eq('id', STATE.userId).single();
-      if (!user) {
-        await STATE.supabase.from('usuarios').insert([{ id: STATE.userId, nombre: STATE.userId, cantidad_barajitas: 0, saldo_bs: 0 }]);
-        STATE.userStickersCount = 0; STATE.userBalanceBs = 0;
-      } else {
+      if (user) {
         STATE.userStickersCount = user.cantidad_barajitas || 0;
         STATE.userBalanceBs = user.saldo_bs || 0;
         STATE.claimedMilestones = user.claimed_milestones || [];
       }
-
-      // Verificar si hay retiros pendientes para bloquear botones
       const { data: pendingW } = await STATE.supabase.from('retiros_premios').select('id').eq('usuario_id', STATE.userId).eq('estado', 'pendiente');
       STATE.isProcessingWithdrawal = (pendingW && pendingW.length > 0);
       updateUIHeader();
@@ -225,25 +417,22 @@
       const progressPct = ((STATE.userStickersCount / STATE.totalStickers) * 100).toFixed(1);
       document.getElementById('albumProgressText').innerText = `${STATE.userStickersCount} / ${STATE.totalStickers} (${progressPct}%)`;
       document.getElementById('albumProgressBar').style.width = `${progressPct}%`;
-      document.getElementById('btnHeaderMilestone').disabled = STATE.isProcessingWithdrawal;
-      document.getElementById('btnHeaderTotalLiquidate').disabled = STATE.isProcessingWithdrawal;
     }
 
     function setupLogoClickCounter() {
-      const logos = [document.getElementById('introLogo'), document.getElementById('appLogo')];
-      logos.forEach(logo => {
-        if (!logo) return;
+      const logo = document.getElementById('appLogo');
+      if (logo) {
         logo.addEventListener('click', () => {
           STATE.logoClicks++;
           clearTimeout(STATE.clickTimer);
           if (STATE.logoClicks >= 10) { STATE.logoClicks = 0; openAdminPanel(); }
           else { STATE.clickTimer = setTimeout(() => { STATE.logoClicks = 0; }, 3000); }
         });
-      });
+      }
     }
 
     function startGame() {
-      document.getElementById('introSection').classList.add('hidden');
+      document.getElementById('authSection').classList.add('hidden');
       document.getElementById('mainHeader').classList.remove('hidden');
       switchTab('album');
     }
@@ -296,29 +485,18 @@
       const qty = parseInt(document.getElementById('stickerQty').value);
       const ref = document.getElementById('refInput').value.trim();
       const totalBs = (qty * 0.62) * STATE.bcvRate;
-      const btn = document.getElementById('btnSubmitPurchase');
-      btn.disabled = true; btn.innerText = 'PROCESANDO...';
 
-      try {
-        const res = await fetch(`${API_URL}/api/notificar-compra`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ usuario_id: STATE.userId, barajitas_qty: qty, monto_bs: totalBs, monto_usd: qty * 0.62, referencia: ref })
-        });
-        const rData = await res.json();
-        if (!res.ok) throw new Error(rData.message || 'Error en servidor');
-        alert('¡Pago reportado con éxito! Pendiente de aprobación por el administrador.');
-        document.getElementById('refInput').value = '';
-        switchTab('album');
-      } catch (err) {
-        alert(err.message || 'Error al reportar pago.');
-      } finally {
-        btn.disabled = false; btn.innerText = 'REPORTAR PAGO Y SOLICITAR BARAJITAS';
-      }
+      const res = await fetch(`${API_URL}/api/notificar-compra`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuario_id: STATE.userId, barajitas_qty: qty, monto_bs: totalBs, monto_usd: qty * 0.62, referencia: ref })
+      });
+      if (res.ok) { alert('¡Pago reportado con éxito!'); document.getElementById('refInput').value = ''; switchTab('album'); }
+      else { alert('Error al reportar pago o referencia duplicada.'); }
     }
 
     function openWithdrawModal() {
-      if (STATE.isProcessingWithdrawal) return alert('Tienes una solicitud de retiro activa en proceso.');
+      if (STATE.isProcessingWithdrawal) return alert('Tienes una solicitud de retiro activa.');
       const container = document.getElementById('milestoneOptions');
       container.innerHTML = '';
       [500, 1000, 1500, 2000].forEach(m => {
@@ -326,7 +504,7 @@
         const claimed = STATE.claimedMilestones.includes(m);
         const btn = document.createElement('button');
         btn.type = 'button';
-        btn.className = `p-3 rounded-xl border text-left flex flex-col justify-between ${claimed ? 'opacity-50' : unlocked ? 'border-amber-500 text-white cursor-pointer' : 'opacity-40 cursor-not-allowed'}`;
+        btn.className = `p-3 rounded-xl border text-left ${claimed ? 'opacity-50' : unlocked ? 'border-amber-500 text-white cursor-pointer' : 'opacity-40 cursor-not-allowed'}`;
         btn.innerHTML = `<span class="font-bold text-amber-300">Hito #${m}</span><span class="text-xs">$200.00 USD</span>`;
         if (unlocked && !claimed) btn.onclick = () => { STATE.selectedMilestone = m; document.getElementById('btnSendWithdraw').disabled = false; };
         container.appendChild(btn);
@@ -338,7 +516,6 @@
 
     async function submitWithdrawalRequest(e) {
       e.preventDefault();
-      if (!STATE.selectedMilestone) return alert('Selecciona un hito.');
       const bank = document.getElementById('wBank').value;
       const phone = document.getElementById('wPhone').value;
       const id = document.getElementById('wId').value;
@@ -349,29 +526,25 @@
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario_id: STATE.userId, tipo: 'hito_parcial', milestone: STATE.selectedMilestone, monto_bs: bsVal, monto_usd: 200.00, datos_pago: `${bank} | ${phone} | ${id}` })
       });
-      if (res.ok) { alert('Solicitud enviada con éxito.'); closeWithdrawModal(); loadUserDataFromDB(); }
-      else { alert('Error al procesar la solicitud.'); }
+      if (res.ok) { alert('Solicitud enviada.'); closeWithdrawModal(); loadUserDataFromDB(); }
     }
 
     async function confirmTotalLiquidate() {
-      if (STATE.isProcessingWithdrawal) return alert('Ya tienes un retiro pendiente.');
-      if (STATE.userBalanceBs <= 0) return alert('No posees saldo para liquidar.');
-      if (!confirm('¿Deseas solicitar la liquidación total del 100% de tu saldo?')) return;
+      if (STATE.userBalanceBs <= 0) return alert('Sin saldo.');
+      if (!confirm('¿Liquidar saldo total?')) return;
       const bank = prompt("Banco:"); const phone = prompt("Teléfono:"); const id = prompt("Cédula:");
-      if (!bank || !phone || !id) return alert("Datos incompletos.");
-
-      const usdVal = (STATE.userBalanceBs / STATE.bcvRate).toFixed(2);
+      if (!bank || !phone || !id) return;
       await fetch(`${API_URL}/api/notificar-retiro`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuario_id: STATE.userId, tipo: 'liquidacion_total', milestone: 0, monto_bs: STATE.userBalanceBs.toFixed(2), monto_usd: usdVal, datos_pago: `${bank} | ${phone} | ${id}` })
+        body: JSON.stringify({ usuario_id: STATE.userId, tipo: 'liquidacion_total', milestone: 0, monto_bs: STATE.userBalanceBs.toFixed(2), monto_usd: (STATE.userBalanceBs/STATE.bcvRate).toFixed(2), datos_pago: `${bank} | ${phone} | ${id}` })
       });
-      alert('Liquidación total solicitada.');
-      loadUserDataFromDB();
+      alert('Liquidación solicitada.');
     }
 
+    // ADMINISTRACIÓN
     function openAdminPanel() {
-      document.getElementById('introSection').classList.add('hidden');
+      document.getElementById('authSection').classList.add('hidden');
       document.getElementById('albumSection').classList.add('hidden');
       document.getElementById('tiendaSection').classList.add('hidden');
       document.getElementById('mainHeader').classList.remove('hidden');
@@ -384,8 +557,15 @@
     function switchAdminTab(tab) {
       document.getElementById('adminContentPagos').classList.add('hidden');
       document.getElementById('adminContentRetiros').classList.add('hidden');
+      document.getElementById('adminContentImagenes').classList.add('hidden');
+      document.getElementById('adminContentMetricas').classList.add('hidden');
+      document.getElementById('adminContentUsuarios').classList.add('hidden');
+
       if (tab === 'pagos') { document.getElementById('adminContentPagos').classList.remove('hidden'); loadPendingPayments(); }
       else if (tab === 'retiros') { document.getElementById('adminContentRetiros').classList.remove('hidden'); loadPendingWithdrawals(); }
+      else if (tab === 'imagenes') { document.getElementById('adminContentImagenes').classList.remove('hidden'); }
+      else if (tab === 'metricas') { document.getElementById('adminContentMetricas').classList.remove('hidden'); renderFinancialMetrics(); }
+      else if (tab === 'usuarios') { document.getElementById('adminContentUsuarios').classList.remove('hidden'); loadUserList(); }
     }
 
     async function loadPendingPayments() {
@@ -409,45 +589,82 @@
     }
 
     async function approvePayment(txId, userId, qty, montoBs) {
-      const refPago = prompt("Número de referencia del Pago Móvil de aprobación:");
-      if (!refPago) return;
-      const netShare = montoBs * 0.70;
-
-      // 1. Marcar transacción aprobada
       await STATE.supabase.from('transacciones').update({ estado: 'aprobado' }).eq('id', txId);
-
-      // 2. Obtener usuario actual y actualizar barajitas y saldo
       let { data: usr } = await STATE.supabase.from('usuarios').select('*').eq('id', userId).single();
-      const currentQty = usr ? usr.cantidad_barajitas || 0 : 0;
-      const currentBal = usr ? usr.saldo_bs || 0 : 0;
-
       await STATE.supabase.from('usuarios').update({
-        cantidad_barajitas: currentQty + qty,
-        saldo_bs: currentBal + netShare
+        cantidad_barajitas: (usr.cantidad_barajitas || 0) + qty,
+        saldo_bs: (usr.saldo_bs || 0) + (montoBs * 0.70)
       }).eq('id', userId);
-
-      alert('Pago aprobado y barajitas acreditadas al usuario.');
+      alert('Pago aprobado.');
       loadPendingPayments();
     }
 
     async function approveWithdrawal(wId, userId, tipo, milestone, montoBs) {
-      const refPago = prompt("Referencia de pago del premio:");
-      if (!refPago) return;
-
       await STATE.supabase.from('retiros_premios').update({ estado: 'aprobado' }).eq('id', wId);
       let { data: usr } = await STATE.supabase.from('usuarios').select('*').eq('id', userId).single();
-
       if (tipo === 'liquidacion_total') {
         await STATE.supabase.from('usuarios').update({ cantidad_barajitas: 0, saldo_bs: 0, claimed_milestones: [] }).eq('id', userId);
       } else {
         let claimed = usr.claimed_milestones || [];
         if (!claimed.includes(milestone)) claimed.push(milestone);
-        const newBal = Math.max(0, (usr.saldo_bs || 0) - montoBs);
-        await STATE.supabase.from('usuarios').update({ saldo_bs: newBal, claimed_milestones: claimed }).eq('id', userId);
+        await STATE.supabase.from('usuarios').update({ saldo_bs: Math.max(0, (usr.saldo_bs || 0) - montoBs), claimed_milestones: claimed }).eq('id', userId);
       }
-
-      alert('Retiro aprobado con éxito.');
+      alert('Retiro aprobado.');
       loadPendingWithdrawals();
+    }
+
+    async function uploadStickerImagesBatch(e) {
+      e.preventDefault();
+      const fileInput = document.getElementById('imgFileAssetBatch');
+      const container = document.getElementById('uploadProgressContainer');
+      const bar = document.getElementById('uploadProgressBar');
+      container.classList.remove('hidden');
+      
+      for (let i = 0; i < fileInput.files.length; i++) {
+        const file = fileInput.files[i];
+        const numMatch = file.name.match(/^(\d+)\./);
+        if (numMatch) {
+          const stickerNum = numMatch[1];
+          await STATE.supabase.storage.from('barajitas').upload(`${stickerNum}.jpg`, file, { upsert: true });
+          bar.style.width = `${Math.round(((i+1)/fileInput.files.length)*100)}%`;
+        }
+      }
+      alert('Carga masiva finalizada.');
+    }
+
+    async function renderFinancialMetrics() {
+      const { data } = await STATE.supabase.from('transacciones').select('*').eq('estado', 'aprobado');
+      const totalSales = (data || []).reduce((sum, t) => sum + parseFloat(t.monto_bs), 0);
+      document.getElementById('metricTotalSales').innerText = `Bs. ${totalSales.toFixed(2)}`;
+      document.getElementById('metricPlatformProfit').innerText = `Bs. ${(totalSales * 0.30).toFixed(2)}`;
+      document.getElementById('metricUserNetValue').innerText = `Bs. ${(totalSales * 0.70).toFixed(2)}`;
+
+      const ctx = document.getElementById('financialChart').getContext('2d');
+      if (window.myChart) window.myChart.destroy();
+      window.myChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Plataforma (30%)', 'Usuarios (70%)'],
+          datasets: [{ data: [totalSales * 0.30, totalSales * 0.70], backgroundColor: ['#a855f7', '#10b981'] }]
+        }
+      });
+    }
+
+    async function loadUserList() {
+      const tbody = document.getElementById('userListTable');
+      tbody.innerHTML = '';
+      const { data } = await STATE.supabase.from('usuarios').select('*');
+      (data || []).forEach(u => {
+        tbody.innerHTML += `<tr class="border-b border-slate-800"><td class="p-3 font-bold">${u.username}</td><td class="p-3">${u.gmail || '-'}</td><td class="p-3">${u.cantidad_barajitas || 0}</td><td class="p-3 text-emerald-400">Bs. ${u.saldo_bs || 0}</td><td class="p-3 text-center">-</td></tr>`;
+      });
+    }
+
+    async function purgeAllData() {
+      if (!confirm("⚠️ ¿Estás seguro de purgar el sistema?")) return;
+      await STATE.supabase.from('transacciones').delete().neq('usuario_id', '');
+      await STATE.supabase.from('retiros_premios').delete().neq('usuario_id', '');
+      alert('Sistema purgado.');
+      window.location.reload();
     }
   </script>
 </body>
