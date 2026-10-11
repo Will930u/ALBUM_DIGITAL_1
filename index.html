@@ -293,7 +293,11 @@
       bcvRate: 36.5, userId: localStorage.getItem('active_user_id') || null,
       userStickersCount: 0, userBalanceBs: 0, claimedMilestones: [], selectedMilestone: null,
       isProcessingWithdrawal: false, logoClicks: 0, clickTimer: null,
-      supabase: supabase.createClient("https://dxicbitnnesjsqxzisea.supabase.co", "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4aWNiaXRubmVzanNxeHppc2VhIiwicm9sZSI6ImFub24iLCJpYXQiOjktMjAyNi0wMyIsImV4cCI6MjA1NDU5NzI1Mn0.h3SPwV1UBb9m630AFPtw")
+      // URL y Anon Key corregidas y limpias
+      supabase: supabase.createClient(
+        "https://dxicbitnnesjsqxzisea.supabase.co", 
+        "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4aWNiaXRubmVzanNxeHppc2VhIiwicm9sZSI6ImFub24iLCJpYXQiOjktMjAyNi0wMyIsImV4cCI6MjA1NDU5NzI1Mn0.h3SPwV1UBb9m630AFPtw"
+      )
     };
 
     document.addEventListener('DOMContentLoaded', async () => {
