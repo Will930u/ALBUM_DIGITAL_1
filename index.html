@@ -507,21 +507,33 @@
     }
 
     function openWithdrawModal() {
-      if (STATE.isProcessingWithdrawal) return alert('Tienes una solicitud de retiro activa.');
-      const container = document.getElementById('milestoneOptions');
-      container.innerHTML = '';
-      [500, 1000, 1500, 2000].forEach(m => {
-        const unlocked = STATE.userStickersCount >= m;
-        const claimed = STATE.claimedMilestones.includes(m);
-        const btn = document.createElement('button');
-        btn.type = 'button';
-        btn.className = `p-3 rounded-xl border text-left ${claimed ? 'opacity-50' : unlocked ? 'border-amber-500 text-white cursor-pointer' : 'opacity-40 cursor-not-allowed'}`;
-        btn.innerHTML = `<span class="font-bold text-amber-300">${m === 2000 ? 'Ciclo Completo #2000' : 'Hito #' + m}</span><span class="text-xs">$200.00 USD</span>`;
-        if (unlocked && !claimed) btn.onclick = () => { STATE.selectedMilestone = m; document.getElementById('btnSendWithdraw').disabled = false; };
-        container.appendChild(btn);
-      });
-      document.getElementById('withdrawModal').classList.remove('hidden');
+  if (STATE.isProcessingWithdrawal) return alert('Tienes una solicitud de retiro activa.');
+  const container = document.getElementById('milestoneOptions');
+  container.innerHTML = '';
+  
+  [500, 1000, 1500, 2000].forEach(m => {
+    const unlocked = STATE.userStickersCount >= m;
+    const claimed = STATE.claimedMilestones.includes(m);
+    const btn = document.createElement('button');
+    btn.type = 'button';
+    btn.className = `p-3 rounded-xl border text-left ${claimed ? 'opacity-50' : unlocked ? 'border-amber-500 text-white cursor-pointer' : 'opacity-40 cursor-not-allowed'}`;
+    btn.innerHTML = `<span class="font-bold text-amber-300">${m === 2000 ? 'Ciclo Completo #2000' : 'Hito #' + m}</span><span class="text-xs"> $200.00 USD</span>`;
+    
+    // Asignar selección visual y guardar el número de hito en STATE
+    if (unlocked && !claimed) {
+      btn.onclick = () => { 
+        STATE.selectedMilestone = m; 
+        document.getElementById('btnSendWithdraw').disabled = false;
+        // Resaltar el botón seleccionado
+        document.querySelectorAll('#milestoneOptions button').forEach(b => b.classList.remove('ring-2', 'ring-amber-400'));
+        btn.classList.add('ring-2', 'ring-amber-400');
+      };
     }
+    container.appendChild(btn);
+  });
+  
+  document.getElementById('withdrawModal').classList.remove('hidden');
+}
 
     function closeWithdrawModal() { document.getElementById('withdrawModal').classList.add('hidden'); }
 
