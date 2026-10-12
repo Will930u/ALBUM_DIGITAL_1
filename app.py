@@ -194,17 +194,12 @@ def procesar_retiro_admin():
                     if w["tipo"] == "liquidacion_total" or w["milestone"] == 2000:
                         supabase_client.table("usuarios").update({
                             "cantidad_barajitas": 0,
-                            "saldo_bs": 0.0,
-                            "retiros_premios": []
+                            "saldo_bs": 0.0
                         }).eq("id", w["usuario_id"]).execute()
                     else:
-                        claimed = usr.get("retiros_premios") or []
-                        if w["milestone"] not in claimed:
-                            claimed.append(w["milestone"])
                         nuevo_saldo = max(0.0, (usr.get("saldo_bs") or 0.0) - float(w["monto_bs"]))
                         supabase_client.table("usuarios").update({
-                            "saldo_bs": nuevo_saldo,
-                            "retiros_premios": claimed
+                            "saldo_bs": nuevo_saldo
                         }).eq("id", w["usuario_id"]).execute()
 
             icono = "✅" if accion == "aprobar" else "❌"
