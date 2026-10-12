@@ -408,7 +408,6 @@
         slot.className = `metal-slot aspect-[3/4] rounded-xl flex flex-col items-center justify-center p-2 relative overflow-hidden cursor-pointer ${isUnlocked ? 'filled' : ''} ${isMilestone ? 'milestone-slot' : ''}`;
         if (isMilestone && isUnlocked) slot.onclick = () => openWithdrawModal();
         if (isUnlocked) {
-          // URL corregida estándar de Supabase Storage para bucket público 'barajitas'
           const imgUrl = `${SUPABASE_URL}/storage/v1/object/public/barajitas/${i}.jpg`;
           slot.innerHTML = `<img src="${imgUrl}" class="w-full h-full object-cover rounded-lg" onerror="this.src='https://via.placeholder.com/150/1e1b4b/a855f7?text=${i}'"><span class="absolute bottom-1 right-1 bg-black/80 px-1.5 rounded text-[10px] font-bold text-purple-300">#${i}</span>`;
         } else {
@@ -437,7 +436,6 @@
         }
       } catch (e) {}
       
-      // Fallback directo a DolarApi si el backend demora
       try {
         const res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
         const data = await res.json();
@@ -522,12 +520,34 @@
       document.getElementById('albumProgressBar').style.width = `${progressPct}%`;
 
       const btnLiq = document.getElementById('btnHeaderTotalLiquidate');
-      if (STATE.claimedMilestones.length > 0 || STATE.isProcessingWithdrawal) {
+      const btnMilestone = document.getElementById('btnHeaderMilestone');
+
+      // Lógica de habilitación independiente/excluyente solicitada:
+      // Si hay solicitud de retiro activa, bloqueamos ambos.
+      if (STATE.isProcessingWithdrawal) {
         btnLiq.disabled = true;
-        btnLiq.title = "Bloqueado por tener hitos activos";
+        btnLiq.title = "Tienes una solicitud de retiro activa";
+        btnMilestone.disabled = true;
+        btnMilestone.title = "Tienes una solicitud de retiro activa";
       } else {
-        btnLiq.disabled = false;
-        btnLiq.title = "Liquidar saldo total";
+        // El botón "Liquidar Todo" está activo si el usuario tiene saldo neto positivo en Bs.
+        if (STATE.userBalanceBs > 0) {
+          btnLiq.disabled = false;
+          btnLiq.title = "Liquidar saldo total neto";
+        } else {
+          btnLiq.disabled = true;
+          btnLiq.title = "Sin saldo neto disponible";
+        }
+
+        // El botón de Premio Hito se activa si hay al menos un hito alcanzado (500, 1000, 1500, 2000) no reclamado
+        const hasAvailableMilestone = [500, 1000, 1500, 2000].some(m => STATE.userStickersCount >= m && !STATE.claimedMilestones.includes(m));
+        if (hasAvailableMilestone) {
+          btnMilestone.disabled = false;
+          btnMilestone.title = "Premio de hito disponible";
+        } else {
+          btnMilestone.disabled = true;
+          btnMilestone.title = "No hay hitos disponibles para reclamar";
+        }
       }
     }
 
@@ -574,14 +594,16 @@
         body: JSON.stringify({ usuario_id: STATE.userId, tipo: tipoRetiro, milestone: STATE.selectedMilestone, monto_bs: bsVal, monto_usd: 200.00, datos_pago: `${bank} | ${phone} | ${id}` })
       });
 
-      if (res.ok) { alert('Solicitud de premio enviada.'); closeWithdrawModal(); loadUserDataFromDB(); }
-      else { alert('Error al enviar solicitud.'); }
+      if (res.ok) { alert('Solicitud de premio enviada con éxito.'); closeWithdrawModal(); loadUserDataFromDB(); }
+      else { alert('Error al enviar solicitud de premio.'); }
     }
 
     async function confirmTotalLiquidate() {
-      if (STATE.userBalanceBs <= 0) return alert('Sin saldo para liquidar.');
-      if (!confirm('¿Liquidar saldo total y reiniciar álbum?')) return;
-      const bank = prompt("Banco:"); const phone = prompt("Teléfono:"); const id = prompt("Cédula:");
+      if (STATE.userBalanceBs <= 0) return alert('Sin saldo neto para liquidar.');
+      if (!confirm('¿Deseas liquidar tu saldo neto total y reiniciar tu valor en caja?')) return;
+      const bank = prompt("Ingresa tu Banco:"); 
+      const phone = prompt("Ingresa tu Teléfono de Pago Móvil:"); 
+      const id = prompt("Ingresa tu Cédula:");
       if (!bank || !phone || !id) return;
 
       const bsVal = STATE.userBalanceBs;
