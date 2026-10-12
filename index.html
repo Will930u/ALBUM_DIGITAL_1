@@ -456,7 +456,7 @@
       try {
         const { error: dbError } = await STATE.supabase.from('transacciones').insert([{
           usuario_id: STATE.userId, barajitas_qty: qty, monto_bs: totalBs.toFixed(2),
-          monto_usd: totalUSD.toFixed(2), referencia: ref, estado: 'pendiente'
+          monto_usd: totalUSD.toFixed(2), referencia: ref, estado: 'pendiente', monto: totalBs.toFixed(2)
         }]);
 
         if (dbError) { alert('Error: ' + dbError.message); btnSubmit.disabled = false; btnSubmit.innerText = "REPORTAR PAGO Y SOLICITAR BARAJITAS"; return; }
