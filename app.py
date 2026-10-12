@@ -167,7 +167,7 @@ def notificar_retiro():
 
     sent = send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje)
     return jsonify({"status": "success", "telegram_sent": sent}), 200
-
+    
 @app.route("/api/procesar-retiro-admin", methods=["POST"])
 def procesar_retiro_admin():
     data = request.get_json(silent=True) or {}
