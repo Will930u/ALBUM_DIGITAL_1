@@ -1,4 +1,5 @@
 import os
+import threading
 import requests
 from flask import Flask, request, jsonify
 from flask_cors import CORS
@@ -8,7 +9,7 @@ app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip()
-SUPABASE_KEY = os.environ.get("SUPABASE_KEY", "").strip()
+SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip() or os.environ.get("SUPABASE_KEY", "").strip()
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
 TELEGRAM_ADMIN_CHAT_ID = os.environ.get("TELEGRAM_ADMIN_CHAT_ID", "").strip()
 
@@ -19,9 +20,11 @@ if SUPABASE_URL and SUPABASE_KEY:
     except Exception as e:
         print(f"Error al inicializar Supabase: {e}")
 
-def send_telegram_message(chat_id: str, text: str):
+def _send_telegram_async(chat_id: str, text: str):
+    """Función interna que se ejecuta en segundo plano para evitar bloqueos por timeout"""
     if not TELEGRAM_BOT_TOKEN or not chat_id:
-        return False
+        print("⚠️ [TELEGRAM] Token o Chat ID vacíos.")
+        return
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
         "chat_id": chat_id,
@@ -29,15 +32,23 @@ def send_telegram_message(chat_id: str, text: str):
         "parse_mode": "HTML"
     }
     try:
-        res = requests.post(url, json=payload, timeout=10)
-        return res.ok
+        res = requests.post(url, json=payload, timeout=15)
+        print(f"🤖 [TELEGRAM RESPONSE] Status: {res.status_code} | Body: {res.text}")
     except Exception as e:
-        print(f"Error notificando a Telegram: {e}")
+        print(f"❌ [TELEGRAM ERROR] Excepción al conectar con la API: {e}")
+
+def send_telegram_message(chat_id: str, text: str):
+    """Dispara el mensaje a Telegram en un hilo separado (No bloquea la app)"""
+    if not TELEGRAM_BOT_TOKEN or not chat_id:
         return False
+    thread = threading.Thread(target=_send_telegram_async, args=(chat_id, text))
+    thread.daemon = True
+    thread.start()
+    return True
 
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "2.7.0"}), 200
+    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "2.8.0"}), 200
 
 @app.route("/api/bcv", methods=["GET"])
 def get_bcv_rate():
@@ -87,8 +98,8 @@ def notificar_compra():
         f"💰 <b>Monto Bs.:</b> {float(monto_bs):.2f}\n"
         f"🔢 <b>Referencia:</b> <code>{referencia}</code>"
     )
-    sent = send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje)
-    return jsonify({"status": "success", "telegram_sent": sent}), 200
+    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje)
+    return jsonify({"status": "success", "telegram_sent": True}), 200
 
 @app.route("/api/procesar-compra-admin", methods=["POST"])
 def procesar_compra_admin():
@@ -172,8 +183,8 @@ def notificar_retiro():
     else:
         mensaje = f"🏆 <b>SOLICITUD DE PREMIO HITO (#{milestone})</b>\n\n👤 <b>Usuario:</b> <code>{usuario_id}</code>\n💰 <b>Monto Bs.:</b> {float(monto_bs):.2f}\n📱 <b>Pago Móvil:</b> {datos_pago}"
 
-    sent = send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje)
-    return jsonify({"status": "success", "telegram_sent": sent}), 200
+    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje)
+    return jsonify({"status": "success", "telegram_sent": True}), 200
     
 @app.route("/api/procesar-retiro-admin", methods=["POST"])
 def procesar_retiro_admin():
