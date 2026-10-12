@@ -643,7 +643,7 @@
       }
     }
 
-    // --- BLOQUE F: PANEL DE ADMINISTRACIÓN ---
+   // --- BLOQUE F: PANEL DE ADMINISTRACIÓN ---
     function setupLogoClickCounter() {
       const logo = document.getElementById('appLogo');
       if (logo) {
@@ -681,25 +681,58 @@
       else if (tab === 'usuarios') { document.getElementById('adminContentUsuarios').classList.remove('hidden'); loadUserList(); }
     }
 
+    // CARGA DE PAGOS PENDIENTES DESDE LA TABLA 'transacciones'
     async function loadPendingPayments() {
       const tbody = document.getElementById('pendingPaymentsTable');
       tbody.innerHTML = '';
-      const { data } = await STATE.supabase.from('transacciones').select('*').eq('estado', 'pendiente');
-      if (!data || data.length === 0) { tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Sin pagos pendientes.</td></tr>`; return; }
+      const { data, error } = await STATE.supabase
+        .from('transacciones')
+        .select('*')
+        .eq('estado', 'pendiente')
+        .order('created_at', { ascending: false });
+
+      if (error || !data || data.length === 0) { 
+        tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Sin pagos pendientes en transacciones.</td></tr>`; 
+        return; 
+      }
+
       data.forEach(tx => {
-        tbody.innerHTML += `<tr class="border-b border-slate-800"><td class="p-3">${new Date(tx.created_at).toLocaleString()}</td><td class="p-3 font-mono">${tx.usuario_id}</td><td class="p-3">${tx.barajitas_qty}</td><td class="p-3">Bs. ${tx.monto_bs}</td><td class="p-3">${tx.referencia}</td><td class="p-3 text-center space-x-1"><button onclick="processAdminPayment(${tx.id}, 'aprobar')" class="px-2 py-1 bg-emerald-600 text-white rounded text-xs font-bold">Aprobar</button><button onclick="processAdminPayment(${tx.id}, 'rechazar')" class="px-2 py-1 bg-red-600 text-white rounded text-xs font-bold">Rechazar</button></td></tr>`;
+        // Usamos los campos correctos que ya tienes en la tabla 'transacciones'
+        const montoStr = tx.monto_bs !== null ? `Bs. ${tx.monto_bs}` : (tx.monto !== null ? `Bs. ${tx.monto}` : 'Bs. 0.00');
+        tbody.innerHTML += `
+          <tr class="border-b border-slate-800">
+            <td class="p-3">${new Date(tx.created_at).toLocaleString()}</td>
+            <td class="p-3 font-mono">${tx.usuario_id || 'N/A'}</td>
+            <td class="p-3">${tx.barajitas_qty || 0}</td>
+            <td class="p-3">${montoStr}</td>
+            <td class="p-3 font-mono">${tx.referencia || 'S/N'}</td>
+            <td class="p-3 text-center space-x-1">
+              <button onclick="processAdminPayment(${tx.id}, 'aprobar')" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold transition">Aprobar</button>
+              <button onclick="processAdminPayment(${tx.id}, 'rechazar')" class="px-2 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-xs font-bold transition">Rechazar</button>
+            </td>
+          </tr>`;
       });
     }
 
     async function processAdminPayment(txId, accion) {
-      const res = await fetch(`${API_URL}/api/procesar-compra-admin`, {
-        method: 'POST', headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tx_id: txId, accion: accion })
-      });
-      if (res.ok) { alert(`Pago ${accion}do con éxito.`); loadPendingPayments(); }
-      else { alert('Error al procesar pago.'); }
+      try {
+        const res = await fetch(`${API_URL}/api/procesar-compra-admin`, {
+          method: 'POST', 
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tx_id: txId, accion: accion })
+        });
+        const result = await res.json();
+        if (res.ok) { 
+          alert(`Pago ${accion}do con éxito.`); 
+          loadPendingPayments(); 
+        } else { 
+          alert('Error del servidor: ' + (result.message || 'No se pudo procesar')); 
+        }
+      } catch (err) {
+        console.error(err);
+        alert('Error de conexión al procesar el pago.');
+      }
     }
-
     async function loadPendingWithdrawals() {
       const tbody = document.getElementById('pendingWithdrawalsTable');
       tbody.innerHTML = '';
