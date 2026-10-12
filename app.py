@@ -37,7 +37,7 @@ def send_telegram_message(chat_id: str, text: str):
 
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "2.5.0"}), 200
+    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "2.6.0"}), 200
 
 @app.route("/api/bcv", methods=["GET"])
 def get_bcv_rate():
@@ -93,7 +93,7 @@ def notificar_compra():
 def procesar_compra_admin():
     data = request.get_json(silent=True) or {}
     tx_id = data.get("tx_id")
-    accion = data.get("accion") # 'aprobar' o 'rechazar'
+    accion = data.get("accion")
     
     if not tx_id or not accion:
         return jsonify({"status": "error", "message": "Datos incompletos"}), 400
@@ -119,7 +119,6 @@ def procesar_compra_admin():
                         "saldo_bs": nuevo_saldo
                     }).eq("id", tx["usuario_id"]).execute()
 
-            # Notificar resultado a Telegram
             icono = "✅" if accion == "aprobar" else "❌"
             msg = (
                 f"{icono} <b>COMPRA {accion.upper()}A</b>\n\n"
@@ -149,7 +148,7 @@ def notificar_retiro():
 
     if supabase_client:
         try:
-            supabase_client.table("retiros_premios").insert({
+            supabase_client.table("retiros").insert({
                 "usuario_id": str(usuario_id),
                 "tipo": str(tipo),
                 "milestone": int(milestone),
@@ -173,27 +172,26 @@ def notificar_retiro():
 def procesar_retiro_admin():
     data = request.get_json(silent=True) or {}
     w_id = data.get("w_id")
-    accion = data.get("accion") # 'aprobar' o 'rechazar'
+    accion = data.get("accion")
 
     if not w_id or not accion:
         return jsonify({"status": "error", "message": "Datos incompletos"}), 400
 
     if supabase_client:
         try:
-            w_res = supabase_client.table("retiros_premios").select("*").eq("id", w_id).single()
+            w_res = supabase_client.table("retiros").select("*").eq("id", w_id).single()
             w = w_res.data
             if not w:
                 return jsonify({"status": "error", "message": "Retiro no encontrado"}), 404
 
             nuevo_estado = "aprobado" if accion == "aprobar" else "rechazado"
-            supabase_client.table("retiros_premios").update({"estado": nuevo_estado}).eq("id", w_id).execute()
+            supabase_client.table("retiros").update({"estado": nuevo_estado}).eq("id", w_id).execute()
 
             if accion == "aprobar":
                 usr_res = supabase_client.table("usuarios").select("*").eq("id", w["usuario_id"]).single()
                 usr = usr_res.data
                 if usr:
                     if w["tipo"] == "liquidacion_total" or w["milestone"] == 2000:
-                        # Ciclo completado o liquidado: Reiniciar álbum y valores a 0
                         supabase_client.table("usuarios").update({
                             "cantidad_barajitas": 0,
                             "saldo_bs": 0.0,
