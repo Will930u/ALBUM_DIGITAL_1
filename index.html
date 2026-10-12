@@ -522,31 +522,36 @@
       const btnLiq = document.getElementById('btnHeaderTotalLiquidate');
       const btnMilestone = document.getElementById('btnHeaderMilestone');
 
-      // Lógica de habilitación independiente/excluyente solicitada:
-      // Si hay solicitud de retiro activa, bloqueamos ambos.
+      // Lógica antifallos de doble retiro:
       if (STATE.isProcessingWithdrawal) {
         btnLiq.disabled = true;
-        btnLiq.title = "Tienes una solicitud de retiro activa";
+        btnLiq.title = "Tienes una solicitud de retiro activa en revisión";
         btnMilestone.disabled = true;
-        btnMilestone.title = "Tienes una solicitud de retiro activa";
+        btnMilestone.title = "Tienes una solicitud de retiro activa en revisión";
       } else {
-        // El botón "Liquidar Todo" está activo si el usuario tiene saldo neto positivo en Bs.
+        // El botón "Liquidar Todo" está activo si el usuario tiene saldo neto positivo
         if (STATE.userBalanceBs > 0) {
           btnLiq.disabled = false;
-          btnLiq.title = "Liquidar saldo total neto";
+          btnLiq.title = "Liquidar saldo neto total";
         } else {
           btnLiq.disabled = true;
           btnLiq.title = "Sin saldo neto disponible";
         }
 
-        // El botón de Premio Hito se activa si hay al menos un hito alcanzado (500, 1000, 1500, 2000) no reclamado
-        const hasAvailableMilestone = [500, 1000, 1500, 2000].some(m => STATE.userStickersCount >= m && !STATE.claimedMilestones.includes(m));
+        // El Premio Hito solo se activa si hay hitos alcanzados no reclamados Y el saldo cubre el equivalente de $200 en Bs
+        const milestoneBsValue = 200 * STATE.bcvRate;
+        const hasAvailableMilestone = [500, 1000, 1500, 2000].some(m => 
+          STATE.userStickersCount >= m && 
+          !STATE.claimedMilestones.includes(m) && 
+          STATE.userBalanceBs >= milestoneBsValue
+        );
+
         if (hasAvailableMilestone) {
           btnMilestone.disabled = false;
-          btnMilestone.title = "Premio de hito disponible";
+          btnMilestone.title = "Premio de hito disponible para reclamar";
         } else {
           btnMilestone.disabled = true;
-          btnMilestone.title = "No hay hitos disponibles para reclamar";
+          btnMilestone.title = "Saldo insuficiente o hito ya reclamado";
         }
       }
     }
@@ -587,6 +592,8 @@
       const phone = document.getElementById('wPhone').value.trim();
       const id = document.getElementById('wId').value.trim();
       const bsVal = (200 * STATE.bcvRate).toFixed(2);
+      
+      // Si llega al hito 2000, es liquidación de ciclo completo
       const tipoRetiro = STATE.selectedMilestone === 2000 ? 'ciclo_completo' : 'hito_parcial';
 
       const res = await fetch(`${API_URL}/api/notificar-retiro`, {
@@ -594,13 +601,13 @@
         body: JSON.stringify({ usuario_id: STATE.userId, tipo: tipoRetiro, milestone: STATE.selectedMilestone, monto_bs: bsVal, monto_usd: 200.00, datos_pago: `${bank} | ${phone} | ${id}` })
       });
 
-      if (res.ok) { alert('Solicitud de premio enviada con éxito.'); closeWithdrawModal(); loadUserDataFromDB(); }
+      if (res.ok) { alert('Solicitud de premio hito enviada con éxito.'); closeWithdrawModal(); loadUserDataFromDB(); }
       else { alert('Error al enviar solicitud de premio.'); }
     }
 
     async function confirmTotalLiquidate() {
       if (STATE.userBalanceBs <= 0) return alert('Sin saldo neto para liquidar.');
-      if (!confirm('¿Deseas liquidar tu saldo neto total y reiniciar tu valor en caja?')) return;
+      if (!confirm('¿Deseas liquidar tu saldo neto total? Esto enviará tu solicitud al administrador.')) return;
       const bank = prompt("Ingresa tu Banco:"); 
       const phone = prompt("Ingresa tu Teléfono de Pago Móvil:"); 
       const id = prompt("Ingresa tu Cédula:");
