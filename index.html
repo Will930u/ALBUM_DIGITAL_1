@@ -25,9 +25,7 @@
 </head>
 <body class="flex flex-col min-h-screen">
 
-  <!-- ========================================== -->
-  <!-- 01. CABECERA PRINCIPAL Y NAVEGACIÓN        -->
-  <!-- ========================================== -->
+  <!-- CABECERA -->
   <header id="mainHeader" class="hidden sticky top-0 z-40 metal-card rounded-none px-6 py-4 flex flex-wrap justify-between items-center gap-4">
     <div class="flex items-center space-x-3 cursor-pointer select-none" id="appLogo">
       <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center font-bold text-xl shadow-lg border border-white/20">Á</div>
@@ -59,9 +57,7 @@
 
   <main class="flex-grow flex items-center justify-center p-4">
 
-    <!-- ========================================== -->
-    <!-- 02. MÓDULO DE AUTENTICACIÓN (LOGIN/REGISTRO)-->
-    <!-- ========================================== -->
+    <!-- AUTENTICACIÓN -->
     <section id="authSection" class="max-w-md w-full p-8 metal-card space-y-6">
       <div class="text-center space-y-2">
         <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center shadow-xl border border-white/20">
@@ -110,9 +106,7 @@
       </form>
     </section>
 
-    <!-- ========================================== -->
-    <!-- 03. MÓDULO DEL ÁLBUM DIGITAL (2000 BARAJITAS)-->
-    <!-- ========================================== -->
+    <!-- ÁLBUM -->
     <section id="albumSection" class="hidden w-full max-w-6xl space-y-6">
       <div class="metal-card p-4 flex flex-col md:flex-row justify-between items-center gap-4">
         <div class="flex items-center space-x-4">
@@ -133,9 +127,7 @@
       <div id="stickersGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-5 gap-4"></div>
     </section>
 
-    <!-- ========================================== -->
-    <!-- 04. MÓDULO DE TIENDA Y PAGOS MÓVILES       -->
-    <!-- ========================================== -->
+    <!-- TIENDA -->
     <section id="tiendaSection" class="hidden w-full max-w-2xl">
       <div class="metal-card p-6 md:p-8 space-y-6">
         <div class="border-b border-purple-500/30 pb-4 flex justify-between items-center">
@@ -169,9 +161,7 @@
       </div>
     </section>
 
-    <!-- ========================================== -->
-    <!-- 05. MÓDULO DE PANEL DE ADMINISTRACIÓN      -->
-    <!-- ========================================== -->
+    <!-- PANEL DE ADMINISTRACIÓN -->
     <section id="adminSection" class="hidden w-full max-w-5xl space-y-6">
       <div class="metal-card p-6 md:p-8 space-y-6">
         <div class="flex justify-between items-center border-b border-purple-500/30 pb-4">
@@ -206,7 +196,7 @@
           </table>
         </div>
 
-        <!-- Sub-tab: Imágenes / Carga Masiva -->
+        <!-- Sub-tab: Imágenes -->
         <div id="adminContentImagenes" class="hidden space-y-4">
           <div class="bg-slate-950/60 p-5 rounded-xl border border-purple-500/30 space-y-4">
             <h3 class="text-base font-bold text-purple-200">Subida Masiva de Barajitas a Supabase Storage</h3>
@@ -221,7 +211,7 @@
           </div>
         </div>
 
-        <!-- Sub-tab: Métricas 30/70 -->
+        <!-- Sub-tab: Métricas -->
         <div id="adminContentMetricas" class="hidden space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
             <div class="bg-slate-950/60 p-4 rounded-xl border border-purple-500/20"><span class="text-xs text-slate-400">Ventas Totales (100%)</span><p id="metricTotalSales" class="text-lg font-bold text-blue-400">Bs. 0.00</p></div>
@@ -244,9 +234,7 @@
       </div>
     </section>
 
-    <!-- ========================================== -->
-    <!-- 06. MODALES AUXILIARES (RECUPERACIÓN Y RETIRO)-->
-    <!-- ========================================== -->
+    <!-- MODALES -->
     <div id="recoveryModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
       <div class="metal-card max-w-lg w-full p-6 space-y-4 border border-amber-500/50">
         <div class="flex justify-between items-center border-b border-amber-500/30 pb-3">
@@ -291,9 +279,7 @@
 
   </main>
 
-  <!-- ========================================== -->
-  <!-- 07. LÓGICA DE JAVASCRIPT GLOBAL BLINDADA    -->
-  <!-- ========================================== -->
+  <!-- JAVASCRIPT -->
   <script>
     const API_URL = "https://album-digital-1.onrender.com";
     const SUPABASE_URL = "https://dxicbitnnesjsqzxisea.supabase.co";
@@ -319,7 +305,6 @@
       }
     });
 
-    // --- BLOQUE A: AUTENTICACIÓN Y SESIÓN ---
     function switchAuthMode(mode) {
       if (mode === 'register') {
         document.getElementById('loginForm').classList.add('hidden');
@@ -380,7 +365,6 @@
       window.location.reload();
     }
 
-    // --- BLOQUE B: NAVEGACIÓN Y TABS ---
     function startGame() {
       document.getElementById('authSection').classList.add('hidden');
       document.getElementById('mainHeader').classList.remove('hidden');
@@ -395,7 +379,6 @@
       else if (tab === 'tienda') { document.getElementById('tiendaSection').classList.remove('hidden'); }
     }
 
-    // --- BLOQUE C: ÁLBUM Y BARAJITAS ---
     function renderAlbumPage() {
       const grid = document.getElementById('stickersGrid');
       grid.innerHTML = '';
@@ -423,7 +406,6 @@
       if (p >= 1 && p <= STATE.totalPages) { STATE.currentPage = p; document.getElementById('currentPageNum').innerText = p; renderAlbumPage(); }
     }
 
-    // --- BLOQUE D: TIENDA Y COMPRAS ---
     async function fetchBcvRate() {
       try {
         const res = await fetch(`${API_URL}/api/bcv`);
@@ -498,18 +480,14 @@
       }
     }
 
-    // --- BLOQUE E: HITOS, PREMIOS Y RETIROS ---
     async function loadUserDataFromDB() {
       if (!STATE.supabase) return;
-      
-      // 1. Cargar datos del usuario
       let { data: user } = await STATE.supabase.from('usuarios').select('*').eq('id', STATE.userId).single();
       if (user) {
         STATE.userStickersCount = user.cantidad_barajitas || 0;
         STATE.userBalanceBs = user.saldo_bs || 0;
       }
 
-      // 2. Consultar la tabla 'retiros' para saber qué hitos ya ha reclamado (aprobados o pendientes)
       const { data: retirosData } = await STATE.supabase.from('retiros').select('milestone, estado').eq('usuario_id', STATE.userId);
       STATE.claimedMilestones = [];
       let hasActiveOrPending = false;
@@ -517,13 +495,9 @@
       if (retirosData) {
         retirosData.forEach(r => {
           if (r.estado === 'aprobado' || r.estado === 'pendiente') {
-            if (r.milestone > 0) {
-              STATE.claimedMilestones.push(r.milestone);
-            }
+            if (r.milestone > 0) STATE.claimedMilestones.push(r.milestone);
           }
-          if (r.estado === 'pendiente') {
-            hasActiveOrPending = true;
-          }
+          if (r.estado === 'pendiente') hasActiveOrPending = true;
         });
       }
 
@@ -543,32 +517,14 @@
 
       if (STATE.isProcessingWithdrawal) {
         btnLiq.disabled = true;
-        btnLiq.title = "Tienes una solicitud de retiro activa en revisión";
         btnMilestone.disabled = true;
-        btnMilestone.title = "Tienes una solicitud de retiro activa en revisión";
       } else {
-        if (STATE.userBalanceBs > 0) {
-          btnLiq.disabled = false;
-          btnLiq.title = "Liquidar saldo neto total";
-        } else {
-          btnLiq.disabled = true;
-          btnLiq.title = "Sin saldo neto disponible";
-        }
-
+        btnLiq.disabled = STATE.userBalanceBs <= 0;
         const milestoneBsValue = 200 * STATE.bcvRate;
         const hasAvailableMilestone = [500, 1000, 1500, 2000].some(m => 
-          STATE.userStickersCount >= m && 
-          !STATE.claimedMilestones.includes(m) && 
-          STATE.userBalanceBs >= milestoneBsValue
+          STATE.userStickersCount >= m && !STATE.claimedMilestones.includes(m) && STATE.userBalanceBs >= milestoneBsValue
         );
-
-        if (hasAvailableMilestone) {
-          btnMilestone.disabled = false;
-          btnMilestone.title = "Premio de hito disponible para reclamar";
-        } else {
-          btnMilestone.disabled = true;
-          btnMilestone.title = "Saldo insuficiente o hito ya reclamado";
-        }
+        btnMilestone.disabled = !hasAvailableMilestone;
       }
     }
 
@@ -595,7 +551,6 @@
         }
         container.appendChild(btn);
       });
-      
       document.getElementById('withdrawModal').classList.remove('hidden');
     }
 
@@ -643,7 +598,6 @@
       }
     }
 
-   // --- BLOQUE F: PANEL DE ADMINISTRACIÓN ---
     function setupLogoClickCounter() {
       const logo = document.getElementById('appLogo');
       if (logo) {
@@ -681,7 +635,6 @@
       else if (tab === 'usuarios') { document.getElementById('adminContentUsuarios').classList.remove('hidden'); loadUserList(); }
     }
 
-    // CARGA DE PAGOS PENDIENTES DESDE LA TABLA 'transacciones'
     async function loadPendingPayments() {
       const tbody = document.getElementById('pendingPaymentsTable');
       tbody.innerHTML = '';
@@ -697,14 +650,13 @@
       }
 
       data.forEach(tx => {
-        // Usamos los campos correctos que ya tienes en la tabla 'transacciones'
-        const montoStr = tx.monto_bs !== null ? `Bs. ${tx.monto_bs}` : (tx.monto !== null ? `Bs. ${tx.monto}` : 'Bs. 0.00');
+        const montoVal = tx.monto_bs !== null && tx.monto_bs !== undefined ? tx.monto_bs : (tx.monto !== null && tx.monto !== undefined ? tx.monto : 0.00);
         tbody.innerHTML += `
           <tr class="border-b border-slate-800">
             <td class="p-3">${new Date(tx.created_at).toLocaleString()}</td>
             <td class="p-3 font-mono">${tx.usuario_id || 'N/A'}</td>
             <td class="p-3">${tx.barajitas_qty || 0}</td>
-            <td class="p-3">${montoStr}</td>
+            <td class="p-3">Bs. ${parseFloat(montoVal).toFixed(2)}</td>
             <td class="p-3 font-mono">${tx.referencia || 'S/N'}</td>
             <td class="p-3 text-center space-x-1">
               <button onclick="processAdminPayment(${tx.id}, 'aprobar')" class="px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold transition">Aprobar</button>
@@ -733,6 +685,7 @@
         alert('Error de conexión al procesar el pago.');
       }
     }
+
     async function loadPendingWithdrawals() {
       const tbody = document.getElementById('pendingWithdrawalsTable');
       tbody.innerHTML = '';
@@ -780,7 +733,7 @@
 
     async function renderFinancialMetrics() {
       const { data } = await STATE.supabase.from('transacciones').select('*').eq('estado', 'aprobado');
-      const totalSales = (data || []).reduce((sum, t) => sum + parseFloat(t.monto_bs || 0), 0);
+      const totalSales = (data || []).reduce((sum, t) => sum + parseFloat(t.monto_bs || t.monto || 0), 0);
       document.getElementById('metricTotalSales').innerText = `Bs. ${totalSales.toFixed(2)}`;
       document.getElementById('metricPlatformProfit').innerText = `Bs. ${(totalSales * 0.30).toFixed(2)}`;
       document.getElementById('metricUserNetValue').innerText = `Bs. ${(totalSales * 0.70).toFixed(2)}`;
@@ -813,7 +766,6 @@
       window.location.reload();
     }
 
-    // --- BLOQUE G: RECUPERACIÓN Y MODALES ---
     function openRecoveryModal() { document.getElementById('recoveryModal').classList.remove('hidden'); }
     function closeRecoveryModal() { document.getElementById('recoveryModal').classList.add('hidden'); }
 
