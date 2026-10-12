@@ -345,7 +345,7 @@
 
         const { error } = await STATE.supabase.from('usuarios').insert([{
           id: userId, username: username, password_hash: pass, gmail: email,
-          banco: banco, cedula: cedula, telefono: telefono, cantidad_barajitas: 0, saldo_bs: 0, claimed_milestones: []
+          banco: banco, cedula: cedula, telefono: telefono, cantidad_barajitas: 0, saldo_bs: 0
         }]);
 
         if (error) { alert('Error en registro: ' + error.message); return; }
@@ -501,14 +501,33 @@
     // --- BLOQUE E: HITOS, PREMIOS Y RETIROS ---
     async function loadUserDataFromDB() {
       if (!STATE.supabase) return;
+      
+      // 1. Cargar datos del usuario
       let { data: user } = await STATE.supabase.from('usuarios').select('*').eq('id', STATE.userId).single();
       if (user) {
         STATE.userStickersCount = user.cantidad_barajitas || 0;
         STATE.userBalanceBs = user.saldo_bs || 0;
-        STATE.claimedMilestones = user.claimed_milestones || [];
       }
-      const { data: pendingW } = await STATE.supabase.from('retiros').select('id').eq('usuario_id', STATE.userId).eq('estado', 'pendiente');
-      STATE.isProcessingWithdrawal = (pendingW && pendingW.length > 0);
+
+      // 2. Consultar la tabla 'retiros' para saber qué hitos ya ha reclamado (aprobados o pendientes)
+      const { data: retirosData } = await STATE.supabase.from('retiros').select('milestone, estado').eq('usuario_id', STATE.userId);
+      STATE.claimedMilestones = [];
+      let hasActiveOrPending = false;
+
+      if (retirosData) {
+        retirosData.forEach(r => {
+          if (r.estado === 'aprobado' || r.estado === 'pendiente') {
+            if (r.milestone > 0) {
+              STATE.claimedMilestones.push(r.milestone);
+            }
+          }
+          if (r.estado === 'pendiente') {
+            hasActiveOrPending = true;
+          }
+        });
+      }
+
+      STATE.isProcessingWithdrawal = hasActiveOrPending;
       updateUIHeader();
     }
 
@@ -522,14 +541,12 @@
       const btnLiq = document.getElementById('btnHeaderTotalLiquidate');
       const btnMilestone = document.getElementById('btnHeaderMilestone');
 
-      // Lógica antifallos de doble retiro:
       if (STATE.isProcessingWithdrawal) {
         btnLiq.disabled = true;
         btnLiq.title = "Tienes una solicitud de retiro activa en revisión";
         btnMilestone.disabled = true;
         btnMilestone.title = "Tienes una solicitud de retiro activa en revisión";
       } else {
-        // El botón "Liquidar Todo" está activo si el usuario tiene saldo neto positivo
         if (STATE.userBalanceBs > 0) {
           btnLiq.disabled = false;
           btnLiq.title = "Liquidar saldo neto total";
@@ -538,7 +555,6 @@
           btnLiq.title = "Sin saldo neto disponible";
         }
 
-        // El Premio Hito solo se activa si hay hitos alcanzados no reclamados Y el saldo cubre el equivalente de $200 en Bs
         const milestoneBsValue = 200 * STATE.bcvRate;
         const hasAvailableMilestone = [500, 1000, 1500, 2000].some(m => 
           STATE.userStickersCount >= m && 
@@ -592,8 +608,6 @@
       const phone = document.getElementById('wPhone').value.trim();
       const id = document.getElementById('wId').value.trim();
       const bsVal = (200 * STATE.bcvRate).toFixed(2);
-      
-      // Si llega al hito 2000, es liquidación de ciclo completo
       const tipoRetiro = STATE.selectedMilestone === 2000 ? 'ciclo_completo' : 'hito_parcial';
 
       const res = await fetch(`${API_URL}/api/notificar-retiro`, {
