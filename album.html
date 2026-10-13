@@ -11,41 +11,49 @@
 </head>
 <body class="flex flex-col min-h-screen">
 
-  <!-- CABECERA DE NAVEGACIÓN -->
-  <header class="sticky top-0 z-40 metal-card rounded-none px-6 py-4 flex flex-wrap justify-between items-center gap-4">
-    <div class="flex items-center space-x-3 cursor-pointer select-none" id="appLogo">
-      <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center font-bold text-xl shadow-lg border border-white/20">Á</div>
-      <div>
-        <h1 class="text-lg font-bold glow-text leading-none">ÁLBUM DIGITAL</h1>
-        <span class="text-xs text-purple-300">2000 Barajitas Coleccionables</span>
+  <!-- CABECERA DE NAVEGACIÓN ADAPTABLE (PC, TABLET Y MÓVIL) -->
+  <header class="sticky top-0 z-40 metal-card rounded-none px-4 md:px-6 py-3 flex flex-col lg:flex-row justify-between items-center gap-4">
+    
+    <!-- Fila Superior / Logo y Título -->
+    <div class="flex w-full lg:w-auto justify-between items-center">
+      <div class="flex items-center space-x-3 cursor-pointer select-none" id="appLogo">
+        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center font-bold text-xl shadow-lg border border-white/20">Á</div>
+        <div>
+          <h1 class="text-base md:text-lg font-bold glow-text leading-none">ÁLBUM DIGITAL</h1>
+          <span class="text-xs text-purple-300">2000 Barajitas Coleccionables</span>
+        </div>
       </div>
     </div>
     
-    <div class="flex items-center space-x-3">
+    <!-- Controles Centrales y Acciones Financieras -->
+    <div class="flex flex-wrap items-center justify-center lg:justify-end gap-2.5 w-full lg:w-auto">
+      
       <!-- Botón Premio Hito -->
-      <button id="btnHeaderMilestone" onclick="openWithdrawModal()" class="px-3.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-emerald-600 text-white font-bold text-xs flex items-center space-x-1.5 shadow-lg transition disabled:opacity-50">
+      <button id="btnHeaderMilestone" onclick="openWithdrawModal()" class="px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-emerald-600 text-white font-bold text-xs flex items-center space-x-1.5 shadow-lg transition disabled:opacity-50">
         <i data-lucide="award" class="w-4 h-4"></i>
         <span>Premio Hito ($200)</span>
       </button>
 
       <!-- Saldo Neto y Liquidación -->
       <div class="bg-slate-900/80 border border-purple-500/40 px-3 py-1.5 rounded-full flex items-center space-x-2">
-        <i data-lucide="wallet" class="w-4 h-4 text-purple-400"></i>
+        <i data-lucide="wallet" class="w-4 h-4 text-purple-400 hidden sm:inline-block"></i>
         <span class="text-xs text-slate-400">Valor Neto:</span>
-        <span id="userBalanceBs" class="font-bold text-emerald-400 text-sm">Bs. 0.00 ($0.00)</span>
+        <span id="userBalanceBs" class="font-bold text-emerald-400 text-xs md:text-sm">Bs. 0.00 ($0.00)</span>
         <button id="btnHeaderTotalLiquidate" onclick="confirmTotalLiquidate()" class="ml-1 px-2 py-0.5 rounded-full bg-red-600 hover:bg-red-500 text-white font-extrabold text-[10px] uppercase transition disabled:opacity-50">
-          Liquidar Todo
+          Liquidar
         </button>
       </div>
 
-      <!-- Menú de Enlaces a otros Módulos -->
-      <nav class="flex flex-wrap items-center justify-between gap-2 px-4 py-3">
-  <a href="album.html" class="px-4 py-2 rounded-lg text-sm font-semibold bg-purple-600/30 text-purple-200 border border-purple-500/30">Álbum</a>
-  <a href="tienda.html" class="px-4 py-2 rounded-lg text-sm font-semibold bg-slate-800 text-slate-300 hover:bg-purple-600/30">Tienda</a>
-  <a href="premio-hito.html" class="px-4 py-2 rounded-lg text-sm font-semibold bg-amber-600/40 text-amber-200 border border-amber-500/30">Premios</a>
-  <button onclick="logoutUser()" class="px-3 py-2 rounded-lg text-sm font-semibold bg-red-900/40 text-red-200">Salir</button>
-</nav>
     </div>
+
+    <!-- Menú de Enlaces a otros Módulos (Adaptable horizontalmente) -->
+    <nav class="flex flex-wrap items-center justify-center gap-2 w-full lg:w-auto pt-2 lg:pt-0 border-t lg:border-t-0 border-purple-500/20">
+      <a href="album.html" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold bg-purple-600/30 text-purple-200 border border-purple-500/30">Álbum</a>
+      <a href="tienda.html" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold bg-slate-800 text-slate-300 hover:bg-purple-600/30">Tienda</a>
+      <a href="premio-hito.html" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold bg-amber-600/40 text-amber-200 border border-amber-500/30">Premios</a>
+      <button onclick="logoutUser()" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold bg-red-900/40 text-red-200">Salir</button>
+    </nav>
+
   </header>
 
   <!-- CONTENIDO PRINCIPAL DEL ÁLBUM -->
@@ -72,7 +80,7 @@
 
     <!-- Cuadrícula Dinámica de Barajitas -->
     <div id="stickersGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 gap-3 p-4">
-</div>
+    </div>
 
   </main>
 
