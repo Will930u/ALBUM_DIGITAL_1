@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function logoutUser() {
   localStorage.removeItem('active_user_id');
-  window.location.href = 'login.html';
+  window.location.href = 'index.html';
 }
 
 function renderAlbumPage() {
