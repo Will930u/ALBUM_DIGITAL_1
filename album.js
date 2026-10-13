@@ -126,17 +126,27 @@ function updateUIHeader() {
   const btnLiq = document.getElementById('btnHeaderTotalLiquidate');
   const btnMilestone = document.getElementById('btnHeaderMilestone');
 
+  // Si hay un retiro pendiente en proceso, bloqueamos ambos por seguridad
   if (STATE.isProcessingWithdrawal) {
     btnLiq.disabled = true;
     btnMilestone.disabled = true;
-  } else {
-    btnLiq.disabled = STATE.userBalanceBs <= 0;
-    const milestoneBsValue = 200 * STATE.bcvRate;
-    const hasAvailableMilestone = [500, 1000, 1500, 2000].some(m =>
-      STATE.userStickersCount >= m && !STATE.claimedMilestones.includes(m) && STATE.userBalanceBs >= milestoneBsValue
-    );
-    btnMilestone.disabled = !hasAvailableMilestone;
+    return;
   }
+
+  // REGLA DE NEGOCIO: 
+  // 1. El Premio Hito ($200) solo se habilita si el usuario alcanzó el número de barajitas 
+  //    Y tiene al menos el saldo equivalente en bolívares para cubrir esos $200.
+  const milestoneBsValue = 200 * STATE.bcvRate;
+  const hasAvailableMilestone = [500, 1000, 1500, 2000].some(m =>
+    STATE.userStickersCount >= m && !STATE.claimedMilestones.includes(m) && STATE.userBalanceBs >= milestoneBsValue
+  );
+  btnMilestone.disabled = !hasAvailableMilestone;
+
+  // 2. Liquidar Todo se habilita si hay saldo neto positivo (> 0). 
+  //    OPCIONAL DE SEGURIDAD: Si prefieres que el usuario elija entre reclamar su hito de $200 o liquidar su saldo libre, 
+  //    podemos hacer que si hay un hito disponible, se dé prioridad al hito, o dejarlos independientes solo si el saldo supera los $200.
+  //    Por defecto actual: se activa si tiene saldo y NO hay un hito estricto bloqueándolo, o lo manejamos libre:
+  btnLiq.disabled = STATE.userBalanceBs <= 0;
 }
 
 function openWithdrawModal() {
