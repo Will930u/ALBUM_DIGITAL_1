@@ -41,9 +41,16 @@ function renderAlbumPage() {
     const isUnlocked = i <= STATE.userStickersCount;
     const isMilestone = (i % 500 === 0);
     const slot = document.createElement('div');
-    slot.className = `metal-slot aspect-[3/4] rounded-xl flex flex-col items-center justify-center p-2 relative overflow-hidden cursor-pointer ${isUnlocked ? 'filled' : ''} ${isMilestone ? 'milestone-slot' : ''}`;
+    slot.className = `metal-slot sticker-card aspect-[3/4] rounded-xl flex flex-col items-center justify-center p-2 relative overflow-hidden cursor-pointer ${isUnlocked ? 'filled' : ''} ${isMilestone ? 'milestone-slot' : ''}`;
     
-    if (isMilestone && isUnlocked) slot.onclick = () => openWithdrawModal();
+    if (isMilestone && isUnlocked) {
+      slot.onclick = () => openWithdrawModal();
+    } else if (isUnlocked) {
+      // Al hacer clic en una barajita desbloqueada, ejecuta la animación 3D de giro
+      slot.onclick = () => {
+        triggerStickerAnimation(slot);
+      };
+    }
 
     if (isUnlocked) {
       const imgUrl = `${SUPABASE_URL}/storage/v1/object/public/barajitas/${i}.jpg`;
@@ -222,13 +229,10 @@ function setupLogoClickCounter() {
     });
   }
 }
-}
-  });
-}
 
 function triggerStickerAnimation(cardElement) {
   cardElement.classList.add('rotate-360');
   setTimeout(() => {
     cardElement.classList.remove('rotate-360');
-  }, 600); // 600ms coincide exactamente con la duración de la transición CSS
+  }, 600);
 }
