@@ -1,6 +1,0 @@
-Flask
-Flask-Cors
-gunicorn
-supabase
-httpx
-requests
