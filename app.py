@@ -20,8 +20,8 @@ if SUPABASE_URL and SUPABASE_KEY:
     except Exception as e:
         print(f"Error al inicializar Supabase: {e}")
 
-def _send_telegram_async(chat_id: str, text: str):
-    """Función interna que se ejecuta en segundo plano para evitar bloqueos por timeout"""
+def _send_telegram_async(chat_id: str, text: str, reply_markup=None):
+    """Función interna que se ejecuta en segundo plano para enviar mensajes con botones a Telegram"""
     if not TELEGRAM_BOT_TOKEN or not chat_id:
         print("⚠️ [TELEGRAM] Token o Chat ID vacíos.")
         return
@@ -31,24 +31,27 @@ def _send_telegram_async(chat_id: str, text: str):
         "text": text,
         "parse_mode": "HTML"
     }
+    if reply_markup:
+        payload["reply_markup"] = reply_markup
+
     try:
         res = requests.post(url, json=payload, timeout=15)
         print(f"🤖 [TELEGRAM RESPONSE] Status: {res.status_code} | Body: {res.text}")
     except Exception as e:
         print(f"❌ [TELEGRAM ERROR] Excepción al conectar con la API: {e}")
 
-def send_telegram_message(chat_id: str, text: str):
+def send_telegram_message(chat_id: str, text: str, reply_markup=None):
     """Dispara el mensaje a Telegram en un hilo separado (No bloquea la app)"""
     if not TELEGRAM_BOT_TOKEN or not chat_id:
         return False
-    thread = threading.Thread(target=_send_telegram_async, args=(chat_id, text))
+    thread = threading.Thread(target=_send_telegram_async, args=(chat_id, text, reply_markup))
     thread.daemon = True
     thread.start()
     return True
 
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.0.0"}), 200
+    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.1.0"}), 200
 
 @app.route("/api/bcv", methods=["GET"])
 def get_bcv_rate():
@@ -73,13 +76,14 @@ def notificar_compra():
     if not all([usuario_id, barajitas_qty, monto_bs, referencia]):
         return jsonify({"status": "error", "message": "Campos incompletos"}), 400
 
+    tx_id = None
     if supabase_client:
         try:
             existing = supabase_client.table("transacciones").select("id").eq("referencia", referencia).execute()
             if existing.data and len(existing.data) > 0:
                 return jsonify({"status": "error", "message": "La referencia ya fue reportada."}), 400
 
-            supabase_client.table("transacciones").insert({
+            res_insert = supabase_client.table("transacciones").insert({
                 "usuario_id": str(usuario_id),
                 "barajitas_qty": int(barajitas_qty),
                 "monto_bs": float(monto_bs),
@@ -88,6 +92,8 @@ def notificar_compra():
                 "referencia": referencia,
                 "estado": "pendiente"
             }).execute()
+            if res_insert.data and len(res_insert.data) > 0:
+                tx_id = res_insert.data[0].get("id")
         except Exception as e:
             return jsonify({"status": "error", "message": str(e)}), 500
 
@@ -98,7 +104,18 @@ def notificar_compra():
         f"💰 <b>Monto Bs.:</b> {float(monto_bs):.2f}\n"
         f"🔢 <b>Referencia:</b> <code>{referencia}</code>"
     )
-    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje)
+    
+    # Botones Inline para aprobar o rechazar directamente desde Telegram
+    keyboard = {
+        "inline_keyboard": [
+            [
+                {"text": "✅ Aprobar", "callback_data": f"compra_aprobar_{tx_id}"},
+                {"text": "❌ Rechazar", "callback_data": f"compra_rechazar_{tx_id}"}
+            ]
+        ]
+    } if tx_id else None
+
+    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje, reply_markup=keyboard)
     return jsonify({"status": "success", "telegram_sent": True}), 200
 
 @app.route("/api/procesar-compra-admin", methods=["POST"])
@@ -164,9 +181,10 @@ def notificar_retiro():
     if not all([usuario_id, monto_bs, datos_pago]):
         return jsonify({"status": "error", "message": "Campos incompletos"}), 400
 
+    w_id = None
     if supabase_client:
         try:
-            supabase_client.table("retiros").insert({
+            res_insert = supabase_client.table("retiros").insert({
                 "usuario_id": str(usuario_id),
                 "tipo": str(tipo),
                 "milestone": int(milestone),
@@ -175,15 +193,29 @@ def notificar_retiro():
                 "datos_pago": str(datos_pago),
                 "estado": "pendiente"
             }).execute()
+            if res_insert.data and len(res_insert.data) > 0:
+                w_id = res_insert.data[0].get("id")
         except Exception as e:
             return jsonify({"status": "error", "message": str(e)}), 500
 
     if tipo == "liquidacion_total":
         mensaje = f"🚨 <b>SOLICITUD DE LIQUIDACIÓN TOTAL</b>\n\n👤 <b>Usuario:</b> <code>{usuario_id}</code>\n💰 <b>Monto Bs.:</b> {float(monto_bs):.2f}\n📱 <b>Pago Móvil:</b> {datos_pago}"
+    elif tipo == "ciclo_completo":
+        mensaje = f"🌟 <b>SOLICITUD DE CICLO COMPLETO (#2000)</b>\n\n👤 <b>Usuario:</b> <code>{usuario_id}</code>\n💰 <b>Monto Bs.:</b> {float(monto_bs):.2f}\n📱 <b>Pago Móvil:</b> {datos_pago}"
     else:
         mensaje = f"🏆 <b>SOLICITUD DE PREMIO HITO (#{milestone})</b>\n\n👤 <b>Usuario:</b> <code>{usuario_id}</code>\n💰 <b>Monto Bs.:</b> {float(monto_bs):.2f}\n📱 <b>Pago Móvil:</b> {datos_pago}"
 
-    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje)
+    # Botones Inline para aprobar o rechazar retiros/hitos/liquidaciones
+    keyboard = {
+        "inline_keyboard": [
+            [
+                {"text": "✅ Aprobar", "callback_data": f"retiro_aprobar_{w_id}"},
+                {"text": "❌ Rechazar", "callback_data": f"retiro_rechazar_{w_id}"}
+            ]
+        ]
+    } if w_id else None
+
+    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje, reply_markup=keyboard)
     return jsonify({"status": "success", "telegram_sent": True}), 200
     
 @app.route("/api/procesar-retiro-admin", methods=["POST"])
@@ -232,6 +264,100 @@ def procesar_retiro_admin():
         except Exception as e:
             return jsonify({"status": "error", "message": str(e)}), 500
     return jsonify({"status": "error", "message": "Sin conexión"}), 500
+
+@app.route("/api/telegram-webhook", methods=["POST"])
+def telegram_webhook():
+    """Recibe las señales (Callback Queries) cuando el admin toca los botones interactivos en Telegram"""
+    data = request.get_json(silent=True) or {}
+    callback_query = data.get("callback_query")
+    
+    if not callback_query:
+        return jsonify({"status": "ok"}), 200
+
+    query_id = callback_query.get("id")
+    data_str = callback_query.get("data", "")
+    message = callback_query.get("message", {})
+    chat_id = message.get("chat", {}).get("id")
+    message_id = message.get("message_id")
+
+    parts = data_str.split("_")
+    if len(parts) >= 3:
+        tipo_accion = parts[0]  # 'compra' o 'retiro'
+        accion = parts[1]       # 'aprobar' o 'rechazar'
+        item_id = parts[2]      # el ID del registro en Supabase
+
+        # Ejecutamos la lógica correspondiente
+        if tipo_accion == "compra":
+            # Llamamos internamente a la lógica de aprobación/rechazo de compra
+            with app.test_request_client() if hasattr(app, 'test_request_client') else app.test_client() as client:
+                # O simulamos la ejecución directa:
+                pass
+
+        # Procesar vía Base de Datos directamente para mayor agilidad en el Webhook:
+        if supabase_client:
+            try:
+                if tipo_accion == "compra":
+                    tx_res = supabase_client.table("transacciones").select("*").eq("id", item_id).execute()
+                    if tx_res.data:
+                        tx = tx_res.data[0]
+                        nuevo_estado = "aprobado" if accion == "aprobar" else "rechazado"
+                        supabase_client.table("transacciones").update({"estado": nuevo_estado}).eq("id", item_id).execute()
+
+                        if accion == "aprobar":
+                            usr_res = supabase_client.table("usuarios").select("*").eq("id", tx["usuario_id"]).execute()
+                            if usr_res.data:
+                                usr = usr_res.data[0]
+                                barajitas_a_sumar = int(tx.get("barajitas_qty") or 0)
+                                monto_bs_total = float(tx.get("monto_bs") or tx.get("monto") or 0.0)
+                                supabase_client.table("usuarios").update({
+                                    "cantidad_barajitas": (usr.get("cantidad_barajitas") or 0) + barajitas_a_sumar,
+                                    "saldo_bs": (usr.get("saldo_bs") or 0.0) + (monto_bs_total * 0.70)
+                                }).eq("id", tx["usuario_id"]).execute()
+
+                elif tipo_accion == "retiro":
+                    w_res = supabase_client.table("retiros").select("*").eq("id", item_id).execute()
+                    if w_res.data:
+                        w = w_res.data[0]
+                        nuevo_estado = "aprobado" if accion == "aprobar" else "rechazado"
+                        supabase_client.table("retiros").update({"estado": nuevo_estado}).eq("id", item_id).execute()
+
+                        if accion == "aprobar":
+                            usr_res = supabase_client.table("usuarios").select("*").eq("id", w["usuario_id"]).execute()
+                            if usr_res.data:
+                                usr = usr_res.data[0]
+                                if w["tipo"] == "liquidacion_total" or w.get("milestone") == 2000 or w.get("milestone") >= 2000:
+                                    supabase_client.table("usuarios").update({
+                                        "cantidad_barajitas": 0,
+                                        "saldo_bs": 0.0
+                                    }).eq("id", w["usuario_id"]).execute()
+                                else:
+                                    nuevo_saldo = max(0.0, (usr.get("saldo_bs") or 0.0) - float(w["monto_bs"]))
+                                    supabase_client.table("usuarios").update({
+                                        "saldo_bs": nuevo_saldo
+                                    }).eq("id", w["usuario_id"]).execute()
+
+                # Actualizar el mensaje en Telegram para quitar los botones y mostrar el estado final
+                estado_texto = "✅ APROBADO Y APLICADO" if accion == "aprobar" else "❌ RECHAZADO"
+                texto_original = message.get("text", "Solicitud")
+                nuevo_texto_tg = f"{texto_original}\n\n<b>ESTADO: {estado_texto}</b>"
+
+                edit_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText"
+                requests.post(edit_url, json={
+                    "chat_id": chat_id,
+                    "message_id": message_id,
+                    "text": nuevo_texto_tg,
+                    "parse_mode": "HTML"
+                }, timeout=10)
+
+                # Responder al callback query para quitar el círculo de carga en el botón de Telegram
+                ans_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery"
+                requests.post(ans_url, json={"callback_query_id": query_id, "text": f"¡Acción {accion} ejecutada con éxito!"}, timeout=5)
+
+            except Exception as e:
+                print(f"Error procesando webhook de telegram: {e}")
+
+    return jsonify({"status": "ok"}), 200
+
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
