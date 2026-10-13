@@ -1,0 +1,93 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Acceso - Álbum Digital</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="login.css">
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+
+  <main class="max-w-md w-full p-8 metal-card space-y-6">
+    <div class="text-center space-y-2">
+      <div class="w-16 h-16 mx-auto rounded-full bg-gradient-to-tr from-blue-600 to-purple-600 flex items-center justify-center shadow-xl border border-white/20">
+        <i data-lucide="lock" class="w-8 h-8 text-white"></i>
+      </div>
+      <h2 class="text-2xl font-extrabold glow-text" id="authTitle">ACCESO AL SISTEMA</h2>
+      <p class="text-xs text-purple-200/80">Inicia sesión o regístrate para gestionar tu álbum.</p>
+    </div>
+
+    <!-- Formulario de Inicio de Sesión -->
+    <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-purple-200 mb-1">Usuario / Username:</label>
+        <input type="text" id="loginUsername" required class="w-full bg-slate-900 border border-purple-500/40 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-purple-200 mb-1">Contraseña:</label>
+        <input type="password" id="loginPassword" required class="w-full bg-slate-900 border border-purple-500/40 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none">
+      </div>
+      <button type="submit" class="metal-button w-full py-3 rounded-xl font-bold text-white text-sm">INICIAR SESIÓN</button>
+      <div class="flex justify-between text-xs text-purple-300 pt-2">
+        <button type="button" onclick="switchAuthMode('register')" class="hover:underline">¿No tienes cuenta? Regístrate</button>
+        <button type="button" onclick="openRecoveryModal()" class="hover:underline text-amber-400">¿Olvidaste tu contraseña?</button>
+      </div>
+    </form>
+
+    <!-- Formulario de Registro -->
+    <form id="registerForm" onsubmit="handleRegister(event)" class="hidden space-y-3">
+      <div>
+        <label class="block text-xs font-semibold text-purple-200 mb-1">Usuario (Username):</label>
+        <input type="text" id="regUsername" required class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white text-xs">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-purple-200 mb-1">Correo Electrónico (Gmail):</label>
+        <input type="email" id="regEmail" required class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white text-xs">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-purple-200 mb-1">Contraseña:</label>
+        <input type="password" id="regPassword" required class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white text-xs">
+      </div>
+      <div class="grid grid-cols-3 gap-2">
+        <div><label class="block text-[10px] text-purple-200">Banco:</label><input type="text" id="regBanco" required placeholder="0134" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white text-xs"></div>
+        <div><label class="block text-[10px] text-purple-200">Cédula:</label><input type="text" id="regCedula" required placeholder="21101658" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white text-xs"></div>
+        <div><label class="block text-[10px] text-purple-200">Teléfono:</label><input type="text" id="regTelefono" required placeholder="0412..." class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white text-xs"></div>
+      </div>
+      <button type="submit" class="metal-button w-full py-3 rounded-xl font-bold text-white text-sm mt-2">REGISTRARSE</button>
+      <button type="button" onclick="switchAuthMode('login')" class="w-full text-center text-xs text-purple-300 hover:underline pt-2">¿Ya tienes cuenta? Inicia sesión</button>
+    </form>
+  </main>
+
+  <!-- Modal de Recuperación -->
+  <div id="recoveryModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="metal-card max-w-lg w-full p-6 space-y-4 border border-amber-500/50">
+      <div class="flex justify-between items-center border-b border-amber-500/30 pb-3">
+        <h3 class="text-lg font-bold text-amber-400">Recuperación de Contraseña (Soporte Telegram)</h3>
+        <button onclick="closeRecoveryModal()" class="text-slate-400 font-bold">✕</button>
+      </div>
+      <div id="recoveryStep1" class="space-y-3 text-xs">
+        <p class="text-purple-200">Para verificar tu identidad, responde los datos con los que te registraste:</p>
+        <input type="text" id="recUsername" placeholder="Tu Usuario" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white">
+        <input type="email" id="recEmail" placeholder="Tu Correo Electrónico (Gmail)" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white">
+        <input type="text" id="recTelefono" placeholder="Tu Teléfono de Pago Móvil" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white">
+        <button onclick="verifyRecoveryData()" class="w-full py-2.5 bg-purple-600 text-white font-bold rounded-lg">Verificar Datos</button>
+      </div>
+      <div id="recoveryStep2" class="hidden space-y-3">
+        <div class="bg-slate-950 p-3 rounded-xl border border-purple-500/30 h-40 overflow-y-auto space-y-2 text-xs" id="telegramChatBox">
+          <div class="bg-purple-900/40 p-2 rounded text-purple-200">🤖 <b>Bot Telegram:</b> Identidad verificada. Contacta al admin con el código #TG-SECURE-99.</div>
+        </div>
+        <div class="flex space-x-2">
+          <input type="text" id="chatInput" placeholder="Escribe al bot..." class="flex-grow bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-xs text-white">
+          <button onclick="sendChatMessage()" class="px-4 py-2 bg-blue-600 text-white rounded-lg text-xs font-bold">Enviar</button>
+        </div>
+        <button onclick="closeRecoveryModal()" class="w-full py-2 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold">Finalizar y Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <script src="login.js"></script>
+</body>
+</html>
