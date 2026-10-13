@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded', () => {
   lucide.createIcons();
   const activeUser = localStorage.getItem('active_user_id');
   if (activeUser) {
-    window.location.href = 'album.html';
+    window.location.href = 'imdex.html';
   }
 });
 
