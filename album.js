@@ -12,7 +12,7 @@ const STATE = {
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (!STATE.userId) {
-    window.location.href = 'login.html';
+    window.location.href = 'album.html';
     return;
   }
   try {
