@@ -46,7 +46,6 @@ function renderAlbumPage() {
     if (isMilestone && isUnlocked) {
       slot.onclick = () => openWithdrawModal();
     } else if (isUnlocked) {
-      // Al hacer clic en una barajita desbloqueada, ejecuta la animación 3D de giro
       slot.onclick = () => {
         triggerStickerAnimation(slot);
       };
@@ -126,31 +125,38 @@ function updateUIHeader() {
   const btnLiq = document.getElementById('btnHeaderTotalLiquidate');
   const btnMilestone = document.getElementById('btnHeaderMilestone');
 
-  // Si hay un retiro pendiente en proceso, bloqueamos ambos por seguridad
   if (STATE.isProcessingWithdrawal) {
     btnLiq.disabled = true;
     btnMilestone.disabled = true;
     return;
   }
 
-  // REGLA DE NEGOCIO: 
-  // 1. El Premio Hito ($200) solo se habilita si el usuario alcanzó el número de barajitas 
-  //    Y tiene al menos el saldo equivalente en bolívares para cubrir esos $200.
   const milestoneBsValue = 200 * STATE.bcvRate;
   const hasAvailableMilestone = [500, 1000, 1500, 2000].some(m =>
     STATE.userStickersCount >= m && !STATE.claimedMilestones.includes(m) && STATE.userBalanceBs >= milestoneBsValue
   );
   btnMilestone.disabled = !hasAvailableMilestone;
-
-  // 2. Liquidar Todo se habilita si hay saldo neto positivo (> 0). 
-  //    OPCIONAL DE SEGURIDAD: Si prefieres que el usuario elija entre reclamar su hito de $200 o liquidar su saldo libre, 
-  //    podemos hacer que si hay un hito disponible, se dé prioridad al hito, o dejarlos independientes solo si el saldo supera los $200.
-  //    Por defecto actual: se activa si tiene saldo y NO hay un hito estricto bloqueándolo, o lo manejamos libre:
   btnLiq.disabled = STATE.userBalanceBs <= 0;
 }
 
 function openWithdrawModal() {
   if (STATE.isProcessingWithdrawal) return alert('Tienes una solicitud de retiro activa.');
+  
+  // Verificación automática si llegó exactamente o superó las 2000 barajitas (Ciclo Completo)
+  if (STATE.userStickersCount >= 2000 && !STATE.claimedMilestones.includes(2000)) {
+    const confirmarCiclo = confirm(
+      "🌟 ¡FELICIDADES Y GRACIAS POR COMPLETAR EL ÁLBUM! 🌟\n\n" +
+      "Has completado las 2000 barajitas (Ciclo Completo). Tu solicitud de pago será enviada para verificación y abono manual por parte del administrador.\n\n" +
+      "Una vez aprobado y pagado exitosamente, recibirás tu notificación de éxito con las felicitaciones y el álbum se reiniciará para iniciar un nuevo ciclo completo.\n\n" +
+      "¿Deseas proceder con la solicitud?"
+    );
+    if (confirmarCiclo) {
+      STATE.selectedMilestone = 2000;
+      ejecutarSolicitudPremio(2000, 'ciclo_completo');
+    }
+    return;
+  }
+
   const container = document.getElementById('milestoneOptions');
   container.innerHTML = '';
 
@@ -180,29 +186,44 @@ function closeWithdrawModal() { document.getElementById('withdrawModal').classLi
 async function submitWithdrawalRequest(e) {
   e.preventDefault();
   if (!STATE.selectedMilestone) return alert('Selecciona un hito primero.');
-  const bank = document.getElementById('wBank').value.trim();
-  const phone = document.getElementById('wPhone').value.trim();
-  const id = document.getElementById('wId').value.trim();
+  ejecutarSolicitudPremio(STATE.selectedMilestone, STATE.selectedMilestone === 2000 ? 'ciclo_completo' : 'hito_parcial');
+}
+
+async function ejecutarSolicitudPremio(milestoneVal, tipoRetiro) {
+  const bank = document.getElementById('wBank')?.value.trim() || prompt("Ingresa tu Banco:");
+  const phone = document.getElementById('wPhone')?.value.trim() || prompt("Ingresa tu Teléfono de Pago Móvil:");
+  const id = document.getElementById('wId')?.value.trim() || prompt("Ingresa tu Cédula:");
+  if (!bank || !phone || !id) return;
+
   const bsVal = (200 * STATE.bcvRate).toFixed(2);
-  const tipoRetiro = STATE.selectedMilestone === 2000 ? 'ciclo_completo' : 'hito_parcial';
 
   const res = await fetch(`${API_URL}/api/notificar-retiro`, {
     method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ usuario_id: STATE.userId, tipo: tipoRetiro, milestone: STATE.selectedMilestone, monto_bs: bsVal, monto_usd: 200.00, datos_pago: `${bank} | ${phone} | ${id}` })
+    body: JSON.stringify({ usuario_id: STATE.userId, tipo: tipoRetiro, milestone: milestoneVal, monto_bs: bsVal, monto_usd: 200.00, datos_pago: `${bank} | ${phone} | ${id}` })
   });
 
   if (res.ok) {
-    alert('Solicitud de premio hito enviada con éxito.');
+    alert('¡Solicitud enviada con éxito! Queda pendiente de verificación.');
     closeWithdrawModal();
     loadUserDataFromDB();
   } else {
-    alert('Error al enviar solicitud de premio.');
+    alert('Error al enviar la solicitud.');
   }
 }
 
 async function confirmTotalLiquidate() {
   if (STATE.userBalanceBs <= 0) return alert('Sin saldo neto para liquidar.');
-  if (!confirm('¿Deseas liquidar tu saldo neto total? Esto enviará tu solicitud al administrador.')) return;
+  
+  // Mensaje de advertencia personalizado diseñado por el usuario
+  const aceptarLiquidacion = confirm(
+    "⚠️ ADVERTENCIA DE LIQUIDACIÓN TOTAL ⚠️\n\n" +
+    "Si aceptas liquidar tu dinero, este se te depositará, pero **el álbum se reiniciará por completo**.\n\n" +
+    "Los hitos que no hayas reclamado individualmente no quedarán como reclamados, sino que se restablecerán como si nunca hubiesen llegado ahí (empezarás un nuevo ciclo).\n\n" +
+    "¿Estás seguro de que deseas aceptar y liquidar tu saldo?"
+  );
+  
+  if (!aceptarLiquidacion) return;
+
   const bank = prompt("Ingresa tu Banco:");
   const phone = prompt("Ingresa tu Teléfono de Pago Móvil:");
   const id = prompt("Ingresa tu Cédula:");
@@ -217,7 +238,7 @@ async function confirmTotalLiquidate() {
   });
 
   if (res.ok) {
-    alert('Liquidación total solicitada con éxito.');
+    alert('Liquidación total solicitada con éxito. Al aprobarse, tu progreso se reiniciará.');
     loadUserDataFromDB();
   } else {
     alert('Error al solicitar liquidación.');
