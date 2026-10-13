@@ -1,4 +1,29 @@
 /* ==========================================
+   RESET Y ADAPTABILIDAD UNIVERSAL (PC, TABLET, MÓVIL)
+   ========================================== */
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+}
+
+img, video, canvas {
+  max-width: 100%;
+  height: auto;
+}
+/* ==========================================
+   A PARTIR DE AQUÍ TUS ESTILOS AURORA GLASSMORPHISM
+   ========================================== */
+body {
+  background: radial-gradient(circle at 20% 20%, #1e1b4b 0%, #090514 50%, #030108 100%);
+  background-attachment: fixed;
+  color: #f8fafc;
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  min-height: 100vh;
+  overflow-x: hidden;
+}
+/* ... resto de tu código CSS ... */
+/* ==========================================
    ESTILOS GENERALES & TEMA: AURORA GLASSMORPHISM
    ========================================== */
 body {
