@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Tienda - Álbum Digital</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="tienda.css">
+</head>
+<body class="flex flex-col min-h-screen">
+
+  <!-- CABECERA -->
+  <header class="sticky top-0 z-40 metal-card rounded-none px-6 py-4 flex justify-between items-center">
+    <div class="flex items-center space-x-3 cursor-pointer select-none" onclick="window.location.href='album.html'">
+      <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center font-bold text-xl shadow-lg border border-white/20">Á</div>
+      <div>
+        <h1 class="text-lg font-bold glow-text leading-none">ÁLBUM DIGITAL</h1>
+        <span class="text-xs text-purple-300">Tienda Oficial</span>
+      </div>
+    </div>
+    <nav class="flex space-x-2">
+      <a href="album.html" class="px-4 py-2 rounded-lg text-sm font-semibold transition bg-slate-800 text-slate-300 hover:bg-purple-600/30">Álbum</a>
+      <a href="tienda.html" class="px-4 py-2 rounded-lg text-sm font-semibold transition bg-purple-600/30 text-purple-200 border border-purple-500/30">Tienda</a>
+      <button onclick="logoutUser()" class="px-3 py-2 rounded-lg text-sm font-semibold transition bg-red-900/40 text-red-200 border border-red-500/30">Salir</button>
+    </nav>
+  </header>
+
+  <!-- CONTENIDO DE LA TIENDA -->
+  <main class="flex-grow flex items-center justify-center p-4">
+    <section class="max-w-2xl w-full">
+      <div class="metal-card p-6 md:p-8 space-y-6">
+        
+        <div class="border-b border-purple-500/30 pb-4 flex justify-between items-center">
+          <div>
+            <h2 class="text-2xl font-bold glow-text">TIENDA DE BARAJITAS</h2>
+            <p class="text-xs text-purple-300">Adquiere tus barajitas mediante Pago Móvil.</p>
+          </div>
+          <div class="text-right">
+            <span class="text-xs text-slate-400">Tasa Oficial BCV:</span>
+            <p id="bcvRateDisplay" class="text-sm font-bold text-emerald-400">Cargando...</p>
+          </div>
+        </div>
+
+        <div class="space-y-4">
+          <div>
+            <label class="block text-sm font-semibold text-purple-200 mb-1">Cantidad de Barajitas a Comprar:</label>
+            <input type="number" id="stickerQty" min="1" max="2000" value="1" oninput="calculateTotal()" class="w-full bg-slate-900 border border-purple-500/40 rounded-xl px-4 py-3 text-lg font-bold text-white focus:outline-none">
+          </div>
+
+          <div class="bg-slate-950/60 p-4 rounded-xl border border-purple-500/20 space-y-2 text-sm">
+            <div class="flex justify-between text-slate-300"><span>Precio por Barajita:</span><span class="font-semibold text-white">0.62 USD</span></div>
+            <div class="flex justify-between text-slate-300"><span>Monto en USD:</span><span id="totalUSDDisplay" class="font-semibold text-white">$0.62</span></div>
+            <div class="flex justify-between text-lg font-bold text-emerald-400 pt-2 border-t border-slate-800"><span>Total a Pagar en Bs.:</span><span id="totalBsDisplay">Bs. 0.00</span></div>
+          </div>
+        </div>
+
+        <form onsubmit="submitPurchase(event)" class="space-y-4">
+          <div>
+            <label class="block text-sm font-semibold text-purple-200 mb-1">Número de Referencia (Hasta 12 dígitos):</label>
+            <input type="text" id="refInput" required placeholder="Ej: 748201" pattern="[0-9]{6,12}" maxlength="12" class="w-full bg-slate-900 border border-purple-500/40 rounded-xl px-4 py-3 text-white focus:outline-none font-mono">
+          </div>
+          <button type="submit" id="btnSubmitPurchase" class="metal-button w-full py-4 rounded-xl font-bold text-white transition">REPORTAR PAGO Y SOLICITAR BARAJITAS</button>
+        </form>
+
+      </div>
+    </section>
+  </main>
+
+  <script src="tienda.js"></script>
+</body>
+</html>
