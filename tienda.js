@@ -10,7 +10,7 @@ const STATE = {
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (!STATE.userId) {
-    window.location.href = 'login.html';
+    window.location.href = 'index.html';
     return;
   }
   try {
