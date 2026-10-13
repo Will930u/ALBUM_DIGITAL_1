@@ -5,10 +5,8 @@ const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
 
 document.addEventListener('DOMContentLoaded', () => {
   lucide.createIcons();
-  const activeUser = localStorage.getItem('active_user_id');
-  if (activeUser) {
-    window.location.href = 'album.html';
-  }
+  // Eliminamos la redirección automática en el login para evitar bucles en móviles.
+  // El usuario iniciará sesión de forma limpia mediante el botón de Acceso.
 });
 
 function switchAuthMode(mode) {
