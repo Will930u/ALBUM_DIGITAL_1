@@ -15,7 +15,7 @@ const STATE = {
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (!STATE.userId) {
-    window.location.href = 'index.html';
+    window.location.href = 'premio-hito.html';
     return;
   }
   try {
@@ -29,7 +29,7 @@ document.addEventListener('DOMContentLoaded', async () => {
 
 function logoutUser() {
   localStorage.removeItem('active_user_id');
-  window.location.href = 'index.html';
+  window.location.href = 'album.html';
 }
 
 async function fetchBcvRate() {
