@@ -33,35 +33,43 @@ function logoutUser() {
 
 function renderAlbumPage() {
   const grid = document.getElementById('stickersGrid');
-  grid.innerHTML = '';
-  const startIndex = (STATE.currentPage - 1) * STATE.stickersPerPage + 1;
-  const endIndex = startIndex + STATE.stickersPerPage - 1;
+  
+  // Efecto visual suave (desvanecimiento) al cambiar de página
+  grid.style.opacity = '0';
+  
+  setTimeout(() => {
+    grid.innerHTML = '';
+    const startIndex = (STATE.currentPage - 1) * STATE.stickersPerPage + 1;
+    const endIndex = startIndex + STATE.stickersPerPage - 1;
 
-  for (let i = startIndex; i <= endIndex; i++) {
-    const isUnlocked = i <= STATE.userStickersCount;
-    const isMilestone = (i % 500 === 0);
-    const slot = document.createElement('div');
-    slot.className = `metal-slot sticker-card aspect-[3/4] rounded-xl flex flex-col items-center justify-center p-2 relative overflow-hidden cursor-pointer ${isUnlocked ? 'filled' : ''} ${isMilestone ? 'milestone-slot' : ''}`;
+    for (let i = startIndex; i <= endIndex; i++) {
+      const isUnlocked = i <= STATE.userStickersCount;
+      const isMilestone = (i % 500 === 0);
+      const slot = document.createElement('div');
+      slot.className = `metal-slot sticker-card aspect-[3/4] w-full max-w-[130px] rounded-xl flex flex-col items-center justify-center p-2 relative overflow-hidden cursor-pointer ${isUnlocked ? 'filled' : ''} ${isMilestone ? 'milestone-slot' : ''}`;
+      
+      if (isMilestone && isUnlocked) {
+        slot.onclick = () => openWithdrawModal();
+      } else if (isUnlocked) {
+        slot.onclick = () => {
+          triggerStickerAnimation(slot);
+        };
+      }
+
+      if (isUnlocked) {
+        const imgUrl = `${SUPABASE_URL}/storage/v1/object/public/barajitas/${i}.jpg`;
+        slot.innerHTML = `<img src="${imgUrl}" class="w-full h-full object-cover rounded-lg" onerror="this.src='https://via.placeholder.com/150/1e1b4b/a855f7?text=${i}'"><span class="absolute bottom-1 right-1 bg-black/80 px-1.5 rounded text-[10px] font-bold text-purple-300">#${i}</span>`;
+      } else {
+        slot.innerHTML = `<i data-lucide="${isMilestone ? 'award' : 'lock'}" class="w-6 h-6 text-purple-500/40 mb-1"></i><span class="text-xs font-bold text-slate-500">#${i}</span>`;
+      }
+      grid.appendChild(slot);
+    }
+    lucide.createIcons();
     
-    if (isMilestone && isUnlocked) {
-      slot.onclick = () => openWithdrawModal();
-    } else if (isUnlocked) {
-      slot.onclick = () => {
-        triggerStickerAnimation(slot);
-      };
-    }
-
-    if (isUnlocked) {
-      const imgUrl = `${SUPABASE_URL}/storage/v1/object/public/barajitas/${i}.jpg`;
-      slot.innerHTML = `<img src="${imgUrl}" class="w-full h-full object-cover rounded-lg" onerror="this.src='https://via.placeholder.com/150/1e1b4b/a855f7?text=${i}'"><span class="absolute bottom-1 right-1 bg-black/80 px-1.5 rounded text-[10px] font-bold text-purple-300">#${i}</span>`;
-    } else {
-      slot.innerHTML = `<i data-lucide="${isMilestone ? 'award' : 'lock'}" class="w-6 h-6 text-purple-500/40 mb-1"></i><span class="text-xs font-bold text-slate-500">#${i}</span>`;
-    }
-    grid.appendChild(slot);
-  }
-  lucide.createIcons();
+    // Revelar suavemente la cuadrícula nueva
+    grid.style.opacity = '1';
+  }, 150);
 }
-
 function changePage(delta) {
   const p = STATE.currentPage + delta;
   if (p >= 1 && p <= STATE.totalPages) {
