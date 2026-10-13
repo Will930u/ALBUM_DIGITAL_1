@@ -222,3 +222,13 @@ function setupLogoClickCounter() {
     });
   }
 }
+}
+  });
+}
+
+function triggerStickerAnimation(cardElement) {
+  cardElement.classList.add('rotate-360');
+  setTimeout(() => {
+    cardElement.classList.remove('rotate-360');
+  }, 600); // 600ms coincide exactamente con la duración de la transición CSS
+}
