@@ -19,18 +19,23 @@ function exitAdmin() {
   window.location.href = 'album.html';
 }
 
+// Actualizar la función switchAdminTab para incluir 'config'
 function switchAdminTab(tab) {
   document.getElementById('adminContentPagos').classList.add('hidden');
   document.getElementById('adminContentRetiros').classList.add('hidden');
   document.getElementById('adminContentImagenes').classList.add('hidden');
   document.getElementById('adminContentMetricas').classList.add('hidden');
   document.getElementById('adminContentUsuarios').classList.add('hidden');
+  const cfgDiv = document.getElementById('adminContentConfig');
+  if (cfgDiv) cfgDiv.classList.add('hidden');
 
   document.getElementById('tabAdminPagos').className = "pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap";
   document.getElementById('tabAdminRetiros').className = "pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap";
   document.getElementById('tabAdminImagenes').className = "pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap";
   document.getElementById('tabAdminMetricas').className = "pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap";
   document.getElementById('tabAdminUsuarios').className = "pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap";
+  const tabCfg = document.getElementById('tabAdminConfig');
+  if (tabCfg) tabCfg.className = "pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap";
 
   if (tab === 'pagos') {
     document.getElementById('adminContentPagos').classList.remove('hidden');
@@ -51,6 +56,43 @@ function switchAdminTab(tab) {
     document.getElementById('adminContentUsuarios').classList.remove('hidden');
     document.getElementById('tabAdminUsuarios').className = "pb-3 font-semibold text-sm border-b-2 border-purple-500 text-purple-300 whitespace-nowrap";
     loadUserList();
+  } else if (tab === 'config') {
+    if (cfgDiv) cfgDiv.classList.remove('hidden');
+    if (tabCfg) tabCfg.className = "pb-3 font-semibold text-sm border-b-2 border-purple-500 text-purple-300 whitespace-nowrap";
+    loadPlatformConfigAdmin();
+  }
+}
+
+async function loadPlatformConfigAdmin() {
+  const { data } = await STATE.supabase.from('configuracion').select('*').limit(1).single();
+  if (data) {
+    document.getElementById('cfgBanco').value = data.banco || '';
+    document.getElementById('cfgTelefono').value = data.telefono || '';
+    document.getElementById('cfgCedula').value = data.cedula || '';
+    document.getElementById('cfgTitular').value = data.titular || '';
+  }
+}
+
+async function savePlatformConfig(e) {
+  e.preventDefault();
+  const banco = document.getElementById('cfgBanco').value.trim();
+  const telefono = document.getElementById('cfgTelefono').value.trim();
+  const cedula = document.getElementById('cfgCedula').value.trim();
+  const titular = document.getElementById('cfgTitular').value.trim();
+
+  // Actualizar o insertar el registro ID 1
+  const { error } = await STATE.supabase.from('configuracion').upsert({
+    id: 1,
+    banco,
+    telefono,
+    cedula,
+    titular
+  });
+
+  if (!error) {
+    alert('¡Datos de pago de la plataforma actualizados con éxito!');
+  } else {
+    alert('Error al guardar la configuración.');
   }
 }
 
