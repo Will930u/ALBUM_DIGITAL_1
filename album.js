@@ -12,7 +12,7 @@ const STATE = {
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (!STATE.userId) {
-    window.location.href = 'album.html';
+    window.location.href = 'index.html';
     return;
   }
   try {
@@ -21,6 +21,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     await fetchBcvRate();
     await loadUserDataFromDB();
     renderAlbumPage();
+    
+    // Iniciar las notificaciones en tiempo real para este usuario
+    initUserRealtimeNotifications(STATE.userId);
   } catch (err) {
     console.error("Error al inicializar el álbum:", err);
   }
@@ -33,8 +36,6 @@ function logoutUser() {
 
 function renderAlbumPage() {
   const grid = document.getElementById('stickersGrid');
-  
-  // Efecto visual suave (desvanecimiento) al cambiar de página
   grid.style.opacity = '0';
   
   setTimeout(() => {
@@ -65,11 +66,10 @@ function renderAlbumPage() {
       grid.appendChild(slot);
     }
     lucide.createIcons();
-    
-    // Revelar suavemente la cuadrícula nueva
     grid.style.opacity = '1';
   }, 150);
 }
+
 function changePage(delta) {
   const p = STATE.currentPage + delta;
   if (p >= 1 && p <= STATE.totalPages) {
@@ -133,9 +133,9 @@ function updateUIHeader() {
   const btnLiq = document.getElementById('btnHeaderTotalLiquidate');
   const btnMilestone = document.getElementById('btnHeaderMilestone');
 
-  if (STATE.isProcessingWithdrawal) {
-    btnLiq.disabled = true;
-    btnMilestone.disabled = true;
+  if (fnIsProcessingWithdrawal_Safe(STATE.isProcessingWithdrawal)) {
+    if(btnLiq) btnLiq.disabled = true;
+    if(btnMilestone) btnMilestone.disabled = true;
     return;
   }
 
@@ -143,14 +143,17 @@ function updateUIHeader() {
   const hasAvailableMilestone = [500, 1000, 1500, 2000].some(m =>
     STATE.userStickersCount >= m && !STATE.claimedMilestones.includes(m) && STATE.userBalanceBs >= milestoneBsValue
   );
-  btnMilestone.disabled = !hasAvailableMilestone;
-  btnLiq.disabled = STATE.userBalanceBs <= 0;
+  if(btnMilestone) btnMilestone.disabled = !hasAvailableMilestone;
+  if(btnLiq) btnLiq.disabled = STATE.userBalanceBs <= 0;
+}
+
+function fnIsProcessingWithdrawal_Safe(val) {
+  return val;
 }
 
 function openWithdrawModal() {
   if (STATE.isProcessingWithdrawal) return alert('Tienes una solicitud de retiro activa.');
   
-  // Verificación automática si llegó exactamente o superó las 2000 barajitas (Ciclo Completo)
   if (STATE.userStickersCount >= 2000 && !STATE.claimedMilestones.includes(2000)) {
     const confirmarCiclo = confirm(
       "🌟 ¡FELICIDADES Y GRACIAS POR COMPLETAR EL ÁLBUM! 🌟\n\n" +
@@ -166,6 +169,7 @@ function openWithdrawModal() {
   }
 
   const container = document.getElementById('milestoneOptions');
+  if(!container) return;
   container.innerHTML = '';
 
   [500, 1000, 1500, 2000].forEach(m => {
@@ -222,7 +226,6 @@ async function ejecutarSolicitudPremio(milestoneVal, tipoRetiro) {
 async function confirmTotalLiquidate() {
   if (STATE.userBalanceBs <= 0) return alert('Sin saldo neto para liquidar.');
   
-  // Mensaje de advertencia personalizado diseñado por el usuario
   const aceptarLiquidacion = confirm(
     "⚠️ ADVERTENCIA DE LIQUIDACIÓN TOTAL ⚠️\n\n" +
     "Si aceptas liquidar tu dinero, este se te depositará, pero **el álbum se reiniciará por completo**.\n\n" +
@@ -268,14 +271,15 @@ function setupLogoClickCounter() {
     });
   }
 }
-// Inicializar notificaciones en tiempo real para el usuario actual
+
+// ----------------------------------------------------
+// MÓDULO DE NOTIFICACIONES EN TIEMPO REAL PARA EL USUARIO
+// ----------------------------------------------------
 function initUserRealtimeNotifications(usuarioId) {
   if (!STATE.supabase || !usuarioId) return;
 
-  // Cargar estado inicial al abrir la página
   checkUserTransactionsStatus(usuarioId);
 
-  // Escuchar cambios en tiempo real en la tabla 'transacciones'
   STATE.supabase
     .channel('public:transacciones')
     .on('postgres_changes', { 
@@ -286,8 +290,8 @@ function initUserRealtimeNotifications(usuarioId) {
     }, payload => {
       const tx = payload.new;
       showTransactionStatusAlert(tx);
-      // Opcional: si fue aprobado, recargar saldo y barajitas automáticamente
-      if (typeof loadUserData === 'function') loadUserData();
+      loadUserDataFromDB();
+      renderAlbumPage();
     })
     .subscribe();
 }
@@ -298,12 +302,12 @@ async function checkUserTransactionsStatus(usuarioId) {
     .select('*')
     .eq('usuario_id', usuarioId)
     .order('created_at', { ascending: false })
-    .limit(3); // Mostrar las últimas 3 transacciones recientes
+    .limit(3);
 
   if (!error && data) {
     data.forEach(tx => {
       if (tx.estado !== 'pendiente') {
-        showTransactionStatusAlert(tx, false); // false para no duplicar efectos flotantes al cargar
+        showTransactionStatusAlert(tx, false);
       }
     });
   }
@@ -313,12 +317,11 @@ function showTransactionStatusAlert(tx, animate = true) {
   const container = document.getElementById('userNotificationsContainer');
   if (!container) return;
 
-  // Evitar duplicados visuales de la misma transacción
   const existingId = document.getElementById(`notif-tx-${tx.id}`);
   if (existingId) existingId.remove();
 
   const isApproved = tx.estado === 'aprobado';
-  const bgClass = isApproved ? 'bg-emerald-900/80 border-emerald-500/50 text-emerald-200' : 'bg-red-900/80 border-red-500/50 text-red-200';
+  const bgClass = isApproved ? 'bg-emerald-900/90 border-emerald-500/50 text-emerald-200' : 'bg-red-900/90 border-red-500/50 text-red-200';
   const icon = isApproved ? 'check-circle' : 'alert-triangle';
   const title = isApproved ? '¡Pago Aprobado con Éxito!' : 'Pago Rechazado / Incompatible';
   const desc = isApproved 
@@ -343,6 +346,7 @@ function showTransactionStatusAlert(tx, animate = true) {
   container.prepend(alertDiv);
   lucide.createIcons();
 }
+
 function triggerStickerAnimation(cardElement) {
   cardElement.classList.add('rotate-360');
   setTimeout(() => {
