@@ -15,15 +15,29 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   try {
-    const response = await fetch('https://album-digital-1.onrender.com/api/verificar-admin', {
+    const response = await fetch(`${API_URL}/api/verificar-admin`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ usuario_id: activeUserId })
     });
     
     const data = await response.json();
+    
+    // Si el backend indica estado prohibido (403), evaluamos si fue bloqueado o advertido
+    if (response.status === 403) {
+      if (data.status === 'blocked') {
+        alert("Advertencia de Seguridad: Tu cuenta ha sido bloqueada debido a intentos de acceso no autorizado a áreas restringidas.");
+      } else {
+        alert("Advertencia: Intento de acceso no autorizado registrado. Quedas advertido.");
+      }
+      
+      // Limpiar la sesión y redirigir al login
+      localStorage.removeItem('active_user_id');
+      window.location.href = 'index.html';
+      return;
+    }
+
     if (data.status !== 'authorized') {
-      // Redirección silenciosa sin alertas molestas para intrusos
       window.location.href = 'album.html';
       return;
     }
@@ -97,7 +111,6 @@ async function savePlatformConfig(e) {
   const cedula = document.getElementById('cfgCedula').value.trim();
   const titular = document.getElementById('cfgTitular').value.trim();
 
-  // Actualizar o insertar el registro ID 1
   const { error } = await STATE.supabase.from('configuracion').upsert({
     id: 1,
     banco,
@@ -152,7 +165,6 @@ async function processAdminPayment(txId, accion) {
       body: JSON.stringify({ tx_id: txId, accion: accion })
     });
     if (res.ok) {
-      // Recarga silenciosa sin mostrar cuadros de alerta molestos
       loadPendingPayments();
     } else {
       console.error('Error al procesar la compra.');
@@ -190,7 +202,7 @@ async function processAdminWithdrawal(wId, accion) {
   let referencia = '';
   if (accion === 'aprobar') {
     referencia = prompt("Ingresa el número de referencia del Pago Móvil realizado al usuario:");
-    if (!referencia) return; // Si el admin cancela, se detiene el proceso
+    if (!referencia) return;
   }
 
   try {
