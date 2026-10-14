@@ -64,7 +64,7 @@ function switchAdminTab(tab) {
 }
 
 async function loadPlatformConfigAdmin() {
-  const { data } = await STATE.supabase.from('configuracion').select('*').limit(1).single();
+  const { data, error } = await STATE.supabase.from('configuracion').select('*').limit(1).maybeSingle();
   if (data) {
     document.getElementById('cfgBanco').value = data.banco || '';
     document.getElementById('cfgTelefono').value = data.telefono || '';
