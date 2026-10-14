@@ -51,7 +51,7 @@ def send_telegram_message(chat_id: str, text: str, reply_markup=None):
 
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.1.2"}), 200
+    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.1.3"}), 200
 
 @app.route("/api/bcv", methods=["GET"])
 def get_bcv_rate():
@@ -244,7 +244,6 @@ def procesar_retiro_admin():
             w = w_res.data[0]
             nuevo_estado = "aprobado" if accion == "aprobar" else "rechazado"
             
-            # Actualizar estado y opcionalmente la referencia de pago móvil en la tabla retiros
             update_data = {"estado": nuevo_estado}
             if referencia:
                 update_data["referencia"] = referencia
@@ -255,11 +254,15 @@ def procesar_retiro_admin():
                 usr_res = supabase_client.table("usuarios").select("*").eq("id", w["usuario_id"]).execute()
                 if usr_res.data and len(usr_res.data) > 0:
                     usr = usr_res.data[0]
-                    if w["tipo"] == "liquidacion_total" or w.get("milestone") == 2000:
+                    if w["tipo"] == "liquidacion_total" or w.get("milestone") == 2000 or w.get("milestone") >= 2000:
+                        # 1. Reiniciar barajitas y saldo a cero
                         supabase_client.table("usuarios").update({
                             "cantidad_barajitas": 0,
                             "saldo_bs": 0.0
                         }).eq("id", w["usuario_id"]).execute()
+
+                        # 2. LIMPIAR EL HISTORIAL DE RETIROS PREVIOS PARA EL NUEVO CICLO
+                        supabase_client.table("retiros").delete().eq("usuario_id", w["usuario_id"]).execute()
                     else:
                         nuevo_saldo = max(0.0, (usr.get("saldo_bs") or 0.0) - float(w["monto_bs"]))
                         supabase_client.table("usuarios").update({
@@ -332,10 +335,14 @@ def telegram_webhook():
                             if usr_res.data:
                                 usr = usr_res.data[0]
                                 if w["tipo"] == "liquidacion_total" or w.get("milestone") == 2000 or w.get("milestone") >= 2000:
+                                    # 1. Reiniciar barajitas y saldo a cero
                                     supabase_client.table("usuarios").update({
                                         "cantidad_barajitas": 0,
                                         "saldo_bs": 0.0
                                     }).eq("id", w["usuario_id"]).execute()
+
+                                    # 2. LIMPIAR EL HISTORIAL DE RETIROS PREVIOS PARA EL NUEVO CICLO
+                                    supabase_client.table("retiros").delete().eq("usuario_id", w["usuario_id"]).execute()
                                 else:
                                     nuevo_saldo = max(0.0, (usr.get("saldo_bs") or 0.0) - float(w["monto_bs"]))
                                     supabase_client.table("usuarios").update({
