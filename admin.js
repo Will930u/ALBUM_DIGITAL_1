@@ -23,26 +23,28 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     const data = await response.json();
     
-    // Si el backend indica estado prohibido (403), evaluamos si fue bloqueado o advertido
-    if (response.status === 403) {
-      if (data.status === 'blocked') {
+    // Si el servidor responde con error 403 (bloqueado o no autorizado)
+    if (response.status === 403 || data.status === 'blocked' || data.status === 'unauthorized') {
+      if (data.status === 'blocked' || response.status === 403) {
         alert("Advertencia de Seguridad: Tu cuenta ha sido bloqueada debido a intentos de acceso no autorizado a áreas restringidas.");
       } else {
-        alert("Advertencia: Intento de acceso no autorizado registrado. Quedas advertido.");
+        alert("Advertencia: Intento de acceso no autorizado registrado.");
       }
       
-      // Limpiar la sesión y redirigir al login
+      // 🚫 DESTRUIR LA SESIÓN Y EXPULSAR AL LOGIN (INDEX.HTML)
       localStorage.removeItem('active_user_id');
       window.location.href = 'index.html';
       return;
     }
 
     if (data.status !== 'authorized') {
-      window.location.href = 'album.html';
+      localStorage.removeItem('active_user_id');
+      window.location.href = 'index.html';
       return;
     }
   } catch (e) {
-    window.location.href = 'album.html';
+    localStorage.removeItem('active_user_id');
+    window.location.href = 'index.html';
     return;
   }
 
