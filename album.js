@@ -58,7 +58,7 @@ function renderAlbumPage() {
       }
 
       if (isUnlocked) {
-        const imgUrl = `${SUPABASE_URL}/storage/v1/object/public/barajitas/${i}.jpg`;
+        const imgUrl = `${SUPABASE_URL}/storage/v1/object/public/barajitas/${i}.jpg?t=${Date.now()}`;
         slot.innerHTML = `<img src="${imgUrl}" class="w-full h-full object-cover rounded-lg" onerror="this.src='https://via.placeholder.com/150/1e1b4b/a855f7?text=${i}'"><span class="absolute bottom-1 right-1 bg-black/80 px-1.5 rounded text-[10px] font-bold text-purple-300">#${i}</span>`;
       } else {
         slot.innerHTML = `<i data-lucide="${isMilestone ? 'award' : 'lock'}" class="w-6 h-6 text-purple-500/40 mb-1"></i><span class="text-xs font-bold text-slate-500">#${i}</span>`;
