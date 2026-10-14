@@ -181,7 +181,7 @@ def notificar_retiro():
     data = request.get_json(silent=True) or {}
     usuario_id = data.get("usuario_id")
     tipo = data.get("tipo", "hito_parcial")
-    milestone = data.get("milestone", 0)
+    milestone = int(data.get("milestone", 0))
     monto_bs = data.get("monto_bs")
     monto_usd = data.get("monto_usd", 200.0)
     datos_pago = data.get("datos_pago")
@@ -192,10 +192,15 @@ def notificar_retiro():
     w_id = None
     if supabase_client:
         try:
+            # 🛡️ BLINDAJE ANTI-DUPLICADOS: Verificar si ya existe una solicitud pendiente para este mismo hito
+            existing_pend = supabase_client.table("retiros").select("id").eq("usuario_id", str(usuario_id)).eq("milestone", milestone).eq("estado", "pendiente").execute()
+            if existing_pend.data and len(existing_pend.data) > 0:
+                return jsonify({"status": "error", "message": "Ya tienes una solicitud pendiente para este hito."}), 400
+
             res_insert = supabase_client.table("retiros").insert({
                 "usuario_id": str(usuario_id),
                 "tipo": str(tipo),
-                "milestone": int(milestone),
+                "milestone": milestone,
                 "monto_bs": float(monto_bs),
                 "monto_usd": float(monto_usd),
                 "datos_pago": str(datos_pago),
