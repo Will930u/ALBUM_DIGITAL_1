@@ -347,15 +347,15 @@ async function checkUserWithdrawalNotifications(usuarioId) {
     .from('retiros')
     .select('*')
     .eq('usuario_id', usuarioId)
+    .eq('estado', 'aprobado')
     .order('created_at', { ascending: false })
-    .limit(3);
+    .limit(5);
 
   if (!error && data) {
     data.forEach(w => {
-      // Solo mostrar la alerta si está aprobado y la fecha de creación es reciente (últimos 10 minutos) 
-      // o si el usuario aún no la ha descartado explícitamente en esta sesión.
-      const esReciente = (new Date() - new Date(w.created_at)) < 10 * 60 * 1000;
-      if (w.estado === 'aprobado' && esReciente) {
+      // Mostrar la alerta si el usuario no la ha descartado previamente en su localStorage
+      const storageKey = `dismissed_retiro_${STATE.userId}_${w.id}`;
+      if (localStorage.getItem(storageKey) !== 'true' && w.referencia) {
         showWithdrawalStatusAlert(w, false);
       }
     });
