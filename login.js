@@ -97,15 +97,3 @@ function sendChatMessage() {
     box.scrollTop = box.scrollHeight;
   }, 1000);
 }
-```[cite: 6]
-
----
-
-### ESTADO ACTUAL DEL PROYECTO
-- **Componentes Desarrollados:** 
-  - Restricción completa de inicio de sesión en `login.js` validando la columna `bloqueado` de Supabase[cite: 6].
-  - Alerta de seguridad exacta integrada para frenar a los usuarios sancionados[cite: 6].
-  - Automatización de expulsión en el panel y botones interactivos de desbloqueo en Telegram.
-- **Conexiones Activas:** Integración sincronizada entre Flask (`app.py`), Supabase (`usuarios`), `admin.js`, `login.js`[cite: 5, 6] y el Bot de Telegram.
-- **Siguiente Paso Inmediato:** Guardar los cambios en el repositorio, compilar/desplegar y realizar una prueba simulando el bloqueo de un usuario para verificar el mensaje en el login y su respectiva reactivación por Telegram.
-- **Blockers/Pendientes:** Ninguno.
