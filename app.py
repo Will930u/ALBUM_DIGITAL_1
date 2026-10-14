@@ -13,6 +13,9 @@ SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip() or os.env
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
 TELEGRAM_ADMIN_CHAT_ID = os.environ.get("TELEGRAM_ADMIN_CHAT_ID", "").strip()
 
+# Tu ID exclusivo de Administrador
+ADMIN_USER_ID = "USR-UTRERA930"
+
 supabase_client: Client = None
 if SUPABASE_URL and SUPABASE_KEY:
     try:
@@ -21,9 +24,7 @@ if SUPABASE_URL and SUPABASE_KEY:
         print(f"Error al inicializar Supabase: {e}")
 
 def _send_telegram_async(chat_id: str, text: str, reply_markup=None):
-    """Función interna que se ejecuta en segundo plano para enviar mensajes con botones a Telegram"""
     if not TELEGRAM_BOT_TOKEN or not chat_id:
-        print("⚠️ [TELEGRAM] Token o Chat ID vacíos.")
         return
     url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage"
     payload = {
@@ -35,13 +36,11 @@ def _send_telegram_async(chat_id: str, text: str, reply_markup=None):
         payload["reply_markup"] = reply_markup
 
     try:
-        res = requests.post(url, json=payload, timeout=15)
-        print(f"🤖 [TELEGRAM RESPONSE] Status: {res.status_code} | Body: {res.text}")
+        requests.post(url, json=payload, timeout=15)
     except Exception as e:
-        print(f"❌ [TELEGRAM ERROR] Excepción al conectar con la API: {e}")
+        print(f"❌ [TELEGRAM ERROR]: {e}")
 
 def send_telegram_message(chat_id: str, text: str, reply_markup=None):
-    """Dispara el mensaje a Telegram en un hilo separado (No bloquea la app)"""
     if not TELEGRAM_BOT_TOKEN or not chat_id:
         return False
     thread = threading.Thread(target=_send_telegram_async, args=(chat_id, text, reply_markup))
@@ -51,7 +50,7 @@ def send_telegram_message(chat_id: str, text: str, reply_markup=None):
 
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.1.5"}), 200
+    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.1.6"}), 200
 
 @app.route("/api/bcv", methods=["GET"])
 def get_bcv_rate():
@@ -63,6 +62,24 @@ def get_bcv_rate():
         return jsonify({"status": "error", "message": "No se pudo obtener la tasa BCV"}), 502
     except Exception as e:
         return jsonify({"status": "error", "details": str(e)}), 500
+
+@app.route("/api/verificar-admin", methods=["POST"])
+def verificar_admin():
+    """Valida si el usuario intentando entrar al admin es el propietario. Si no, avisa a Telegram."""
+    data = request.get_json(silent=True) or {}
+    usuario_id = str(data.get("usuario_id", "")).strip()
+
+    if usuario_id == ADMIN_USER_ID:
+        return jsonify({"status": "authorized"}), 200
+    else:
+        # Alerta de seguridad a tu Telegram sobre el intento de acceso no autorizado
+        alerta_msg = (
+            f"🚨 <b>¡ALERTA DE SEGURIDAD! INTENTO DE ACCESO AL ADMIN</b>\n\n"
+            f"👤 <b>Usuario Invasor:</b> <code>{usuario_id or 'Anónimo'}</code>\n"
+            f"⚠️ Intentó acceder al panel de administración sin autorización."
+        )
+        send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, alerta_msg)
+        return jsonify({"status": "unauthorized", "message": "Acceso denegado. Este intento ha sido reportado."}), 403
 
 @app.route("/api/notificar-compra", methods=["POST"])
 def notificar_compra():
@@ -192,7 +209,6 @@ def notificar_retiro():
     w_id = None
     if supabase_client:
         try:
-            # 🛡️ BLINDAJE ANTI-DUPLICADOS: Verificar si ya existe una solicitud pendiente para este mismo hito
             existing_pend = supabase_client.table("retiros").select("id").eq("usuario_id", str(usuario_id)).eq("milestone", milestone).eq("estado", "pendiente").execute()
             if existing_pend.data and len(existing_pend.data) > 0:
                 return jsonify({"status": "error", "message": "Ya tienes una solicitud pendiente para este hito."}), 400
@@ -259,7 +275,6 @@ def procesar_retiro_admin():
                 if usr_res.data and len(usr_res.data) > 0:
                     usr = usr_res.data[0]
                     if w["tipo"] == "liquidacion_total" or w.get("milestone") == 2000 or w.get("milestone") >= 2000:
-                        # Reiniciar barajitas y saldo a cero (SIN BORRAR EL HISTORIAL DE LA TABLA RETIROS)
                         supabase_client.table("usuarios").update({
                             "cantidad_barajitas": 0,
                             "saldo_bs": 0.0
@@ -287,8 +302,6 @@ def procesar_retiro_admin():
 @app.route("/api/telegram-webhook", methods=["POST"])
 def telegram_webhook():
     data = request.get_json(silent=True) or {}
-    
-    # 1. SI EL ADMIN RESPONDE CON UN MENSAJE DE TEXTO (REPLY) CON LA REFERENCIA
     message = data.get("message")
     if message and message.get("text"):
         reply_to = message.get("reply_to_message")
@@ -306,13 +319,11 @@ def telegram_webhook():
                         w_res = supabase_client.table("retiros").select("*").eq("id", w_id).execute()
                         if w_res.data:
                             w = w_res.data[0]
-                            # Actualizar retiro como aprobado y guardar su referencia en la tabla retiros
                             supabase_client.table("retiros").update({
                                 "estado": "aprobado",
                                 "referencia": referencia_ingresada
                             }).eq("id", w_id).execute()
 
-                            # Aplicar liquidación en la tabla usuarios (barajitas y saldo a 0) SIN BORRAR EL RETIRO
                             usr_res = supabase_client.table("usuarios").select("*").eq("id", w["usuario_id"]).execute()
                             if usr_res.data:
                                 usr = usr_res.data[0]
@@ -327,13 +338,11 @@ def telegram_webhook():
                                         "saldo_bs": nuevo_saldo
                                     }).eq("id", w["usuario_id"]).execute()
 
-                            # Confirmar al admin en Telegram
                             send_telegram_message(chat_id, f"✅ <b>LIQUIDACIÓN APROBADA Y REGISTRADA</b>\nReferencia: <code>{referencia_ingresada}</code>")
                             return jsonify({"status": "ok"}), 200
                     except Exception as e:
-                        print(f"Error procesando respuesta de texto de telegram: {e}")
+                        print(f"Error: {e}")
 
-    # 2. SI EL ADMIN PRESIONA LOS BOTONES INLINE (PARA COMPRAS O RECHAZOS DE RETIRO)
     callback_query = data.get("callback_query")
     if not callback_query:
         return jsonify({"status": "ok"}), 200
@@ -391,10 +400,9 @@ def telegram_webhook():
                 requests.post(ans_url, json={"callback_query_id": query_id, "text": f"¡Acción {accion} ejecutada con éxito!"}, timeout=5)
 
             except Exception as e:
-                print(f"Error procesando callback de telegram: {e}")
+                print(f"Error callback: {e}")
 
     return jsonify({"status": "ok"}), 200
-
 
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
