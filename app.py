@@ -65,21 +65,62 @@ def get_bcv_rate():
 
 @app.route("/api/verificar-admin", methods=["POST"])
 def verificar_admin():
-    """Valida si el usuario intentando entrar al admin es el propietario. Si no, avisa a Telegram."""
+    """Valida si el usuario intentando entrar al admin es el propietario. Gestiona intentos y bloqueos automáticos."""
     data = request.get_json(silent=True) or {}
     usuario_id = str(data.get("usuario_id", "")).strip()
 
     if usuario_id == ADMIN_USER_ID:
         return jsonify({"status": "authorized"}), 200
-    else:
-        # Alerta de seguridad a tu Telegram sobre el intento de acceso no autorizado
-        alerta_msg = (
-            f"🚨 <b>¡ALERTA DE SEGURIDAD! INTENTO DE ACCESO AL ADMIN</b>\n\n"
-            f"👤 <b>Usuario Invasor:</b> <code>{usuario_id or 'Anónimo'}</code>\n"
-            f"⚠️ Intentó acceder al panel de administración sin autorización."
-        )
-        send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, alerta_msg)
-        return jsonify({"status": "unauthorized", "message": "Acceso denegado. Este intento ha sido reportado."}), 403
+
+    if supabase_client:
+        try:
+            # Buscar al usuario en la tabla
+            usr_res = supabase_client.table("usuarios").select("*").eq("id", usuario_id).execute()
+            if usr_res.data and len(usr_res.data) > 0:
+                usr = usr_res.data[0]
+                if usr.get("bloqueado", False):
+                    return jsonify({"status": "blocked", "message": "Tu cuenta ha sido bloqueada por intento de acceso no autorizado."}), 403
+
+                # Incrementar intentos de acceso no autorizado
+                intentos_actuales = (usr.get("intentos_admin") or 0) + 1
+                
+                if intentos_actuales >= 3:
+                    # Bloquear permanentemente al usuario (3er intento)
+                    supabase_client.table("usuarios").update({
+                        "intentos_admin": intentos_actuales,
+                        "bloqueado": True
+                    }).eq("id", usuario_id).execute()
+
+                    # Enviar alerta de bloqueo total a Telegram con botón de desbloqueo
+                    alerta_msg = (
+                        f"🚨 <b>¡CUENTA BLOQUEADA PERMANENTEMENTE!</b>\n\n"
+                        f"👤 <b>Usuario Reincidente:</b> <code>{usuario_id}</code>\n"
+                        f"⚠️ Alcanzó el límite de 3 intentos de acceso no autorizado al panel de administración."
+                    )
+                    keyboard = {
+                        "inline_keyboard": [
+                            [{"text": "🔓 Desbloquear Usuario", "callback_data": f"desbloquear_{usuario_id}"}]
+                        ]
+                    }
+                    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, alerta_msg, reply_markup=keyboard)
+                    return jsonify({"status": "blocked", "message": "Cuenta bloqueada por reincidencia."}), 403
+                else:
+                    # Registrar intento y enviar advertencia de 15 días (1er o 2do intento)
+                    supabase_client.table("usuarios").update({
+                        "intentos_admin": intentos_actuales
+                    }).eq("id", usuario_id).execute()
+
+                    alerta_msg = (
+                        f"⚠️ <b>INTENTO DE ACCESO AL ADMIN (Advertencia #{intentos_actuales}/3)</b>\n\n"
+                        f"👤 <b>Usuario:</b> <code>{usuario_id}</code>\n"
+                        f"Intentó ingresar sin autorización. Quedan {3 - intentos_actuales} intento(s) antes del bloqueo permanente."
+                    )
+                    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, alerta_msg)
+                    return jsonify({"status": "unauthorized", "message": "Acceso denegado."}), 403
+        except Exception as e:
+            print(f"Error en verificación admin: {e}")
+
+    return jsonify({"status": "unauthorized"}), 403
 
 @app.route("/api/notificar-compra", methods=["POST"])
 def notificar_compra():
@@ -384,6 +425,32 @@ def telegram_webhook():
                     if w_res.data:
                         supabase_client.table("retiros").update({"estado": "rechazado"}).eq("id", item_id).execute()
 
+                elif tipo_accion == "desbloquear":
+                    # Desbloquear usuario desde Telegram
+                    target_user_id = item_id
+                    if supabase_client:
+                        supabase_client.table("usuarios").update({
+                            "bloqueado": False,
+                            "intentos_admin": 0
+                        }).eq("id", target_user_id).execute()
+
+                    estado_texto = "🔓 USUARIO DESBLOQUEADO EXITOSAMENTE"
+                    texto_original = message_cb.get("text", "Solicitud")
+                    nuevo_texto_tg = f"{texto_original}\n\n<b>ESTADO: {estado_texto}</b>"
+
+                    edit_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText"
+                    requests.post(edit_url, json={
+                        "chat_id": chat_id,
+                        "message_id": message_id,
+                        "text": nuevo_texto_tg,
+                        "parse_mode": "HTML"
+                    }, timeout=10)
+
+                    ans_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery"
+                    requests.post(ans_url, json={"callback_query_id": query_id, "text": f"¡Usuario {target_user_id} desbloqueado!"}, timeout=5)
+                    return jsonify({"status": "ok"}), 200
+
+                # Para las compras o retiros aprobados estándar
                 estado_texto = "✅ APROBADO Y APLICADO" if accion == "aprobar" else "❌ RECHAZADO"
                 texto_original = message_cb.get("text", "Solicitud")
                 nuevo_texto_tg = f"{texto_original}\n\n<b>ESTADO: {estado_texto}</b>"
@@ -403,7 +470,6 @@ def telegram_webhook():
                 print(f"Error callback: {e}")
 
     return jsonify({"status": "ok"}), 200
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
