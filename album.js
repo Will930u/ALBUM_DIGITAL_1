@@ -317,6 +317,15 @@ function showTransactionStatusAlert(tx, animate = true) {
   const container = document.getElementById('userNotificationsContainer');
   if (!container) return;
 
+  // Clave única en el almacenamiento local para esta transacción y usuario
+  const storageKey = `dismissed_tx_${STATE.userId}_${tx.id}`;
+  
+  // Si el usuario ya cerró/vio esta alerta previamente, no la volvemos a mostrar
+  if (localStorage.getItem(storageKey) === 'true') {
+    return;
+  }
+
+  // Evitar duplicados visuales en pantalla
   const existingId = document.getElementById(`notif-tx-${tx.id}`);
   if (existingId) existingId.remove();
 
@@ -340,11 +349,20 @@ function showTransactionStatusAlert(tx, animate = true) {
         <span class="text-[10px] opacity-70 mt-1 block">${new Date(tx.created_at || Date.now()).toLocaleString()}</span>
       </div>
     </div>
-    <button onclick="this.parentElement.remove()" class="text-xs opacity-70 hover:opacity-100 font-bold px-1.5 py-0.5">✕</button>
+    <button onclick="dismissTransactionAlert(${tx.id})" class="text-xs opacity-70 hover:opacity-100 font-bold px-1.5 py-0.5">✕</button>
   `;
 
   container.prepend(alertDiv);
   lucide.createIcons();
+}
+
+// Función para descartar y recordar que el usuario ya la vio para siempre
+function dismissTransactionAlert(txId) {
+  localStorage.setItem(`dismissed_tx_${STATE.userId}_${txId}`, 'true');
+  const alertElement = document.getElementById(`notif-tx-${txId}`);
+  if (alertElement) {
+    alertElement.remove();
+  }
 }
 
 function triggerStickerAnimation(cardElement) {
