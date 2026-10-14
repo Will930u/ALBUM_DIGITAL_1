@@ -51,7 +51,7 @@ def send_telegram_message(chat_id: str, text: str, reply_markup=None):
 
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.1.1"}), 200
+    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.1.2"}), 200
 
 @app.route("/api/bcv", methods=["GET"])
 def get_bcv_rate():
@@ -114,7 +114,6 @@ def notificar_compra():
         f"📅 <b>Fecha:</b> {fecha_pago or 'N/A'}"
     )
     
-    # Botones Inline para aprobar o rechazar directamente desde Telegram
     keyboard = {
         "inline_keyboard": [
             [
@@ -231,6 +230,7 @@ def procesar_retiro_admin():
     data = request.get_json(silent=True) or {}
     w_id = data.get("w_id")
     accion = data.get("accion")
+    referencia = str(data.get("referencia", "")).strip()
 
     if w_id is None or not accion:
         return jsonify({"status": "error", "message": "Datos incompletos"}), 400
@@ -243,7 +243,13 @@ def procesar_retiro_admin():
             
             w = w_res.data[0]
             nuevo_estado = "aprobado" if accion == "aprobar" else "rechazado"
-            supabase_client.table("retiros").update({"estado": nuevo_estado}).eq("id", w_id).execute()
+            
+            # Actualizar estado y opcionalmente la referencia de pago móvil en la tabla retiros
+            update_data = {"estado": nuevo_estado}
+            if referencia:
+                update_data["referencia"] = referencia
+            
+            supabase_client.table("retiros").update(update_data).eq("id", w_id).execute()
 
             if accion == "aprobar":
                 usr_res = supabase_client.table("usuarios").select("*").eq("id", w["usuario_id"]).execute()
@@ -265,7 +271,8 @@ def procesar_retiro_admin():
                 f"{icono} <b>RETIRO / HITO {accion.upper()}O</b>\n\n"
                 f"👤 <b>Usuario:</b> <code>{w['usuario_id']}</code>\n"
                 f"🎯 <b>Tipo:</b> {w['tipo']} (Hito #{w.get('milestone', 0)})\n"
-                f"💰 <b>Monto USD:</b> ${w['monto_usd']}"
+                f"💰 <b>Monto USD:</b> ${w['monto_usd']}\n"
+                f"🔢 <b>Ref. Pago:</b> <code>{referencia or 'N/A'}</code>"
             )
             send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, msg)
             return jsonify({"status": "success"}), 200
