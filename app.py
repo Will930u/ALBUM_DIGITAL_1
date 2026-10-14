@@ -111,6 +111,8 @@ def api_recovery():
         print(f"Error en recovery: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
+import traceback
+
 @app.route("/api/usuario/info", methods=["POST"])
 def api_usuario_info():
     data = request.get_json(silent=True) or {}
@@ -130,7 +132,8 @@ def api_usuario_info():
             "retiros": retiros_res.data or []
         }), 200
     except Exception as e:
-        print(f"Error en /api/usuario/info: {e}")
+        print("❌ Error detallado en /api/usuario/info:")
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/admin/configuracion", methods=["GET", "POST"])
