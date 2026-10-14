@@ -1,6 +1,7 @@
 import os
 import threading
 import requests
+import traceback
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from supabase import create_client, Client
@@ -49,7 +50,7 @@ def send_telegram_message(chat_id: str, text: str, reply_markup=None):
 
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.2.0"}), 200
+    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.2.1"}), 200
 
 @app.route("/api/bcv", methods=["GET"])
 def get_bcv_rate():
@@ -89,81 +90,6 @@ def api_login():
     except Exception as e:
         print(f"Error en login: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
-
-@app.route("/api/recovery", methods=["POST"])
-def api_recovery():
-    data = request.get_json(silent=True) or {}
-    username = str(data.get("username", "")).strip()
-    email = str(data.get("email", "")).strip()
-    telefono = str(data.get("telefono", "")).strip()
-
-    if not supabase_client:
-        return jsonify({"success": False}), 500
-
-    try:
-        res = supabase_client.table("usuarios").select("*").eq("username", username).execute()
-        user = res.data[0] if res.data and len(res.data) > 0 else None
-        
-        if user and user.get("gmail", "").lower() == email.lower() and user.get("telefono", "").strip() == telefono.strip():
-            return jsonify({"success": True}), 200
-        return jsonify({"success": False}), 400
-    except Exception as e:
-        print(f"Error en recovery: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
-
-import traceback
-
-@app.route("/api/usuario/info", methods=["POST"])
-def api_usuario_info():
-    data = request.get_json(silent=True) or {}
-    usuario_id = str(data.get("usuario_id", "")).strip()
-
-    if not supabase_client or not usuario_id:
-        return jsonify({"error": "Datos incompletos"}), 400
-
-    try:
-        user_res = supabase_client.table("usuarios").select("*").eq("id", usuario_id).execute()
-        user_data = user_res.data[0] if user_res.data and len(user_res.data) > 0 else None
-
-        retiros_res = supabase_client.table("retiros").select("*").eq("usuario_id", usuario_id).execute()
-        
-        return jsonify({
-            "user": user_data,
-            "retiros": retiros_res.data or []
-        }), 200
-    except Exception as e:
-        print("❌ Error detallado en /api/usuario/info:")
-        traceback.print_exc()
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/api/admin/configuracion", methods=["GET", "POST"])
-def admin_configuracion():
-    if not supabase_client:
-        return jsonify({"error": "BD no disponible"}), 500
-
-    if request.method == "GET":
-        try:
-            res = supabase_client.table("configuracion").select("*").limit(1).execute()
-            config_data = res.data[0] if res.data and len(res.data) > 0 else {}
-            return jsonify(config_data), 200
-        except Exception as e:
-            print(f"Error en config GET: {e}")
-            return jsonify({"error": str(e)}), 500
-    
-    elif request.method == "POST":
-        data = request.get_json(silent=True) or {}
-        try:
-            supabase_client.table("configuracion").upsert({
-                "id": 1,
-                "banco": data.get("banco"),
-                "telefono": data.get("telefono"),
-                "cedula": data.get("cedula"),
-                "titular": data.get("titular")
-            }).execute()
-            return jsonify({"success": True}), 200
-        except Exception as e:
-            print(f"Error en config POST: {e}")
-            return jsonify({"error": str(e)}), 500
 
 @app.route("/api/register", methods=["POST"])
 def api_register():
@@ -210,12 +136,14 @@ def api_recovery():
         return jsonify({"success": False}), 500
 
     try:
-        res = supabase_client.table("usuarios").select("*").eq("username", username).maybeSingle().execute()
-        user = res.data
+        res = supabase_client.table("usuarios").select("*").eq("username", username).execute()
+        user = res.data[0] if res.data and len(res.data) > 0 else None
+        
         if user and user.get("gmail", "").lower() == email.lower() and user.get("telefono", "").strip() == telefono.strip():
             return jsonify({"success": True}), 200
         return jsonify({"success": False}), 400
     except Exception as e:
+        print(f"Error en recovery: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/api/usuario/info", methods=["POST"])
@@ -227,14 +155,18 @@ def api_usuario_info():
         return jsonify({"error": "Datos incompletos"}), 400
 
     try:
-        user_res = supabase_client.table("usuarios").select("*").eq("id", usuario_id).maybeSingle().execute()
+        user_res = supabase_client.table("usuarios").select("*").eq("id", usuario_id).execute()
+        user_data = user_res.data[0] if user_res.data and len(user_res.data) > 0 else None
+
         retiros_res = supabase_client.table("retiros").select("*").eq("usuario_id", usuario_id).execute()
         
         return jsonify({
-            "user": user_res.data,
+            "user": user_data,
             "retiros": retiros_res.data or []
         }), 200
     except Exception as e:
+        print("❌ Error detallado en /api/usuario/info:")
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 # ==========================================
@@ -300,9 +232,11 @@ def admin_configuracion():
 
     if request.method == "GET":
         try:
-            res = supabase_client.table("configuracion").select("*").limit(1).maybeSingle().execute()
-            return jsonify(res.data or {}), 200
+            res = supabase_client.table("configuracion").select("*").limit(1).execute()
+            config_data = res.data[0] if res.data and len(res.data) > 0 else {}
+            return jsonify(config_data), 200
         except Exception as e:
+            print(f"Error en config GET: {e}")
             return jsonify({"error": str(e)}), 500
     
     elif request.method == "POST":
@@ -317,6 +251,7 @@ def admin_configuracion():
             }).execute()
             return jsonify({"success": True}), 200
         except Exception as e:
+            print(f"Error en config POST: {e}")
             return jsonify({"error": str(e)}), 500
 
 @app.route("/api/admin/pagos-pendientes", methods=["GET"])
