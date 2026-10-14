@@ -1,11 +1,8 @@
 const API_URL = "https://album-digital-1.onrender.com";
-const SUPABASE_URL = "https://dxicbitnnesjsqzxisea.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4aWNiaXRubmVzanNxenhpc2VhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0MTQzMTMsImV4cCI6MjEwNjk5MDMxM30.0xUXIa0Bby7xpJAF_N3y-n_H3SPwVlUBb9m630AFPtw";
 
 const STATE = {
   bcvRate: 36.5,
-  userId: localStorage.getItem('active_user_id') || null,
-  supabase: supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
+  userId: localStorage.getItem('active_user_id') || null
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -16,9 +13,8 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     lucide.createIcons();
     await fetchBcvRate();
-    await loadPlatformPaymentInfo(); // <-- Carga automática de los datos de pago de la plataforma
+    await loadPlatformPaymentInfo(); 
     
-    // Establecer la fecha actual por defecto en el campo de fecha
     const today = new Date().toISOString().split('T')[0];
     const dateField = document.getElementById('dateInput');
     if (dateField) dateField.value = today;
@@ -68,8 +64,9 @@ function calculateTotal() {
 
 async function loadPlatformPaymentInfo() {
   try {
-    const { data, error } = await STATE.supabase.from('configuracion').select('*').limit(1).single();
-    if (!error && data) {
+    const res = await fetch(`${API_URL}/api/admin/configuracion`);
+    const data = await res.json();
+    if (data) {
       const elBanco = document.getElementById('infoBanco');
       const elTel = document.getElementById('infoTelefono');
       const elCed = document.getElementById('infoCedula');
