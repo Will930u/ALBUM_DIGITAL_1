@@ -6,18 +6,37 @@ const STATE = {
   supabase: supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY)
 };
 
+// 🛡️ VALIDACIÓN DE SEGURIDAD EXCLUSIVA PARA EL ADMINISTRADOR EN ADMIN.JS
 document.addEventListener('DOMContentLoaded', async () => {
-  try {
-    lucide.createIcons();
-    await loadPendingPayments();
-  } catch (err) {
-    console.error("Error al inicializar admin:", err);
+  const activeUserId = localStorage.getItem('active_user_id');
+  if (!activeUserId) {
+    alert('Acceso no autorizado.');
+    window.location.href = 'index.html';
+    return;
   }
-});
 
-function exitAdmin() {
-  window.location.href = 'album.html';
-}
+  try {
+    const response = await fetch('https://album-digital-1.onrender.com/api/verificar-admin', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario_id: activeUserId })
+    });
+    
+    const data = await response.json();
+    if (data.status !== 'authorized') {
+      alert('Acceso denegado. Este intento ha sido reportado.');
+      window.location.href = 'album.html';
+      return;
+    }
+  } catch (e) {
+    alert('Error de conexión con el servidor.');
+    window.location.href = 'album.html';
+    return;
+  }
+
+  // --- AQUÍ CONTINÚA EL RESTO DE TU CÓDIGO NORMAL DE ADMIN.JS ---
+  initAdminDashboard(); 
+});
 
 // Actualizar la función switchAdminTab para incluir 'config'
 function switchAdminTab(tab) {
