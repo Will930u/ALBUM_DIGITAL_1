@@ -1,12 +1,7 @@
-const SUPABASE_URL = "https://dxicbitnnesjsqzxisea.supabase.co";
-const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImR4aWNiaXRubmVzanNxenhpc2VhIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE0MTQzMTMsImV4cCI6MjEwNjk5MDMxM30.0xUXIa0Bby7xpJAF_N3y-n_H3SPwVlUBb9m630AFPtw";
-
-const supabaseClient = supabase.createClient(SUPABASE_URL, SUPABASE_ANON_KEY);
+const API_URL = "https://album-digital-1.onrender.com";
 
 document.addEventListener('DOMContentLoaded', () => {
   lucide.createIcons();
-  // Eliminamos la redirección automática en el login para evitar bucles en móviles.
-  // El usuario iniciará sesión de forma limpia mediante el botón de Acceso.
 });
 
 function switchAuthMode(mode) {
@@ -30,17 +25,24 @@ async function handleRegister(e) {
     const banco = document.getElementById('regBanco').value.trim();
     const cedula = document.getElementById('regCedula').value.trim();
     const telefono = document.getElementById('regTelefono').value.trim();
-    const userId = 'USR-' + username.toUpperCase();
 
-    const { error } = await supabaseClient.from('usuarios').insert([{
-      id: userId, username: username, password_hash: pass, gmail: email,
-      banco: banco, cedula: cedula, telefono: telefono, cantidad_barajitas: 0, saldo_bs: 0
-    }]);
+    const res = await fetch(`${API_URL}/api/register`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, email, password: pass, banco, cedula, telefono })
+    });
 
-    if (error) { alert('Error en registro: ' + error.message); return; }
+    const data = await res.json();
+    if (!res.ok) {
+      alert('Error en registro: ' + (data.error || 'No se pudo completar'));
+      return;
+    }
+
     alert('¡Registro exitoso! Inicia sesión ahora.');
     switchAuthMode('login');
-  } catch (err) { console.error(err); }
+  } catch (err) {
+    console.error('Error de red en registro:', err);
+  }
 }
 
 async function handleLogin(e) {
@@ -49,23 +51,29 @@ async function handleLogin(e) {
     const username = document.getElementById('loginUsername').value.trim();
     const pass = document.getElementById('loginPassword').value.trim();
 
-    const { data, error } = await supabaseClient
-      .from('usuarios').select('*').eq('username', username).maybeSingle();
+    const res = await fetch(`${API_URL}/api/login`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password: pass })
+    });
 
-    if (error || !data || data.password_hash !== pass) {
+    const data = await res.json();
+
+    if (res.status === 403 || data.bloqueado) {
+      alert("Advertencia de Seguridad: Tu cuenta ha sido bloqueada debido a intentos de acceso no autorizado a áreas restringidas.");
+      return;
+    }
+
+    if (!res.ok || !data.success) {
       alert('Usuario o contraseña incorrectos.');
       return;
     }
 
-    // 🛡️ VERIFICAR SI LA CUENTA SE ENCUENTRA BLOQUEADA POR ACCESO NO AUTORIZADO
-    if (data.bloqueado === true) {
-      alert("Advertencia de Seguridad: Tu cuenta ha sido bloqueada debido a intentos de acceso no autorizado a áreas restringidas.");
-      return; // Detiene el inicio de sesión por completo
-    }
-
-    localStorage.setItem('active_user_id', data.id);
+    localStorage.setItem('active_user_id', data.user_id);
     window.location.href = 'album.html';
-  } catch (err) { console.error(err); }
+  } catch (err) {
+    console.error('Error de red en login:', err);
+  }
 }
 
 function openRecoveryModal() { document.getElementById('recoveryModal').classList.remove('hidden'); }
@@ -76,13 +84,23 @@ async function verifyRecoveryData() {
   const e = document.getElementById('recEmail').value.trim();
   const t = document.getElementById('recTelefono').value.trim();
   
-  const { data, error } = await supabaseClient.from('usuarios').select('*').eq('username', u).maybeSingle();
-  if (error || !data) { alert('Usuario no existe.'); return; }
-  
-  if (data.gmail.toLowerCase() === e.toLowerCase() && data.telefono.trim() === t.trim()) {
-    document.getElementById('recoveryStep1').classList.add('hidden');
-    document.getElementById('recoveryStep2').classList.remove('hidden');
-  } else { alert('Datos no coinciden.'); }
+  try {
+    const res = await fetch(`${API_URL}/api/recovery`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username: u, email: e, telefono: t })
+    });
+    const data = await res.json();
+
+    if (res.ok && data.success) {
+      document.getElementById('recoveryStep1').classList.add('hidden');
+      document.getElementById('recoveryStep2').classList.remove('hidden');
+    } else {
+      alert('Datos no coinciden o el usuario no existe.');
+    }
+  } catch (err) {
+    console.error('Error en recuperación:', err);
+  }
 }
 
 function sendChatMessage() {
