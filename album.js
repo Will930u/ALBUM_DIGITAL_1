@@ -106,20 +106,28 @@ async function loadUserDataFromDB() {
     STATE.userBalanceBs = user.saldo_bs || 0;
   }
 
-  // Consultar retiros del usuario. Si el álbum está en 0 barajitas y 0 saldo (recién liquidado), 
-  // solo tomamos en cuenta los retiros pendientes o los aprobados de las últimas horas del ciclo actual.
   const { data: retirosData } = await STATE.supabase.from('retiros').select('*').eq('usuario_id', STATE.userId);
   STATE.claimedMilestones = [];
   let hasActiveOrPending = false;
 
   if (retirosData) {
-    retirosData.forEach(r => {
-      // Si el usuario tiene 0 barajitas (álbum recién liquidado), ignoramos los hitos viejos reclamados
-      // para que pueda volver a reclamar sus premios desde cero en este nuevo ciclo.
-      const esAlbumNuevo = STATE.userStickersCount === 0 && STATE.userBalanceBs === 0;
+    // Ordenar de más antiguo a más reciente para rastrear la cronología del ciclo
+    retirosData.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
+    // Encontrar el último momento en que ocurrió una liquidación total o ciclo completo (#2000)
+    let ultimaLiquidacionIndex = -1;
+    retirosData.forEach((r, idx) => {
+      if ((r.tipo === 'liquidacion_total' || r.milestone >= 2000) && r.estado === 'aprobado') {
+        ultimaLiquidacionIndex = idx;
+      }
+    });
+
+    // Si hubo una liquidación, solo consideramos los retiros ocurridos DESPUÉS de esa liquidación para el ciclo actual
+    const retirosCicloActual = ultimaLiquidacionIndex >= 0 ? retirosData.slice(ultimaLiquidacionIndex + 1) : retirosData;
+
+    retirosCicloActual.forEach(r => {
       if (r.estado === 'aprobado' || r.estado === 'liquidado') {
-        if (r.milestone > 0 && !esAlbumNuevo) {
+        if (r.milestone > 0 && r.milestone < 2000) {
           STATE.claimedMilestones.push(r.milestone);
         }
       }
@@ -288,11 +296,9 @@ function setupLogoClickCounter() {
 function initUserRealtimeNotifications(usuarioId) {
   if (!STATE.supabase || !usuarioId) return;
 
-  // Cargar estados previos al iniciar
   checkUserTransactionsStatus(usuarioId);
   checkUserWithdrawalNotifications(usuarioId);
 
-  // Escuchar cambios en transacciones (compras)
   STATE.supabase
     .channel('public:transacciones')
     .on('postgres_changes', { 
@@ -308,7 +314,6 @@ function initUserRealtimeNotifications(usuarioId) {
     })
     .subscribe();
 
-  // Escuchar cambios en retiros / liquidaciones
   STATE.supabase
     .channel('public:retiros')
     .on('postgres_changes', { 
@@ -353,7 +358,6 @@ async function checkUserWithdrawalNotifications(usuarioId) {
 
   if (!error && data) {
     data.forEach(w => {
-      // Mostrar la alerta si el usuario no la ha descartado previamente en su localStorage
       const storageKey = `dismissed_retiro_${STATE.userId}_${w.id}`;
       if (localStorage.getItem(storageKey) !== 'true' && w.referencia) {
         showWithdrawalStatusAlert(w, false);
@@ -421,7 +425,7 @@ function showWithdrawalStatusAlert(w, animate = true) {
   const title = isApproved ? '¡Liquidación / Retiro Aprobado!' : 'Solicitud de Retiro Rechazada';
   const desc = isApproved 
     ? `🎉 ¡Tu pago ha sido procesado con éxito! Referencia de Pago Móvil: <b>${w.referencia || 'N/A'}</b>. ¡Disfruta tu dinero y prepárate para un nuevo ciclo!` 
-    : `Tu solicitud de retiro o liquidación ha sido rechazada. Comunícate con soporte para más detalles.`;
+    : `Tu solicitud de retiro o liquidación has sido rechazada. Comunícate con soporte para más detalles.`;
 
   const alertDiv = document.createElement('div');
   alertDiv.id = `notif-retiro-${w.id}`;
