@@ -10,7 +10,6 @@ const STATE = {
 document.addEventListener('DOMContentLoaded', async () => {
   const activeUserId = localStorage.getItem('active_user_id');
   if (!activeUserId) {
-    alert('Acceso no autorizado.');
     window.location.href = 'index.html';
     return;
   }
@@ -24,18 +23,17 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     const data = await response.json();
     if (data.status !== 'authorized') {
-      alert('Acceso denegado. Este intento ha sido reportado.');
+      // Redirección silenciosa sin alertas molestas para intrusos
       window.location.href = 'album.html';
       return;
     }
   } catch (e) {
-    alert('Error de conexión con el servidor.');
     window.location.href = 'album.html';
     return;
   }
 
-  // --- AQUÍ CONTINÚA EL RESTO DE TU CÓDIGO NORMAL DE ADMIN.JS ---
-  initAdminDashboard(); 
+  // Si es el admin real, inicializa el panel con normalidad
+  initAdminDashboard();
 });
 
 // Actualizar la función switchAdminTab para incluir 'config'
