@@ -16,6 +16,11 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     lucide.createIcons();
     await fetchBcvRate();
+    
+    // Establecer la fecha actual por defecto en el campo de fecha
+    const today = new Date().toISOString().split('T')[0];
+    const dateField = document.getElementById('dateInput');
+    if (dateField) dateField.value = today;
   } catch (err) {
     console.error("Error al inicializar la tienda:", err);
   }
@@ -63,11 +68,14 @@ function calculateTotal() {
 async function submitPurchase(e) {
   e.preventDefault();
   const qty = parseInt(document.getElementById('stickerQty').value) || 0;
+  const phone = document.getElementById('phoneInput').value.trim();
+  const bank = document.getElementById('bankInput').value.trim();
   const ref = document.getElementById('refInput').value.trim();
+  const fechaPago = document.getElementById('dateInput').value;
   const btnSubmit = document.getElementById('btnSubmitPurchase');
 
-  if (qty <= 0 || !ref) {
-    alert('Ingresa cantidad y referencia válida.');
+  if (qty <= 0 || !phone || !bank || !ref || !fechaPago) {
+    alert('Por favor completa todos los campos del formulario de pago.');
     return;
   }
 
@@ -85,7 +93,10 @@ async function submitPurchase(e) {
         barajitas_qty: qty,
         monto_bs: totalBs,
         monto_usd: totalUSD,
-        referencia: ref
+        telefono: phone,
+        banco: bank,
+        referencia: ref,
+        fecha_pago: fechaPago
       })
     });
 
@@ -98,7 +109,6 @@ async function submitPurchase(e) {
     }
 
     alert('¡Pago reportado con éxito! En revisión.');
-    document.getElementById('refInput').value = '';
     window.location.href = 'album.html';
   } catch (err) {
     console.error(err);
