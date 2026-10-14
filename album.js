@@ -268,7 +268,81 @@ function setupLogoClickCounter() {
     });
   }
 }
+// Inicializar notificaciones en tiempo real para el usuario actual
+function initUserRealtimeNotifications(usuarioId) {
+  if (!STATE.supabase || !usuarioId) return;
 
+  // Cargar estado inicial al abrir la página
+  checkUserTransactionsStatus(usuarioId);
+
+  // Escuchar cambios en tiempo real en la tabla 'transacciones'
+  STATE.supabase
+    .channel('public:transacciones')
+    .on('postgres_changes', { 
+      event: 'UPDATE', 
+      schema: 'public', 
+      table: 'transacciones',
+      filter: `usuario_id=eq.${usuarioId}`
+    }, payload => {
+      const tx = payload.new;
+      showTransactionStatusAlert(tx);
+      // Opcional: si fue aprobado, recargar saldo y barajitas automáticamente
+      if (typeof loadUserData === 'function') loadUserData();
+    })
+    .subscribe();
+}
+
+async function checkUserTransactionsStatus(usuarioId) {
+  const { data, error } = await STATE.supabase
+    .from('transacciones')
+    .select('*')
+    .eq('usuario_id', usuarioId)
+    .order('created_at', { ascending: false })
+    .limit(3); // Mostrar las últimas 3 transacciones recientes
+
+  if (!error && data) {
+    data.forEach(tx => {
+      if (tx.estado !== 'pendiente') {
+        showTransactionStatusAlert(tx, false); // false para no duplicar efectos flotantes al cargar
+      }
+    });
+  }
+}
+
+function showTransactionStatusAlert(tx, animate = true) {
+  const container = document.getElementById('userNotificationsContainer');
+  if (!container) return;
+
+  // Evitar duplicados visuales de la misma transacción
+  const existingId = document.getElementById(`notif-tx-${tx.id}`);
+  if (existingId) existingId.remove();
+
+  const isApproved = tx.estado === 'aprobado';
+  const bgClass = isApproved ? 'bg-emerald-900/80 border-emerald-500/50 text-emerald-200' : 'bg-red-900/80 border-red-500/50 text-red-200';
+  const icon = isApproved ? 'check-circle' : 'alert-triangle';
+  const title = isApproved ? '¡Pago Aprobado con Éxito!' : 'Pago Rechazado / Incompatible';
+  const desc = isApproved 
+    ? `Tu compra de ${tx.barajitas_qty || 0} barajitas (Ref: ${tx.referencia}) ha sido acreditada.` 
+    : `Hubo un inconveniente con la referencia ${tx.referencia}. Por favor verifica tus datos o comunícate con soporte.`;
+
+  const alertDiv = document.createElement('div');
+  alertDiv.id = `notif-tx-${tx.id}`;
+  alertDiv.className = `p-4 rounded-xl border ${bgClass} flex items-start justify-between gap-3 shadow-lg transition-all duration-300 ${animate ? 'animate-bounce-short' : ''}`;
+  alertDiv.innerHTML = `
+    <div class="flex items-start space-x-3">
+      <i data-lucide="${icon}" class="w-5 h-5 mt-0.5 flex-shrink-0"></i>
+      <div>
+        <h4 class="font-bold text-sm">${title}</h4>
+        <p class="text-xs opacity-90 mt-0.5">${desc}</p>
+        <span class="text-[10px] opacity-70 mt-1 block">${new Date(tx.created_at || Date.now()).toLocaleString()}</span>
+      </div>
+    </div>
+    <button onclick="this.parentElement.remove()" class="text-xs opacity-70 hover:opacity-100 font-bold px-1.5 py-0.5">✕</button>
+  `;
+
+  container.prepend(alertDiv);
+  lucide.createIcons();
+}
 function triggerStickerAnimation(cardElement) {
   cardElement.classList.add('rotate-360');
   setTimeout(() => {
