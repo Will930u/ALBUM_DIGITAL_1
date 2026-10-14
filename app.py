@@ -51,7 +51,7 @@ def send_telegram_message(chat_id: str, text: str, reply_markup=None):
 
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.1.0"}), 200
+    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.1.1"}), 200
 
 @app.route("/api/bcv", methods=["GET"])
 def get_bcv_rate():
@@ -72,6 +72,9 @@ def notificar_compra():
     monto_bs = data.get("monto_bs")
     monto_usd = data.get("monto_usd", 0.62)
     referencia = str(data.get("referencia", "")).strip()
+    telefono = str(data.get("telefono", "")).strip()
+    banco = str(data.get("banco", "")).strip()
+    fecha_pago = str(data.get("fecha_pago", "")).strip()
 
     if not all([usuario_id, barajitas_qty, monto_bs, referencia]):
         return jsonify({"status": "error", "message": "Campos incompletos"}), 400
@@ -90,6 +93,9 @@ def notificar_compra():
                 "monto_usd": float(monto_usd),
                 "monto": float(monto_bs),
                 "referencia": referencia,
+                "telefono": telefono,
+                "banco": banco,
+                "fecha_pago": fecha_pago,
                 "estado": "pendiente"
             }).execute()
             if res_insert.data and len(res_insert.data) > 0:
@@ -102,7 +108,10 @@ def notificar_compra():
         f"👤 <b>Usuario:</b> <code>{usuario_id}</code>\n"
         f"🎴 <b>Barajitas:</b> {barajitas_qty}\n"
         f"💰 <b>Monto Bs.:</b> {float(monto_bs):.2f}\n"
-        f"🔢 <b>Referencia:</b> <code>{referencia}</code>"
+        f"📱 <b>Teléfono:</b> <code>{telefono or 'N/A'}</code>\n"
+        f"🏦 <b>Banco:</b> <code>{banco or 'N/A'}</code>\n"
+        f"🔢 <b>Referencia:</b> <code>{referencia}</code>\n"
+        f"📅 <b>Fecha:</b> {fecha_pago or 'N/A'}"
     )
     
     # Botones Inline para aprobar o rechazar directamente desde Telegram
@@ -205,7 +214,6 @@ def notificar_retiro():
     else:
         mensaje = f"🏆 <b>SOLICITUD DE PREMIO HITO (#{milestone})</b>\n\n👤 <b>Usuario:</b> <code>{usuario_id}</code>\n💰 <b>Monto Bs.:</b> {float(monto_bs):.2f}\n📱 <b>Pago Móvil:</b> {datos_pago}"
 
-    # Botones Inline para aprobar o rechazar retiros/hitos/liquidaciones
     keyboard = {
         "inline_keyboard": [
             [
@@ -267,7 +275,6 @@ def procesar_retiro_admin():
 
 @app.route("/api/telegram-webhook", methods=["POST"])
 def telegram_webhook():
-    """Recibe las señales (Callback Queries) cuando el admin toca los botones interactivos en Telegram"""
     data = request.get_json(silent=True) or {}
     callback_query = data.get("callback_query")
     
@@ -282,18 +289,10 @@ def telegram_webhook():
 
     parts = data_str.split("_")
     if len(parts) >= 3:
-        tipo_accion = parts[0]  # 'compra' o 'retiro'
-        accion = parts[1]       # 'aprobar' o 'rechazar'
-        item_id = parts[2]      # el ID del registro en Supabase
+        tipo_accion = parts[0]
+        accion = parts[1]
+        item_id = parts[2]
 
-        # Ejecutamos la lógica correspondiente
-        if tipo_accion == "compra":
-            # Llamamos internamente a la lógica de aprobación/rechazo de compra
-            with app.test_request_client() if hasattr(app, 'test_request_client') else app.test_client() as client:
-                # O simulamos la ejecución directa:
-                pass
-
-        # Procesar vía Base de Datos directamente para mayor agilidad en el Webhook:
         if supabase_client:
             try:
                 if tipo_accion == "compra":
@@ -336,7 +335,6 @@ def telegram_webhook():
                                         "saldo_bs": nuevo_saldo
                                     }).eq("id", w["usuario_id"]).execute()
 
-                # Actualizar el mensaje en Telegram para quitar los botones y mostrar el estado final
                 estado_texto = "✅ APROBADO Y APLICADO" if accion == "aprobar" else "❌ RECHAZADO"
                 texto_original = message.get("text", "Solicitud")
                 nuevo_texto_tg = f"{texto_original}\n\n<b>ESTADO: {estado_texto}</b>"
@@ -349,7 +347,6 @@ def telegram_webhook():
                     "parse_mode": "HTML"
                 }, timeout=10)
 
-                # Responder al callback query para quitar el círculo de carga en el botón de Telegram
                 ans_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery"
                 requests.post(ans_url, json={"callback_query_id": query_id, "text": f"¡Acción {accion} ejecutada con éxito!"}, timeout=5)
 
