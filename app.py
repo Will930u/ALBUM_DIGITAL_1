@@ -51,7 +51,7 @@ def send_telegram_message(chat_id: str, text: str, reply_markup=None):
 
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.1.4"}), 200
+    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.1.5"}), 200
 
 @app.route("/api/bcv", methods=["GET"])
 def get_bcv_rate():
@@ -254,11 +254,11 @@ def procesar_retiro_admin():
                 if usr_res.data and len(usr_res.data) > 0:
                     usr = usr_res.data[0]
                     if w["tipo"] == "liquidacion_total" or w.get("milestone") == 2000 or w.get("milestone") >= 2000:
+                        # Reiniciar barajitas y saldo a cero (SIN BORRAR EL HISTORIAL DE LA TABLA RETIROS)
                         supabase_client.table("usuarios").update({
                             "cantidad_barajitas": 0,
                             "saldo_bs": 0.0
                         }).eq("id", w["usuario_id"]).execute()
-                        supabase_client.table("retiros").delete().eq("usuario_id", w["usuario_id"]).execute()
                     else:
                         nuevo_saldo = max(0.0, (usr.get("saldo_bs") or 0.0) - float(w["monto_bs"]))
                         supabase_client.table("usuarios").update({
@@ -289,7 +289,6 @@ def telegram_webhook():
         reply_to = message.get("reply_to_message")
         if reply_to and reply_to.get("text"):
             text_original = reply_to.get("text")
-            # Buscar el ID del retiro en el texto (ej: [ID:12])
             import re
             match = re.search(r'\[ID:(\d+)\]', text_original)
             if match:
@@ -302,13 +301,13 @@ def telegram_webhook():
                         w_res = supabase_client.table("retiros").select("*").eq("id", w_id).execute()
                         if w_res.data:
                             w = w_res.data[0]
-                            # Actualizar retiro como aprobado y guardar su referencia
+                            # Actualizar retiro como aprobado y guardar su referencia en la tabla retiros
                             supabase_client.table("retiros").update({
                                 "estado": "aprobado",
                                 "referencia": referencia_ingresada
                             }).eq("id", w_id).execute()
 
-                            # Aplicar lógica de usuario (limpiar si es liquidación)
+                            # Aplicar liquidación en la tabla usuarios (barajitas y saldo a 0) SIN BORRAR EL RETIRO
                             usr_res = supabase_client.table("usuarios").select("*").eq("id", w["usuario_id"]).execute()
                             if usr_res.data:
                                 usr = usr_res.data[0]
@@ -317,7 +316,6 @@ def telegram_webhook():
                                         "cantidad_barajitas": 0,
                                         "saldo_bs": 0.0
                                     }).eq("id", w["usuario_id"]).execute()
-                                    supabase_client.table("retiros").delete().eq("usuario_id", w["usuario_id"]).execute()
                                 else:
                                     nuevo_saldo = max(0.0, (usr.get("saldo_bs") or 0.0) - float(w["monto_bs"]))
                                     supabase_client.table("usuarios").update({
@@ -325,7 +323,7 @@ def telegram_webhook():
                                     }).eq("id", w["usuario_id"]).execute()
 
                             # Confirmar al admin en Telegram
-                            send_telegram_message(chat_id, f"✅ <b>LIQUIDACIÓN APROBADA CON ÉXITO</b>\nReferencia registrada: <code>{referencia_ingresada}</code>")
+                            send_telegram_message(chat_id, f"✅ <b>LIQUIDACIÓN APROBADA Y REGISTRADA</b>\nReferencia: <code>{referencia_ingresada}</code>")
                             return jsonify({"status": "ok"}), 200
                     except Exception as e:
                         print(f"Error procesando respuesta de texto de telegram: {e}")
