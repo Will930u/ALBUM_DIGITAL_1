@@ -170,14 +170,19 @@ async function loadPendingWithdrawals() {
 }
 
 async function processAdminWithdrawal(wId, accion) {
+  let referencia = '';
+  if (accion === 'aprobar') {
+    referencia = prompt("Ingresa el número de referencia del Pago Móvil realizado al usuario:");
+    if (!referencia) return; // Si el admin cancela, se detiene el proceso
+  }
+
   try {
     const res = await fetch(`${API_URL}/api/procesar-retiro-admin`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ w_id: wId, accion: accion })
+      body: JSON.stringify({ w_id: wId, accion: accion, referencia: referencia })
     });
     if (res.ok) {
-      // Recarga silenciosa sin mostrar cuadros de alerta molestos
       loadPendingWithdrawals();
     } else {
       console.error('Error al procesar retiro.');
