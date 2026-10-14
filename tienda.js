@@ -16,6 +16,7 @@ document.addEventListener('DOMContentLoaded', async () => {
   try {
     lucide.createIcons();
     await fetchBcvRate();
+    await loadPlatformPaymentInfo(); // <-- Carga automática de los datos de pago de la plataforma
     
     // Establecer la fecha actual por defecto en el campo de fecha
     const today = new Date().toISOString().split('T')[0];
@@ -63,6 +64,25 @@ function calculateTotal() {
   const totalBs = totalUSD * STATE.bcvRate;
   document.getElementById('totalUSDDisplay').innerText = `$${totalUSD.toFixed(2)}`;
   document.getElementById('totalBsDisplay').innerText = `Bs. ${totalBs.toFixed(2)}`;
+}
+
+async function loadPlatformPaymentInfo() {
+  try {
+    const { data, error } = await STATE.supabase.from('configuracion').select('*').limit(1).single();
+    if (!error && data) {
+      const elBanco = document.getElementById('infoBanco');
+      const elTel = document.getElementById('infoTelefono');
+      const elCed = document.getElementById('infoCedula');
+      const elTit = document.getElementById('infoTitular');
+
+      if (elBanco) elBanco.innerText = data.banco || 'N/A';
+      if (elTel) elTel.innerText = data.telefono || 'N/A';
+      if (elCed) elCed.innerText = data.cedula || 'N/A';
+      if (elTit) elTit.innerText = data.titular || 'N/A';
+    }
+  } catch (e) {
+    console.error("No se pudieron cargar los datos de pago de la plataforma", e);
+  }
 }
 
 async function submitPurchase(e) {
