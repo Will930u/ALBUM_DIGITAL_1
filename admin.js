@@ -293,5 +293,5 @@ function exitAdmin() {
   // Limpiamos la sesión activa del navegador
   localStorage.removeItem('active_user_id');
   // Redirigimos al usuario al login principal
-  window.location.href = 'index.html';
+  window.location.href = 'album.html';
 }
