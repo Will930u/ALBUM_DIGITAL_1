@@ -293,12 +293,17 @@ function setupLogoClickCounter() {
 // ----------------------------------------------------
 // MÓDULO DE NOTIFICACIONES EN TIEMPO REAL PARA EL USUARIO
 // ----------------------------------------------------
+// ----------------------------------------------------
+// MÓDULO DE NOTIFICACIONES EN TIEMPO REAL Y REFRESCO INSTANTÁNEO
+// ----------------------------------------------------
 function initUserRealtimeNotifications(usuarioId) {
   if (!STATE.supabase || !usuarioId) return;
 
+  // Cargar estados previos al iniciar
   checkUserTransactionsStatus(usuarioId);
   checkUserWithdrawalNotifications(usuarioId);
 
+  // 1. Escuchar cambios en tiempo real de Supabase (compras)
   STATE.supabase
     .channel('public:transacciones')
     .on('postgres_changes', { 
@@ -314,6 +319,7 @@ function initUserRealtimeNotifications(usuarioId) {
     })
     .subscribe();
 
+  // 2. Escuchar cambios en tiempo real de Supabase (retiros / liquidaciones)
   STATE.supabase
     .channel('public:retiros')
     .on('postgres_changes', { 
@@ -328,8 +334,21 @@ function initUserRealtimeNotifications(usuarioId) {
       renderAlbumPage();
     })
     .subscribe();
-}
 
+  // 3. REFRESCO AUTOMÁTICO DE RESPALDO (Polling cada 5 segundos)
+  // Esto garantiza que si el evento en tiempo real de la red se demora, 
+  // el álbum consultará la base de datos y mostrará la notificación al instante sin que recargues.
+  setInterval(async () => {
+    if (!STATE.userId) return;
+    try {
+      await loadUserDataFromDB();
+      await checkUserWithdrawalNotifications(STATE.userId);
+      await checkUserTransactionsStatus(STATE.userId);
+    } catch (e) {
+      // Silenciar errores de red en segundo plano
+    }
+  }, 5000);
+}
 async function checkUserTransactionsStatus(usuarioId) {
   const { data, error } = await STATE.supabase
     .from('transacciones')
