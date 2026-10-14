@@ -22,7 +22,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadUserDataFromDB();
     renderAlbumPage();
     
-    // Iniciar las notificaciones en tiempo real para este usuario
+    // Iniciar las notificaciones en tiempo real para este usuario (compras y retiros)
     initUserRealtimeNotifications(STATE.userId);
   } catch (err) {
     console.error("Error al inicializar el álbum:", err);
@@ -159,7 +159,7 @@ function openWithdrawModal() {
       "🌟 ¡FELICIDADES Y GRACIAS POR COMPLETAR EL ÁLBUM! 🌟\n\n" +
       "Has completado las 2000 barajitas (Ciclo Completo). Tu solicitud de pago será enviada para verificación y abono manual por parte del administrador.\n\n" +
       "Una vez aprobado y pagado exitosamente, recibirás tu notificación de éxito con las felicitaciones y el álbum se reiniciará para iniciar un nuevo ciclo completo.\n\n" +
-      "¿Deseas proceder con la solicitud?"
+      "¿Deseas proceder com la solicitud?"
     );
     if (confirmarCiclo) {
       STATE.selectedMilestone = 2000;
@@ -278,8 +278,11 @@ function setupLogoClickCounter() {
 function initUserRealtimeNotifications(usuarioId) {
   if (!STATE.supabase || !usuarioId) return;
 
+  // Cargar estados previos al iniciar
   checkUserTransactionsStatus(usuarioId);
+  checkUserWithdrawalNotifications(usuarioId);
 
+  // Escuchar cambios en transacciones (compras)
   STATE.supabase
     .channel('public:transacciones')
     .on('postgres_changes', { 
@@ -290,6 +293,22 @@ function initUserRealtimeNotifications(usuarioId) {
     }, payload => {
       const tx = payload.new;
       showTransactionStatusAlert(tx);
+      loadUserDataFromDB();
+      renderAlbumPage();
+    })
+    .subscribe();
+
+  // Escuchar cambios en retiros / liquidaciones
+  STATE.supabase
+    .channel('public:retiros')
+    .on('postgres_changes', { 
+      event: 'UPDATE', 
+      schema: 'public', 
+      table: 'retiros',
+      filter: `usuario_id=eq.${usuarioId}`
+    }, payload => {
+      const w = payload.new;
+      showWithdrawalStatusAlert(w);
       loadUserDataFromDB();
       renderAlbumPage();
     })
@@ -313,19 +332,30 @@ async function checkUserTransactionsStatus(usuarioId) {
   }
 }
 
+async function checkUserWithdrawalNotifications(usuarioId) {
+  const { data, error } = await STATE.supabase
+    .from('retiros')
+    .select('*')
+    .eq('usuario_id', usuarioId)
+    .order('created_at', { ascending: false })
+    .limit(3);
+
+  if (!error && data) {
+    data.forEach(w => {
+      if (w.estado !== 'pendiente') {
+        showWithdrawalStatusAlert(w, false);
+      }
+    });
+  }
+}
+
 function showTransactionStatusAlert(tx, animate = true) {
   const container = document.getElementById('userNotificationsContainer');
   if (!container) return;
 
-  // Clave única en el almacenamiento local para esta transacción y usuario
   const storageKey = `dismissed_tx_${STATE.userId}_${tx.id}`;
-  
-  // Si el usuario ya cerró/vio esta alerta previamente, no la volvemos a mostrar
-  if (localStorage.getItem(storageKey) === 'true') {
-    return;
-  }
+  if (localStorage.getItem(storageKey) === 'true') return;
 
-  // Evitar duplicados visuales en pantalla
   const existingId = document.getElementById(`notif-tx-${tx.id}`);
   if (existingId) existingId.remove();
 
@@ -356,13 +386,53 @@ function showTransactionStatusAlert(tx, animate = true) {
   lucide.createIcons();
 }
 
-// Función para descartar y recordar que el usuario ya la vio para siempre
 function dismissTransactionAlert(txId) {
   localStorage.setItem(`dismissed_tx_${STATE.userId}_${txId}`, 'true');
   const alertElement = document.getElementById(`notif-tx-${txId}`);
-  if (alertElement) {
-    alertElement.remove();
-  }
+  if (alertElement) alertElement.remove();
+}
+
+function showWithdrawalStatusAlert(w, animate = true) {
+  const container = document.getElementById('userNotificationsContainer');
+  if (!container) return;
+
+  const storageKey = `dismissed_retiro_${STATE.userId}_${w.id}`;
+  if (localStorage.getItem(storageKey) === 'true') return;
+
+  const existingId = document.getElementById(`notif-retiro-${w.id}`);
+  if (existingId) existingId.remove();
+
+  const isApproved = w.estado === 'aprobado';
+  const bgClass = isApproved ? 'bg-emerald-900/90 border-emerald-500/50 text-emerald-200' : 'bg-red-900/90 border-red-500/50 text-red-200';
+  const icon = isApproved ? 'check-circle' : 'alert-triangle';
+  const title = isApproved ? '¡Liquidación / Retiro Aprobado!' : 'Solicitud de Retiro Rechazada';
+  const desc = isApproved 
+    ? `🎉 ¡Tu pago ha sido procesado con éxito! Referencia de Pago Móvil: <b>${w.referencia || 'N/A'}</b>. ¡Disfruta tu dinero y prepárate para un nuevo ciclo!` 
+    : `Tu solicitud de retiro o liquidación ha sido rechazada. Comunícate con soporte para más detalles.`;
+
+  const alertDiv = document.createElement('div');
+  alertDiv.id = `notif-retiro-${w.id}`;
+  alertDiv.className = `p-4 rounded-xl border ${bgClass} flex items-start justify-between gap-3 shadow-lg transition-all duration-300 ${animate ? 'animate-bounce-short' : ''}`;
+  alertDiv.innerHTML = `
+    <div class="flex items-start space-x-3">
+      <i data-lucide="${icon}" class="w-5 h-5 mt-0.5 flex-shrink-0"></i>
+      <div>
+        <h4 class="font-bold text-sm">${title}</h4>
+        <p class="text-xs opacity-90 mt-0.5">${desc}</p>
+        <span class="text-[10px] opacity-70 mt-1 block">${new Date(w.created_at || Date.now()).toLocaleString()}</span>
+      </div>
+    </div>
+    <button onclick="dismissRetiroAlert(${w.id})" class="text-xs opacity-70 hover:opacity-100 font-bold px-1.5 py-0.5">✕</button>
+  `;
+
+  container.prepend(alertDiv);
+  lucide.createIcons();
+}
+
+function dismissRetiroAlert(wId) {
+  localStorage.setItem(`dismissed_retiro_${STATE.userId}_${wId}`, 'true');
+  const el = document.getElementById(`notif-retiro-${wId}`);
+  if (el) el.remove();
 }
 
 function triggerStickerAnimation(cardElement) {
