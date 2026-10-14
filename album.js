@@ -303,7 +303,7 @@ function initUserRealtimeNotifications(usuarioId) {
   checkUserTransactionsStatus(usuarioId);
   checkUserWithdrawalNotifications(usuarioId);
 
-  // 1. Escuchar cambios en tiempo real de Supabase (compras)
+  // Escuchar cambios en transacciones (compras)
   STATE.supabase
     .channel('public:transacciones')
     .on('postgres_changes', { 
@@ -311,14 +311,14 @@ function initUserRealtimeNotifications(usuarioId) {
       schema: 'public', 
       table: 'transacciones',
       filter: `usuario_id=eq.${usuarioId}`
-    }, payload => {
+    }, async payload => {
       const tx = payload.new;
       showTransactionStatusAlert(tx);
-      loadUserDataFromDB();
-      renderAlbumPage();
+      await loadUserDataFromDB(); // Asegurar que espere la carga de los nuevos valores de la BD
+      renderAlbumPage();          // Redibujar el álbum inmediatamente con las barajitas sumadas
     })
     .subscribe();
-
+  
   // 2. Escuchar cambios en tiempo real de Supabase (retiros / liquidaciones)
   STATE.supabase
     .channel('public:retiros')
