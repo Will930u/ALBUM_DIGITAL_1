@@ -92,16 +92,14 @@ async function processAdminPayment(txId, accion) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ tx_id: txId, accion: accion })
     });
-    const result = await res.json();
     if (res.ok) {
-      alert(`Pago ${accion}do con éxito.`);
+      // Recarga silenciosa sin mostrar cuadros de alerta molestos
       loadPendingPayments();
     } else {
-      alert('Error del servidor: ' + (result.message || 'No se pudo procesar'));
+      console.error('Error al procesar la compra.');
     }
   } catch (err) {
-    console.error(err);
-    alert('Error de conexión al procesar el pago.');
+    console.error('Error de conexión al procesar el pago:', err);
   }
 }
 
@@ -130,16 +128,20 @@ async function loadPendingWithdrawals() {
 }
 
 async function processAdminWithdrawal(wId, accion) {
-  const res = await fetch(`${API_URL}/api/procesar-retiro-admin`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ w_id: wId, accion: accion })
-  });
-  if (res.ok) {
-    alert(`Retiro ${accion}do con éxito.`);
-    loadPendingWithdrawals();
-  } else {
-    alert('Error al procesar retiro.');
+  try {
+    const res = await fetch(`${API_URL}/api/procesar-retiro-admin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ w_id: wId, accion: accion })
+    });
+    if (res.ok) {
+      // Recarga silenciosa sin mostrar cuadros de alerta molestos
+      loadPendingWithdrawals();
+    } else {
+      console.error('Error al procesar retiro.');
+    }
+  } catch (err) {
+    console.error('Error de conexión al procesar retiro:', err);
   }
 }
 
@@ -166,7 +168,6 @@ async function uploadStickerImagesBatch(e) {
     }
     bar.style.width = `${Math.round(((i + 1) / totalFiles) * 100)}%`;
   }
-  alert(`Carga finalizada: ${exitosas}/${totalFiles} subidas.`);
   container.classList.add('hidden');
 }
 
@@ -208,6 +209,5 @@ async function purgeAllData() {
   if (!confirm("⚠️ ¿Deseas purgar todas las transacciones y retiros del sistema?")) return;
   await STATE.supabase.from('transacciones').delete().neq('usuario_id', '');
   await STATE.supabase.from('retiros').delete().neq('usuario_id', '');
-  alert('Sistema purgado correctamente.');
   window.location.reload();
 }
