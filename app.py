@@ -395,46 +395,21 @@ def telegram_webhook():
     message_id = message_cb.get("message_id")
 
     parts = data_str.split("_")
-    if len(parts) >= 3:
+    if len(parts) >= 2:
         tipo_accion = parts[0]
-        accion = parts[1]
-        item_id = parts[2]
 
         if supabase_client:
             try:
-                if tipo_accion == "compra":
-                    tx_res = supabase_client.table("transacciones").select("*").eq("id", item_id).execute()
-                    if tx_res.data:
-                        tx = tx_res.data[0]
-                        nuevo_estado = "aprobado" if accion == "aprobar" else "rechazado"
-                        supabase_client.table("transacciones").update({"estado": nuevo_estado}).eq("id", item_id).execute()
-
-                        if accion == "aprobar":
-                            usr_res = supabase_client.table("usuarios").select("*").eq("id", tx["usuario_id"]).execute()
-                            if usr_res.data:
-                                usr = usr_res.data[0]
-                                barajitas_a_sumar = int(tx.get("barajitas_qty") or 0)
-                                monto_bs_total = float(tx.get("monto_bs") or tx.get("monto") or 0.0)
-                                supabase_client.table("usuarios").update({
-                                    "cantidad_barajitas": (usr.get("cantidad_barajitas") or 0) + barajitas_a_sumar,
-                                    "saldo_bs": (usr.get("saldo_bs") or 0.0) + (monto_bs_total * 0.70)
-                                }).eq("id", tx["usuario_id"]).execute()
-
-                elif tipo_accion == "retiro" and accion == "rechazar":
-                    w_res = supabase_client.table("retiros").select("*").eq("id", item_id).execute()
-                    if w_res.data:
-                        supabase_client.table("retiros").update({"estado": "rechazado"}).eq("id", item_id).execute()
-
-                elif tipo_accion == "desbloquear":
-                    # Desbloquear usuario desde Telegram
-                    target_user_id = item_id
-                    if supabase_client:
+                # 🔓 CASO DE DESBLOQUEO DE USUARIO (2 partes: desbloquear_USR-ID)
+                if tipo_accion == "desbloquear":
+                    target_user_id = parts[1] if len(parts) > 1 else ""
+                    if target_user_id:
                         supabase_client.table("usuarios").update({
                             "bloqueado": False,
                             "intentos_admin": 0
                         }).eq("id", target_user_id).execute()
 
-                    estado_texto = "🔓 USUARIO DESBLOQUEADO EXITOSAMENTE"
+                    estado_texto = f"🔓 USUARIO <code>{target_user_id}</code> DESBLOQUEADO"
                     texto_original = message_cb.get("text", "Solicitud")
                     nuevo_texto_tg = f"{texto_original}\n\n<b>ESTADO: {estado_texto}</b>"
 
@@ -450,21 +425,48 @@ def telegram_webhook():
                     requests.post(ans_url, json={"callback_query_id": query_id, "text": f"¡Usuario {target_user_id} desbloqueado!"}, timeout=5)
                     return jsonify({"status": "ok"}), 200
 
-                # Para las compras o retiros aprobados estándar
-                estado_texto = "✅ APROBADO Y APLICADO" if accion == "aprobar" else "❌ RECHAZADO"
-                texto_original = message_cb.get("text", "Solicitud")
-                nuevo_texto_tg = f"{texto_original}\n\n<b>ESTADO: {estado_texto}</b>"
+                # CASOS ESTÁNDAR (Compras y Retiros que usan 3 partes)
+                if len(parts) >= 3:
+                    accion = parts[1]
+                    item_id = parts[2]
 
-                edit_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText"
-                requests.post(edit_url, json={
-                    "chat_id": chat_id,
-                    "message_id": message_id,
-                    "text": nuevo_texto_tg,
-                    "parse_mode": "HTML"
-                }, timeout=10)
+                    if tipo_accion == "compra":
+                        tx_res = supabase_client.table("transacciones").select("*").eq("id", item_id).execute()
+                        if tx_res.data:
+                            tx = tx_res.data[0]
+                            nuevo_estado = "aprobado" if accion == "aprobar" else "rechazado"
+                            supabase_client.table("transacciones").update({"estado": nuevo_estado}).eq("id", item_id).execute()
 
-                ans_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery"
-                requests.post(ans_url, json={"callback_query_id": query_id, "text": f"¡Acción {accion} ejecutada con éxito!"}, timeout=5)
+                            if accion == "aprobar":
+                                usr_res = supabase_client.table("usuarios").select("*").eq("id", tx["usuario_id"]).execute()
+                                if usr_res.data:
+                                    usr = usr_res.data[0]
+                                    barajitas_a_sumar = int(tx.get("barajitas_qty") or 0)
+                                    monto_bs_total = float(tx.get("monto_bs") or tx.get("monto") or 0.0)
+                                    supabase_client.table("usuarios").update({
+                                        "cantidad_barajitas": (usr.get("cantidad_barajitas") or 0) + barajitas_a_sumar,
+                                        "saldo_bs": (usr.get("saldo_bs") or 0.0) + (monto_bs_total * 0.70)
+                                    }).eq("id", tx["usuario_id"]).execute()
+
+                    elif tipo_accion == "retiro" and accion == "rechazar":
+                        w_res = supabase_client.table("retiros").select("*").eq("id", item_id).execute()
+                        if w_res.data:
+                            supabase_client.table("retiros").update({"estado": "rechazado"}).eq("id", item_id).execute()
+
+                    estado_texto = "✅ APROBADO Y APLICADO" if accion == "aprobar" else "❌ RECHAZADO"
+                    texto_original = message_cb.get("text", "Solicitud")
+                    nuevo_texto_tg = f"{texto_original}\n\n<b>ESTADO: {estado_texto}</b>"
+
+                    edit_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText"
+                    requests.post(edit_url, json={
+                        "chat_id": chat_id,
+                        "message_id": message_id,
+                        "text": nuevo_texto_tg,
+                        "parse_mode": "HTML"
+                    }, timeout=10)
+
+                    ans_url = f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery"
+                    requests.post(ans_url, json={"callback_query_id": query_id, "text": f"¡Acción {accion} ejecutada con éxito!"}, timeout=5)
 
             except Exception as e:
                 print(f"Error callback: {e}")
