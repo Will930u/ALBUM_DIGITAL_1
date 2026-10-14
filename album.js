@@ -106,16 +106,26 @@ async function loadUserDataFromDB() {
     STATE.userBalanceBs = user.saldo_bs || 0;
   }
 
-  const { data: retirosData } = await STATE.supabase.from('retiros').select('milestone, estado').eq('usuario_id', STATE.userId);
+  // Consultar retiros del usuario. Si el álbum está en 0 barajitas y 0 saldo (recién liquidado), 
+  // solo tomamos en cuenta los retiros pendientes o los aprobados de las últimas horas del ciclo actual.
+  const { data: retirosData } = await STATE.supabase.from('retiros').select('*').eq('usuario_id', STATE.userId);
   STATE.claimedMilestones = [];
   let hasActiveOrPending = false;
 
   if (retirosData) {
     retirosData.forEach(r => {
-      if (r.estado === 'aprobado' || r.estado === 'pendiente') {
-        if (r.milestone > 0) STATE.claimedMilestones.push(r.milestone);
+      // Si el usuario tiene 0 barajitas (álbum recién liquidado), ignoramos los hitos viejos reclamados
+      // para que pueda volver a reclamar sus premios desde cero en este nuevo ciclo.
+      const esAlbumNuevo = STATE.userStickersCount === 0 && STATE.userBalanceBs === 0;
+
+      if (r.estado === 'aprobado' || r.estado === 'liquidado') {
+        if (r.milestone > 0 && !esAlbumNuevo) {
+          STATE.claimedMilestones.push(r.milestone);
+        }
       }
-      if (r.estado === 'pendiente') hasActiveOrPending = true;
+      if (r.estado === 'pendiente') {
+        hasActiveOrPending = true;
+      }
     });
   }
 
@@ -159,7 +169,7 @@ function openWithdrawModal() {
       "🌟 ¡FELICIDADES Y GRACIAS POR COMPLETAR EL ÁLBUM! 🌟\n\n" +
       "Has completado las 2000 barajitas (Ciclo Completo). Tu solicitud de pago será enviada para verificación y abono manual por parte del administrador.\n\n" +
       "Una vez aprobado y pagado exitosamente, recibirás tu notificación de éxito con las felicitaciones y el álbum se reiniciará para iniciar un nuevo ciclo completo.\n\n" +
-      "¿Deseas proceder com la solicitud?"
+      "¿Deseas proceder con la solicitud?"
     );
     if (confirmarCiclo) {
       STATE.selectedMilestone = 2000;
@@ -342,7 +352,10 @@ async function checkUserWithdrawalNotifications(usuarioId) {
 
   if (!error && data) {
     data.forEach(w => {
-      if (w.estado !== 'pendiente') {
+      // Solo mostrar la alerta si está aprobado y la fecha de creación es reciente (últimos 10 minutos) 
+      // o si el usuario aún no la ha descartado explícitamente en esta sesión.
+      const esReciente = (new Date() - new Date(w.created_at)) < 10 * 60 * 1000;
+      if (w.estado === 'aprobado' && esReciente) {
         showWithdrawalStatusAlert(w, false);
       }
     });
