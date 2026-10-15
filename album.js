@@ -185,31 +185,14 @@ async function loadUserDataFromDB() {
     if (data && data.retiros) {
       data.retiros.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
-      let ultimaLiquidacionIndex = -1;
-      data.retiros.forEach((r, idx) => {
-        if ((r.tipo === 'liquidacion_total' || r.milestone >= 2000 || r.tipo === 'ciclo_completo') && r.estado === 'aprobado') {
-          ultimaLiquidacionIndex = idx;
-        }
-      });
-
-      const retirosCicloActual = ultimaLiquidacionIndex >= 0 ? data.retiros.slice(ultimaLiquidacionIndex + 1) : data.retiros;
-
-      retirosCicloActual.forEach(r => {
-        if (r.estado === 'aprobado' || r.estado === 'liquidado') {
-          if (r.milestone > 0 && r.milestone < 2000) {
-            if (!STATE.claimedMilestones.includes(r.milestone)) {
-              STATE.claimedMilestones.push(r.milestone);
-            }
-          }
-          
-          // Detección robusta de retiros aprobados con referencia de pago
-          const trackingKey = `approved_ref_${r.id}_${r.referencia || 'sin_ref'}`;
+      // 1. PRIMERO: Procesar todas las notificaciones de retiros aprobados globalmente para asegurar la alerta flotante de liquidación
+      data.retiros.forEach(r => {
+        if ((r.estado === 'aprobado' || r.estado === 'liquidado') && r.referencia) {
+          const trackingKey = `approved_ref_${r.id}_${r.referencia}`;
           if (!STATE.notifiedWithdrawals.has(trackingKey)) {
             STATE.notifiedWithdrawals.add(trackingKey);
-            
             if (!STATE.isInitialLoad) {
-              const refText = r.referencia ? ` Referencia bancaria: <b>${r.referencia}</b>` : '';
-              
+              const refText = ` Referencia bancaria: <b>${r.referencia}</b>`;
               if (r.tipo === 'liquidacion_total' || r.tipo === 'ciclo_completo' || r.milestone >= 2000) {
                 showFloatingNotification(`¡Liquidación total aprobada y pagada!${refText}`);
                 renderAlbumPage(); // Limpia y reinicia el álbum visualmente de inmediato
@@ -221,6 +204,24 @@ async function loadUserDataFromDB() {
         }
         if (r.estado === 'pendiente') {
           hasActiveOrPending = true;
+        }
+      });
+
+      // 2. SEGUNDO: Calcular los hitos del ciclo actual para las barajitas desbloqueadas
+      let ultimaLiquidacionIndex = -1;
+      data.retiros.forEach((r, idx) => {
+        if ((r.tipo === 'liquidacion_total' || r.milestone >= 2000 || r.tipo === 'ciclo_completo') && r.estado === 'aprobado') {
+          ultimaLiquidacionIndex = idx;
+        }
+      });
+
+      const retirosCicloActual = ultimaLiquidacionIndex >= 0 ? data.retiros.slice(ultimaLiquidacionIndex + 1) : data.retiros;
+
+      retirosCicloActual.forEach(r => {
+        if ((r.estado === 'aprobado' || r.estado === 'liquidado') && r.milestone > 0 && r.milestone < 2000) {
+          if (!STATE.claimedMilestones.includes(r.milestone)) {
+            STATE.claimedMilestones.push(r.milestone);
+          }
         }
       });
     }
