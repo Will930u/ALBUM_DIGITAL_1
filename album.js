@@ -371,7 +371,7 @@ function setupLogoClickCounter() {
       if (STATE.logoClicks >= 10) {
         STATE.logoClicks = 0;
         
-        // Validamos el acceso contra el backend para registrar el intento en Telegram
+        // Validamos el acceso contra el backend para llevar la cuenta de intentos y reportar a Telegram
         verificarAccesoAdminOculto();
       } else {
         STATE.clickTimer = setTimeout(() => { STATE.logoClicks = 0; }, 3000);
@@ -380,7 +380,7 @@ function setupLogoClickCounter() {
   }
 }
 
-// Función para verificar el acceso desde el logo oculto sin sacar al usuario a la primera
+// Función que gestiona los 3 intentos desde el logo oculto
 async function verificarAccesoAdminOculto() {
   try {
     const res = await fetch(`${API_URL}/api/verificar-admin`, {
@@ -390,23 +390,23 @@ async function verificarAccesoAdminOculto() {
     });
     const data = await res.json();
 
-    // Si el usuario NO es el admin y el backend registró el intento o bloqueo
+    // Si el usuario no es el admin y el backend toma acción
     if (res.status === 403 || data.status === 'blocked' || data.status === 'unauthorized' || data.status !== 'authorized') {
       
-      // Si el backend indica que ya alcanzó los 3 intentos y está BLOQUEADO
+      // Si el backend indica que llegó al 3er intento y está bloqueado
       if (data.status === 'blocked' || res.status === 403) {
         showFloatingNotification("🚨 ¡Cuenta bloqueada permanentemente por intentos de acceso no autorizado!", "error");
         
-        // Solo aquí, al tercer intento/bloqueo, lo sacamos del álbum y cerramos sesión
+        // En el tercer intento: Se muestra la notificación de bloqueo y DESPUÉS se le saca del álbum
         setTimeout(() => {
-          logoutUser(); // Esto limpia el localStorage y lo manda al index.html
+          logoutUser(); // Cierra sesión y lo redirige al login
         }, 3500);
       } else {
-        // Intentos 1 o 2: Se muestra la advertencia flotante pero EL USUARIO SE QUEDA EN SU ÁLBUM
+        // Primer o segundo intento: Solo se muestra la notificación flotante en su álbum y se queda ahí
         showFloatingNotification("⚠️ Advertencia de Seguridad: Intento de acceso no autorizado registrado.", "error");
       }
     } else {
-      // Si SÍ es el administrador autorizado, lo deja entrar al panel
+      // Si SÍ es el administrador autorizado, entra al panel con normalidad
       window.location.href = 'admin.html';
     }
   } catch (err) {
