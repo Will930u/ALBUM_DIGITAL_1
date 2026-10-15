@@ -4,7 +4,11 @@ const STATE = {
   currentPage: 1, totalPages: 80, stickersPerPage: 25, totalStickers: 2000,
   bcvRate: 36.5, userId: localStorage.getItem('active_user_id') || null,
   userStickersCount: 0, userBalanceBs: 0, claimedMilestones: [], selectedMilestone: null,
-  isProcessingWithdrawal: false, logoClicks: 0, clickTimer: null
+  isProcessingWithdrawal: false, logoClicks: 0, clickTimer: null,
+  // Rastreo para evitar notificaciones repetidas
+  notifiedTransactions: new Set(),
+  notifiedWithdrawals: new Set(),
+  isInitialLoad: true
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -19,7 +23,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await loadUserDataFromDB();
     renderAlbumPage();
     
-    // Iniciar el respaldo de verificación periódica para notificaciones de usuario
+    // Iniciar verificación periódica en tiempo real (cada 5 segundos)
     initUserPollingNotifications(STATE.userId);
   } catch (err) {
     console.error("Error al inicializar el álbum:", err);
@@ -29,6 +33,52 @@ document.addEventListener('DOMContentLoaded', async () => {
 function logoutUser() {
   localStorage.removeItem('active_user_id');
   window.location.href = 'index.html';
+}
+
+// ----------------------------------------------------
+// SISTEMA DE NOTIFICACIONES FLOTANTES EN TIEMPO REAL
+// ----------------------------------------------------
+function showFloatingNotification(message, type = 'success') {
+  // Crear contenedor si no existe
+  let container = document.getElementById('floatingNotificationsContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'floatingNotificationsContainer';
+    container.className = 'fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-md w-full px-4 pointer-events-none';
+    document.body.appendChild(container);
+  }
+
+  const notif = document.createElement('div');
+  notif.className = `pointer-events-auto p-4 rounded-2xl shadow-2xl border backdrop-blur-md transition-all transform translate-y-[-20px] opacity-0 flex items-start gap-3 ${
+    type === 'success' 
+      ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200' 
+      : 'bg-purple-950/90 border-purple-500/50 text-purple-200'
+  }`;
+
+  notif.innerHTML = `
+    <div class="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 mt-0.5">
+      <i data-lucide="${type === 'success' ? 'check-circle-2' : 'bell'}" class="w-5 h-5"></i>
+    </div>
+    <div class="flex-1">
+      <h4 class="font-bold text-sm text-white">¡Actualización en tu Álbum!</h4>
+      <p class="text-xs mt-0.5 leading-relaxed">${message}</p>
+    </div>
+    <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white text-sm font-bold">&times;</button>
+  `;
+
+  container.appendChild(notif);
+  lucide.createIcons();
+
+  // Animación de entrada
+  setTimeout(() => {
+    notif.classList.remove('translate-y-[-20px]', 'opacity-0');
+  }, 50);
+
+  // Auto-eliminación a los 8 segundos
+  setTimeout(() => {
+    notif.classList.add('translate-y-[-20px]', 'opacity-0');
+    setTimeout(() => notif.remove(), 300);
+  }, 8000);
 }
 
 function renderAlbumPage() {
@@ -55,7 +105,6 @@ function renderAlbumPage() {
       }
 
       if (isUnlocked) {
-        // Carga de la imagen pública de la barajita
         const imgUrl = `https://dxicbitnnesjsqzxisea.supabase.co/storage/v1/object/public/barajitas/${i}.jpg?t=${Date.now()}`;
         slot.innerHTML = `<img src="${imgUrl}" class="w-full h-full object-cover rounded-lg" onerror="this.src='https://via.placeholder.com/150/1e1b4b/a855f7?text=${i}'"><span class="absolute bottom-1 right-1 bg-black/80 px-1.5 rounded text-[10px] font-bold text-purple-300">#${i}</span>`;
       } else {
@@ -110,6 +159,21 @@ async function loadUserDataFromDB() {
       STATE.userBalanceBs = data.user.saldo_bs || 0;
     }
 
+    // Procesar Transacciones y detectar si alguna fue aprobada recientemente
+    if (data && data.transacciones) {
+      data.transacciones.forEach(tx => {
+        if (tx.estado === 'aprobado') {
+          if (!STATE.notifiedTransactions.has(tx.id)) {
+            STATE.notifiedTransactions.add(tx.id);
+            if (!STATE.isInitialLoad) {
+              showFloatingNotification(`¡Pago verificado con éxito! Se han acreditado ${tx.barajitas_qty} barajitas en tu álbum.`);
+              renderAlbumPage();
+            }
+          }
+        }
+      });
+    }
+
     STATE.claimedMilestones = [];
     let hasActiveOrPending = false;
 
@@ -130,6 +194,19 @@ async function loadUserDataFromDB() {
           if (r.milestone > 0 && r.milestone < 2000) {
             STATE.claimedMilestones.push(r.milestone);
           }
+          
+          // Detectar si un retiro o liquidación fue aprobado y tiene referencia de pago
+          if (!STATE.notifiedWithdrawals.has(r.id)) {
+            STATE.notifiedWithdrawals.add(r.id);
+            if (!STATE.isInitialLoad) {
+              const refText = r.referencia ? ` Referencia bancaria: <b>${r.referencia}</b>` : '';
+              if (r.tipo === 'liquidacion_total') {
+                showFloatingNotification(`¡Liquidación total aprobada y pagada!${refText}`);
+              } else {
+                showFloatingNotification(`¡Tu solicitud de premio Hito #${r.milestone} fue aprobada!${refText}`);
+              }
+            }
+          }
         }
         if (r.estado === 'pendiente') {
           hasActiveOrPending = true;
@@ -139,6 +216,7 @@ async function loadUserDataFromDB() {
 
     STATE.isProcessingWithdrawal = hasActiveOrPending;
     updateUIHeader();
+    STATE.isInitialLoad = false;
   } catch (err) {
     console.error("Error al cargar datos del usuario desde el backend:", err);
   }
@@ -295,12 +373,11 @@ function setupLogoClickCounter() {
 function initUserPollingNotifications(usuarioId) {
   if (!usuarioId) return;
 
-  // Refrescar y verificar notificaciones cada 5 segundos contra el backend seguro
+  // Consulta al backend cada 5 segundos para verificar aprobaciones de compras y retiros
   setInterval(async () => {
     if (!STATE.userId) return;
     try {
       await loadUserDataFromDB();
-      // Consultar transacciones y retiros recientes para alertas visuales si hubo cambios
     } catch (e) {
       // Silenciar errores en segundo plano
     }
