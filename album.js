@@ -39,7 +39,6 @@ function logoutUser() {
 // SISTEMA DE NOTIFICACIONES FLOTANTES EN TIEMPO REAL
 // ----------------------------------------------------
 function showFloatingNotification(message, type = 'success') {
-  // Crear contenedor si no existe
   let container = document.getElementById('floatingNotificationsContainer');
   if (!container) {
     container = document.createElement('div');
@@ -69,12 +68,10 @@ function showFloatingNotification(message, type = 'success') {
   container.appendChild(notif);
   lucide.createIcons();
 
-  // Animación de entrada
   setTimeout(() => {
     notif.classList.remove('translate-y-[-20px]', 'opacity-0');
   }, 50);
 
-  // Auto-eliminación a los 8 segundos
   setTimeout(() => {
     notif.classList.add('translate-y-[-20px]', 'opacity-0');
     setTimeout(() => notif.remove(), 300);
@@ -83,6 +80,7 @@ function showFloatingNotification(message, type = 'success') {
 
 function renderAlbumPage() {
   const grid = document.getElementById('stickersGrid');
+  if (!grid) return;
   grid.style.opacity = '0';
   
   setTimeout(() => {
@@ -154,12 +152,19 @@ async function loadUserDataFromDB() {
     });
     const data = await res.json();
     
+    const previousStickersCount = STATE.userStickersCount;
+
     if (data && data.user) {
       STATE.userStickersCount = data.user.cantidad_barajitas || 0;
       STATE.userBalanceBs = data.user.saldo_bs || 0;
     }
 
-    // Procesar Transacciones y detectar si alguna fue aprobada recientemente
+    // Si cambió el conteo de barajitas (compras aprobadas o álbum reiniciado a 0), redibujar la cuadrícula
+    if (previousStickersCount !== STATE.userStickersCount && !STATE.isInitialLoad) {
+      renderAlbumPage();
+    }
+
+    // Procesar Transacciones (compras de barajitas)
     if (data && data.transacciones) {
       data.transacciones.forEach(tx => {
         if (tx.estado === 'aprobado') {
@@ -182,7 +187,7 @@ async function loadUserDataFromDB() {
 
       let ultimaLiquidacionIndex = -1;
       data.retiros.forEach((r, idx) => {
-        if ((r.tipo === 'liquidacion_total' || r.milestone >= 2000) && r.estado === 'aprobado') {
+        if ((r.tipo === 'liquidacion_total' || r.milestone >= 2000 || r.tipo === 'ciclo_completo') && r.estado === 'aprobado') {
           ultimaLiquidacionIndex = idx;
         }
       });
@@ -195,13 +200,14 @@ async function loadUserDataFromDB() {
             STATE.claimedMilestones.push(r.milestone);
           }
           
-          // Detectar si un retiro o liquidación fue aprobado y tiene referencia de pago
+          // Detectar retiros o liquidaciones aprobadas con referencia de pago en tiempo real
           if (!STATE.notifiedWithdrawals.has(r.id)) {
             STATE.notifiedWithdrawals.add(r.id);
             if (!STATE.isInitialLoad) {
               const refText = r.referencia ? ` Referencia bancaria: <b>${r.referencia}</b>` : '';
-              if (r.tipo === 'liquidacion_total') {
+              if (r.tipo === 'liquidacion_total' || r.tipo === 'ciclo_completo' || r.milestone >= 2000) {
                 showFloatingNotification(`¡Liquidación total aprobada y pagada!${refText}`);
+                renderAlbumPage(); // Limpiar el álbum visualmente de inmediato
               } else {
                 showFloatingNotification(`¡Tu solicitud de premio Hito #${r.milestone} fue aprobada!${refText}`);
               }
