@@ -19,41 +19,58 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     const data = await response.json();
     
-    // 2. Si el backend rechaza o bloquea el acceso (status 403 o no autorizado)
-    if (response.status === 403 || data.status === 'blocked' || data.status === 'unauthorized' || data.status !== 'authorized') {
-      
-      // Limpiamos la pantalla al instante para que no vea contenido protegido
+    // Si es el administrador autorizado, carga el panel normal
+    if (response.status === 200 && data.status === 'authorized') {
+      initAdminDashboard();
+      return;
+    }
+
+    // 2. Si el backend responde con advertencia (Intento 1 o 2 por link directo)
+    if (data.status === 'warning') {
       document.body.innerHTML = `
         <div style="background-color: #020617; color: #ffffff; min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: sans-serif;">
           <div style="text-align: center; padding: 2rem; background: #090d16; border: 1px solid #1e293b; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
-            <h2 style="font-size: 1.25rem; font-weight: bold; color: #f87171; margin-bottom: 0.5rem;">¡Acceso Restringido!</h2>
+            <h2 style="font-size: 1.25rem; font-weight: bold; color: #fbbf24; margin-bottom: 0.5rem;">⚠️ Advertencia de Seguridad (${data.intentos}/3)</h2>
             <p style="font-size: 0.875rem; color: #94a3b8;">Intento de acceso no autorizado registrado. Redirigiendo a tu álbum...</p>
           </div>
         </div>
       `;
 
-      // Si fue bloqueado permanentemente por los 3 intentos, removemos la sesión
-      if (data.status === 'blocked' || response.status === 403) {
-        // Opcional: si prefieres mantener la sesión activa pero sacarlo al álbum
-        // (El backend ya mandó la alerta a Telegram con los intentos 1/3, 2/3 o bloqueo)
-      }
-
-      // Redirigimos de vuelta a su álbum de forma elegante tras 2 segundos
+      // Redirigimos de vuelta a su álbum sin bloquear su cuenta todavía
       setTimeout(() => {
         window.location.href = 'album.html';
-      }, 2000);
-      
+      }, 2500);
       return;
     }
+
+    // 3. Si llega al tercer intento o está bloqueado (status 403 o blocked)
+    if (response.status === 403 || data.status === 'blocked') {
+      document.body.innerHTML = `
+        <div style="background-color: #020617; color: #ffffff; min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: sans-serif;">
+          <div style="text-align: center; padding: 2rem; background: #090d16; border: 1px solid #1e293b; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+            <h2 style="font-size: 1.25rem; font-weight: bold; color: #f87171; margin-bottom: 0.5rem;">🚨 ¡Cuenta Bloqueada Permanentemente!</h2>
+            <p style="font-size: 0.875rem; color: #94a3b8;">Alcanzaste el límite de intentos no autorizados. Cerrando sesión...</p>
+          </div>
+        </div>
+      `;
+
+      // Al tercer intento: Bloquea y expulsa del sistema (manda al index.html)
+      setTimeout(() => {
+        localStorage.removeItem('active_user_id');
+        window.location.href = 'index.html';
+      }, 3000);
+      return;
+    }
+
   } catch (e) {
+    console.error("Error en validación de admin:", e);
     window.location.href = 'album.html';
     return;
   }
 
-  // 3. Si todo es exitoso y SÍ es el administrador autorizado, carga el panel normal
-  initAdminDashboard();
+  // Por seguridad predeterminada si hay respuestas inesperadas
+  window.location.href = 'album.html';
 });
-
 // ... (El resto de tus funciones de admin continúan igual abajo)
 
 function switchAdminTab(tab) {
