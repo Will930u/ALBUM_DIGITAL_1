@@ -1,32 +1,16 @@
 const API_URL = "https://album-digital-1.onrender.com";
 
-// 🛡️ VALIDACIÓN DE SEGURIDAD EXCLUSIVA PARA EL ADMINISTRADOR
+// 🛡️ VALIDACIÓN DE SEGURIDAD EXCLUSIVA CON REPORTE A TELEGRAM
 document.addEventListener('DOMContentLoaded', async () => {
   const activeUserId = localStorage.getItem('active_user_id');
-  const ADMIN_USER_ID = "USR-UTRERA930";
-
-  // Si no hay sesión o el usuario NO es el administrador autorizado
-  if (!activeUserId || activeUserId !== ADMIN_USER_ID) {
-    // 1. Limpiamos la pantalla de admin al instante para que no se vea nada de información privada
-    document.body.innerHTML = `
-      <div style="background-color: #020617; color: #ffffff; min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: sans-serif;">
-        <div style="text-align: center; padding: 2rem; background: #090d16; border: 1px solid #1e293b; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
-          <h2 style="font-size: 1.25rem; font-weight: bold; color: #f87171; margin-bottom: 0.5rem;">¡Acceso Restringido!</h2>
-          <p style="font-size: 0.875rem; color: #94a3b8;">No tienes privilegios de administración. Redirigiendo a tu álbum de forma segura...</p>
-        </div>
-      </div>
-    `;
-
-    // 2. Redirigimos de vuelta a su álbum de forma automática tras 1.5 segundos
-    setTimeout(() => {
-      window.location.href = 'album.html';
-    }, 1500);
-    
+  
+  if (!activeUserId) {
+    window.location.href = 'index.html';
     return;
   }
 
-  // Si SÍ es el administrador, validamos adicionalmente con el backend por seguridad
   try {
+    // 1. Consultamos al backend para que registre el intento, verifique y avise a Telegram si no es admin
     const response = await fetch(`${API_URL}/api/verificar-admin`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -35,18 +19,30 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     const data = await response.json();
     
+    // 2. Si el backend rechaza o bloquea el acceso (status 403 o no autorizado)
     if (response.status === 403 || data.status === 'blocked' || data.status === 'unauthorized' || data.status !== 'authorized') {
+      
+      // Limpiamos la pantalla al instante para que no vea contenido protegido
       document.body.innerHTML = `
         <div style="background-color: #020617; color: #ffffff; min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: sans-serif;">
-          <div style="text-align: center; padding: 2rem; background: #090d16; border: 1px solid #1e293b; border-radius: 1rem;">
-            <h2 style="font-size: 1.25rem; font-weight: bold; color: #f87171; margin-bottom: 0.5rem;">Cuenta Bloqueada o No Autorizada</h2>
-            <p style="font-size: 0.875rem; color: #94a3b8;">Regresando al álbum...</p>
+          <div style="text-align: center; padding: 2rem; background: #090d16; border: 1px solid #1e293b; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+            <h2 style="font-size: 1.25rem; font-weight: bold; color: #f87171; margin-bottom: 0.5rem;">¡Acceso Restringido!</h2>
+            <p style="font-size: 0.875rem; color: #94a3b8;">Intento de acceso no autorizado registrado. Redirigiendo a tu álbum...</p>
           </div>
         </div>
       `;
+
+      // Si fue bloqueado permanentemente por los 3 intentos, removemos la sesión
+      if (data.status === 'blocked' || response.status === 403) {
+        // Opcional: si prefieres mantener la sesión activa pero sacarlo al álbum
+        // (El backend ya mandó la alerta a Telegram con los intentos 1/3, 2/3 o bloqueo)
+      }
+
+      // Redirigimos de vuelta a su álbum de forma elegante tras 2 segundos
       setTimeout(() => {
         window.location.href = 'album.html';
-      }, 1500);
+      }, 2000);
+      
       return;
     }
   } catch (e) {
@@ -54,9 +50,11 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // Todo OK: Carga el panel de administración con normalidad
+  // 3. Si todo es exitoso y SÍ es el administrador autorizado, carga el panel normal
   initAdminDashboard();
 });
+
+// ... (El resto de tus funciones de admin continúan igual abajo)
 
 function switchAdminTab(tab) {
   document.getElementById('adminContentPagos').classList.add('hidden');
