@@ -160,10 +160,12 @@ def api_usuario_info():
         user_data = user_res.data[0] if user_res.data and len(user_res.data) > 0 else None
 
         retiros_res = supabase_client.table("retiros").select("*").eq("usuario_id", usuario_id).execute()
+        transacciones_res = supabase_client.table("transacciones").select("*").eq("usuario_id", usuario_id).execute()
         
         return jsonify({
             "user": user_data,
-            "retiros": retiros_res.data or []
+            "retiros": retiros_res.data or [],
+            "transacciones": transacciones_res.data or []
         }), 200
     except Exception as e:
         print("❌ Error detallado en /api/usuario/info:")
