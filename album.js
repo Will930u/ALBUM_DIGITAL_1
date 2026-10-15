@@ -30,11 +30,25 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 });
 
-function logoutUser() {
+async function logoutUser() {
+  const activeUserId = localStorage.getItem('active_user_id');
+  
+  if (activeUserId) {
+    try {
+      // 🔴 Envía la notificación de cierre de sesión a Telegram antes de salir
+      await fetch(`${API_URL}/api/notificar-logout`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuario_id: activeUserId })
+      });
+    } catch (err) {
+      console.error('Error al notificar cierre de sesión:', err);
+    }
+  }
+
   localStorage.removeItem('active_user_id');
   window.location.href = 'index.html';
 }
-
 // ----------------------------------------------------
 // SISTEMA DE NOTIFICACIONES FLOTANTES EN TIEMPO REAL
 // ----------------------------------------------------
