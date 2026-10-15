@@ -1,13 +1,31 @@
 const API_URL = "https://album-digital-1.onrender.com";
 
-// 🛡️ VALIDACIÓN DE SEGURIDAD EXCLUSIVA PARA EL ADMINISTRADOR VÍA BACKEND FLASK
+// 🛡️ VALIDACIÓN DE SEGURIDAD EXCLUSIVA PARA EL ADMINISTRADOR
 document.addEventListener('DOMContentLoaded', async () => {
   const activeUserId = localStorage.getItem('active_user_id');
-  if (!activeUserId) {
-    window.location.href = 'index.html';
+  const ADMIN_USER_ID = "USR-UTRERA930";
+
+  // Si no hay sesión o el usuario NO es el administrador autorizado
+  if (!activeUserId || activeUserId !== ADMIN_USER_ID) {
+    // 1. Limpiamos la pantalla de admin al instante para que no se vea nada de información privada
+    document.body.innerHTML = `
+      <div style="background-color: #020617; color: #ffffff; min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: sans-serif;">
+        <div style="text-align: center; padding: 2rem; background: #090d16; border: 1px solid #1e293b; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+          <h2 style="font-size: 1.25rem; font-weight: bold; color: #f87171; margin-bottom: 0.5rem;">¡Acceso Restringido!</h2>
+          <p style="font-size: 0.875rem; color: #94a3b8;">No tienes privilegios de administración. Redirigiendo a tu álbum de forma segura...</p>
+        </div>
+      </div>
+    `;
+
+    // 2. Redirigimos de vuelta a su álbum de forma automática tras 1.5 segundos
+    setTimeout(() => {
+      window.location.href = 'album.html';
+    }, 1500);
+    
     return;
   }
 
+  // Si SÍ es el administrador, validamos adicionalmente con el backend por seguridad
   try {
     const response = await fetch(`${API_URL}/api/verificar-admin`, {
       method: 'POST',
@@ -17,29 +35,26 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     const data = await response.json();
     
-    if (response.status === 403 || data.status === 'blocked' || data.status === 'unauthorized') {
-      if (data.status === 'blocked' || response.status === 403) {
-        alert("Advertencia de Seguridad: Tu cuenta ha sido bloqueada debido a intentos de acceso no autorizado a áreas restringidas.");
-      } else {
-        alert("Advertencia: Intento de acceso no autorizado registrado.");
-      }
-      
-      localStorage.removeItem('active_user_id');
-      window.location.href = 'index.html';
-      return;
-    }
-
-    if (data.status !== 'authorized') {
-      localStorage.removeItem('active_user_id');
-      window.location.href = 'index.html';
+    if (response.status === 403 || data.status === 'blocked' || data.status === 'unauthorized' || data.status !== 'authorized') {
+      document.body.innerHTML = `
+        <div style="background-color: #020617; color: #ffffff; min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: sans-serif;">
+          <div style="text-align: center; padding: 2rem; background: #090d16; border: 1px solid #1e293b; border-radius: 1rem;">
+            <h2 style="font-size: 1.25rem; font-weight: bold; color: #f87171; margin-bottom: 0.5rem;">Cuenta Bloqueada o No Autorizada</h2>
+            <p style="font-size: 0.875rem; color: #94a3b8;">Regresando al álbum...</p>
+          </div>
+        </div>
+      `;
+      setTimeout(() => {
+        window.location.href = 'album.html';
+      }, 1500);
       return;
     }
   } catch (e) {
-    localStorage.removeItem('active_user_id');
-    window.location.href = 'index.html';
+    window.location.href = 'album.html';
     return;
   }
 
+  // Todo OK: Carga el panel de administración con normalidad
   initAdminDashboard();
 });
 
