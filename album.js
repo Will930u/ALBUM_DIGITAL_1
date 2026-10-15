@@ -390,26 +390,30 @@ async function verificarAccesoAdminOculto() {
     });
     const data = await res.json();
 
-    // Si el usuario no es el admin y el backend toma acción
-    if (res.status === 403 || data.status === 'blocked' || data.status === 'unauthorized' || data.status !== 'authorized') {
-      
-      // Si el backend indica que llegó al 3er intento y está bloqueado
-      if (data.status === 'blocked' || res.status === 403) {
-        showFloatingNotification("🚨 ¡Cuenta bloqueada permanentemente por intentos de acceso no autorizado!", "error");
-        
-        // En el tercer intento: Se muestra la notificación de bloqueo y DESPUÉS se le saca del álbum
-        setTimeout(() => {
-          logoutUser(); // Cierra sesión y lo redirige al login
-        }, 3500);
-      } else {
-        // Primer o segundo intento: Solo se muestra la notificación flotante en su álbum y se queda ahí
-        showFloatingNotification("⚠️ Advertencia de Seguridad: Intento de acceso no autorizado registrado.", "error");
-      }
-    } else {
-      // Si SÍ es el administrador autorizado, entra al panel con normalidad
+    // 1. Si es el administrador autorizado, entra al panel con normalidad
+    if (res.status === 200 && data.status === 'authorized') {
       window.location.href = 'admin.html';
+    } 
+    // 2. Si el servidor responde con advertencia (Intento 1 o 2)
+    else if (data.status === 'warning') {
+      showFloatingNotification(`⚠️ Advertencia de Seguridad (${data.intentos}/3): Intento de acceso no autorizado registrado.`);
+      // El usuario se queda tranquilamente en su álbum, NO se le saca
+    } 
+    // 3. Si el servidor indica bloqueo permanente (Intento 3)
+    else if (res.status === 403 || data.status === 'blocked') {
+      showFloatingNotification("🚨 ¡Cuenta bloqueada permanentemente por intentos de acceso no autorizado!", "error");
+      
+      // En el tercer intento: Se muestra la notificación de bloqueo y DESPUÉS se le saca del álbum
+      setTimeout(() => {
+        logoutUser(); // Cierra sesión y lo redirige al login
+      }, 3500);
+    } 
+    else {
+      // Cualquier otro caso no autorizado por seguridad
+      showFloatingNotification("⚠️ Acceso denegado.", "error");
     }
   } catch (err) {
+    console.error("Error al verificar permisos:", err);
     showFloatingNotification("Error de conexión al verificar permisos.", "error");
   }
 }
