@@ -69,7 +69,17 @@ async function handleLogin(e) {
       return;
     }
 
+    // 1. Guardamos la sesión en el navegador
     localStorage.setItem('active_user_id', data.user_id);
+
+    // 2. 🟢 ENVIAMOS LA NOTIFICACIÓN A TELEGRAM AUTOMÁTICAMENTE
+    await fetch(`${API_URL}/api/notificar-login`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ usuario_id: data.user_id })
+    });
+
+    // 3. Redirigimos al álbum
     window.location.href = 'album.html';
   } catch (err) {
     console.error('Error de red en login:', err);
