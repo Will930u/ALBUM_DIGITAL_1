@@ -172,6 +172,48 @@ def api_usuario_info():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
+@app.route("/api/notificar-login", methods=["POST"])
+def notificar_login():
+    data = request.get_json(silent=True) or {}
+    usuario_id = str(data.get("usuario_id", "")).strip()
+    
+    if not usuario_id:
+        return jsonify({"status": "error", "message": "ID no proporcionado"}), 400
+
+    # Mensaje diferenciado si es el administrador o un usuario normal
+    if usuario_id.upper() == ADMIN_USER_ID.upper():
+        mensaje = (
+            f"🟢 <b>¡INICIO DE SESIÓN DE ADMIN!</b>\n\n"
+            f"👤 <b>Administrador:</b> <code>{usuario_id}</code>\n"
+            f"📱 Ha ingresado exitosamente a la plataforma."
+        )
+    else:
+        mensaje = (
+            f"👤 <b>Nuevo Inicio de Sesión</b>\n\n"
+            f"ID de Usuario: <code>{usuario_id}</code>"
+        )
+
+    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje)
+    return jsonify({"status": "success"}), 200
+
+
+@app.route("/api/notificar-logout", methods=["POST"])
+def notificar_logout():
+    data = request.get_json(silent=True) or {}
+    usuario_id = str(data.get("usuario_id", "")).strip()
+    
+    if not usuario_id:
+        return jsonify({"status": "error", "message": "ID no proporcionado"}), 400
+
+    mensaje = (
+        f"🔴 <b>CIERRE DE SESIÓN</b>\n\n"
+        f"👤 <b>Usuario:</b> <code>{usuario_id}</code>\n"
+        f"🚪 Ha cerrado sesión correctamente de la plataforma."
+    )
+
+    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje)
+    return jsonify({"status": "success"}), 200
+
 # ==========================================
 # ENDPOINTS DEL PANEL ADMINISTRADOR
 # ==========================================
