@@ -1,6 +1,6 @@
 const API_URL = "https://album-digital-1.onrender.com";
 
-// 🛡️ VALIDACIÓN DE SEGURIDAD EXCLUSIVA CON REPORTE A TELEGRAM
+// 🛡️ VALIDACIÓN DE SEGURIDAD EXCLUSIVA CONECTADA AL BACKEND Y SUPABASE
 document.addEventListener('DOMContentLoaded', async () => {
   const activeUserId = localStorage.getItem('active_user_id');
   
@@ -9,14 +9,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // 🔑 BLINDAJE LOCAL ABSOLUTO: Si eres el administrador principal, pasa de frente de inmediato
-  if (activeUserId.trim().toUpperCase() === "USR-UTRERA930") {
-    console.log("Acceso de Administrador Autorizado reconocido localmente.");
-    initAdminDashboard();
-    return;
-  }
-
   try {
+    // Consultamos al backend para que verifique de forma oficial en Supabase
     const response = await fetch(`${API_URL}/api/verificar-admin`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -25,43 +19,56 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     const data = await response.json();
     
+    // Si el servidor confirma en Supabase que es el administrador autorizado (status 200)
     if (response.status === 200 && data.status === 'authorized') {
-      initAdminDashboard();
+      if (typeof switchAdminTab === 'function') {
+        switchAdminTab('pagos');
+      }
       return;
     }
 
+    // Si el backend responde con advertencia (Intento 1 o 2 por link directo)
     if (data.status === 'warning') {
       document.body.innerHTML = `
         <div style="background-color: #020617; color: #ffffff; min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: sans-serif;">
-          <div style="text-align: center; padding: 2rem; background: #090d16; border: 1px solid #1e293b; border-radius: 1rem;">
-            <h2 style="color: #fbbf24; margin-bottom: 0.5rem;">⚠️ Advertencia de Seguridad (${data.intentos}/3)</h2>
-            <p style="color: #94a3b8;">Redirigiendo a tu álbum...</p>
+          <div style="text-align: center; padding: 2rem; background: #090d16; border: 1px solid #1e293b; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+            <h2 style="font-size: 1.25rem; font-weight: bold; color: #fbbf24; margin-bottom: 0.5rem;">⚠️ Advertencia de Seguridad (${data.intentos}/3)</h2>
+            <p style="font-size: 0.875rem; color: #94a3b8;">Intento de acceso no autorizado registrado. Redirigiendo a tu álbum...</p>
           </div>
         </div>
       `;
-      setTimeout(() => { window.location.href = 'album.html'; }, 2500);
+
+      setTimeout(() => {
+        window.location.href = 'album.html';
+      }, 2500);
       return;
     }
 
+    // Si llega al tercer intento o está bloqueado (status 403 o blocked)
     if (response.status === 403 || data.status === 'blocked') {
       document.body.innerHTML = `
         <div style="background-color: #020617; color: #ffffff; min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: sans-serif;">
-          <div style="text-align: center; padding: 2rem; background: #090d16; border: 1px solid #1e293b; border-radius: 1rem;">
-            <h2 style="color: #f87171; margin-bottom: 0.5rem;">🚨 ¡Cuenta Bloqueada!</h2>
+          <div style="text-align: center; padding: 2rem; background: #090d16; border: 1px solid #1e293b; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
+            <h2 style="font-size: 1.25rem; font-weight: bold; color: #f87171; margin-bottom: 0.5rem;">🚨 ¡Cuenta Bloqueada Permanentemente!</h2>
+            <p style="font-size: 0.875rem; color: #94a3b8;">Alcanzaste el límite de intentos no autorizados. Cerrando sesión...</p>
           </div>
         </div>
       `;
+
       setTimeout(() => {
         localStorage.removeItem('active_user_id');
         window.location.href = 'index.html';
       }, 3000);
       return;
     }
+
   } catch (e) {
+    console.error("Error en validación de admin:", e);
     window.location.href = 'album.html';
     return;
   }
 
+  // Por seguridad predeterminada si hay respuestas inesperadas
   window.location.href = 'album.html';
 });
 function switchAdminTab(tab) {
