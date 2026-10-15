@@ -234,27 +234,6 @@ def verificar_admin():
             print(f"Error en verificación admin: {e}")
 
     return jsonify({"status": "unauthorized"}), 403
-                else:
-                    supabase_client.table("usuarios").update({
-                        "intentos_admin": intentos_actuales
-                    }).eq("id", usuario_id).execute()
-
-                    alerta_msg = (
-                        f"⚠️ <b>INTENTO DE ACCESO AL ADMIN (Advertencia #{intentos_actuales}/3)</b>\n\n"
-                        f"👤 <b>Usuario:</b> <code>{usuario_id}</code>\n"
-                        f"Intentó ingresar sin autorización. Quedan {3 - intentos_actuales} intento(s) antes del bloqueo permanente."
-                    )
-                    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, alerta_msg)
-                    
-                    return jsonify({
-                        "status": "warning", 
-                        "intentos": intentos_actuales,
-                        "message": f"Advertencia {intentos_actuales}/3 registrada."
-                    }), 200
-        except Exception as e:
-            print(f"Error en verificación admin: {e}")
-
-    return jsonify({"status": "unauthorized"}), 403
 
 @app.route("/api/admin/configuracion", methods=["GET", "POST"])
 def admin_configuracion():
