@@ -202,14 +202,17 @@ async function loadUserDataFromDB() {
             }
           }
           
-          // Detectar si el retiro/liquidación fue aprobado y tiene referencia bancaria pendiente por notificar
-          if (r.referencia && !STATE.notifiedWithdrawals.has(`ref_${r.id}_${r.referencia}`)) {
-            STATE.notifiedWithdrawals.add(`ref_${r.id}_${r.referencia}`);
+          // Detección robusta de retiros aprobados con referencia de pago
+          const trackingKey = `approved_ref_${r.id}_${r.referencia || 'sin_ref'}`;
+          if (!STATE.notifiedWithdrawals.has(trackingKey)) {
+            STATE.notifiedWithdrawals.add(trackingKey);
+            
             if (!STATE.isInitialLoad) {
-              const refText = ` Referencia bancaria: <b>${r.referencia}</b>`;
+              const refText = r.referencia ? ` Referencia bancaria: <b>${r.referencia}</b>` : '';
+              
               if (r.tipo === 'liquidacion_total' || r.tipo === 'ciclo_completo' || r.milestone >= 2000) {
                 showFloatingNotification(`¡Liquidación total aprobada y pagada!${refText}`);
-                renderAlbumPage(); // Limpiar el álbum visualmente de inmediato
+                renderAlbumPage(); // Limpia y reinicia el álbum visualmente de inmediato
               } else {
                 showFloatingNotification(`¡Tu solicitud de premio Hito #${r.milestone} fue aprobada!${refText}`);
               }
