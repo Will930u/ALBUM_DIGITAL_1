@@ -194,17 +194,17 @@ async function loadUserDataFromDB() {
 
       const retirosCicloActual = ultimaLiquidacionIndex >= 0 ? data.retiros.slice(ultimaLiquidacionIndex + 1) : data.retiros;
 
-      retirosCicloActual.forEach(r => {
+     retirosCicloActual.forEach(r => {
         if (r.estado === 'aprobado' || r.estado === 'liquidado') {
           if (r.milestone > 0 && r.milestone < 2000) {
-            STATE.claimedMilestones.push(r.milestone);
+            STATE.claimedMilestones.includes(m) ? null : STATE.claimedMilestones.push(r.milestone);
           }
           
-          // Detectar retiros o liquidaciones aprobadas con referencia de pago en tiempo real
-          if (!STATE.notifiedWithdrawals.has(r.id)) {
-            STATE.notifiedWithdrawals.add(r.id);
+          // Detectar si el retiro/liquidación fue aprobado y tiene referencia bancaria pendiente por notificar
+          if (r.referencia && !STATE.notifiedWithdrawals.has(`ref_${r.id}_${r.referencia}`)) {
+            STATE.notifiedWithdrawals.add(`ref_${r.id}_${r.referencia}`);
             if (!STATE.isInitialLoad) {
-              const refText = r.referencia ? ` Referencia bancaria: <b>${r.referencia}</b>` : '';
+              const refText = ` Referencia bancaria: <b>${r.referencia}</b>`;
               if (r.tipo === 'liquidacion_total' || r.tipo === 'ciclo_completo' || r.milestone >= 2000) {
                 showFloatingNotification(`¡Liquidación total aprobada y pagada!${refText}`);
                 renderAlbumPage(); // Limpiar el álbum visualmente de inmediato
@@ -218,8 +218,7 @@ async function loadUserDataFromDB() {
           hasActiveOrPending = true;
         }
       });
-    }
-
+      
     STATE.isProcessingWithdrawal = hasActiveOrPending;
     updateUIHeader();
     STATE.isInitialLoad = false;
