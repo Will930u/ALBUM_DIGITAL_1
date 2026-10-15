@@ -371,19 +371,40 @@ function setupLogoClickCounter() {
       if (STATE.logoClicks >= 10) {
         STATE.logoClicks = 0;
         
-        // ID del único administrador autorizado
-        const ADMIN_USER_ID = "USR-UTRERA930";
-        
-        if (STATE.userId === ADMIN_USER_ID) {
-          window.location.href = 'admin.html';
-        } else {
-          // Si es un usuario común, se queda en su álbum y le muestra la advertencia flotante
-          showFloatingNotification("⚠️ Acceso denegado: No tienes privilegios de administración.", "error");
-        }
+        // Validamos el acceso oculto contra el backend para registrar intentos y alertas en Telegram
+        verificarAccesoAdminOculto();
       } else {
         STATE.clickTimer = setTimeout(() => { STATE.logoClicks = 0; }, 3000);
       }
     });
+  }
+}
+
+// Función auxiliar para verificar el acceso desde el logo oculto
+async function verificarAccesoAdminOculto() {
+  try {
+    const res = await fetch(`${API_URL}/api/verificar-admin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario_id: STATE.userId })
+    });
+    const data = await res.json();
+
+    if (res.status === 403 || data.status === 'blocked' || data.status === 'unauthorized' || data.status !== 'authorized') {
+      // Si el backend lo bloqueó por reincidencia o intento no autorizado
+      if (data.status === 'blocked' || res.status === 403) {
+        showFloatingNotification("🚨 Cuenta bloqueada permanentemente por intentos de acceso no autorizado.", "error");
+        // Opcional: si deseas cerrar su sesión de inmediato si fue bloqueado
+        setTimeout(() => { logoutUser(); }, 3000);
+      } else {
+        showFloatingNotification("⚠️ Acceso denegado: Intento registrado y reportado.", "error");
+      }
+    } else {
+      // Si SÍ es el administrador autorizado, lo deja entrar al panel
+      window.location.href = 'admin.html';
+    }
+  } catch (err) {
+    showFloatingNotification("Error de conexión al verificar permisos.", "error");
   }
 }
 
