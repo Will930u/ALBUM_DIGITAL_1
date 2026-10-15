@@ -194,10 +194,12 @@ async function loadUserDataFromDB() {
 
       const retirosCicloActual = ultimaLiquidacionIndex >= 0 ? data.retiros.slice(ultimaLiquidacionIndex + 1) : data.retiros;
 
-     retirosCicloActual.forEach(r => {
+      retirosCicloActual.forEach(r => {
         if (r.estado === 'aprobado' || r.estado === 'liquidado') {
           if (r.milestone > 0 && r.milestone < 2000) {
-            STATE.claimedMilestones.includes(m) ? null : STATE.claimedMilestones.push(r.milestone);
+            if (!STATE.claimedMilestones.includes(r.milestone)) {
+              STATE.claimedMilestones.push(r.milestone);
+            }
           }
           
           // Detectar si el retiro/liquidación fue aprobado y tiene referencia bancaria pendiente por notificar
@@ -218,6 +220,7 @@ async function loadUserDataFromDB() {
           hasActiveOrPending = true;
         }
       });
+    }
       
     STATE.isProcessingWithdrawal = hasActiveOrPending;
     updateUIHeader();
@@ -226,7 +229,6 @@ async function loadUserDataFromDB() {
     console.error("Error al cargar datos del usuario desde el backend:", err);
   }
 }
-
 function updateUIHeader() {
   const balanceUSD = STATE.bcvRate > 0 ? (STATE.userBalanceBs / STATE.bcvRate).toFixed(2) : '0.00';
   document.getElementById('userBalanceBs').innerText = `Bs. ${STATE.userBalanceBs.toFixed(2)} ($${balanceUSD})`;
