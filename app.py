@@ -558,6 +558,7 @@ def telegram_webhook():
                         w_res = supabase_client.table("retiros").select("*").eq("id", w_id).execute()
                         if w_res.data:
                             w = w_res.data[0]
+                            # Actualizamos el estado a aprobado y guardamos la referencia ingresada por texto
                             supabase_client.table("retiros").update({
                                 "estado": "aprobado",
                                 "referencia": referencia_ingresada
@@ -566,7 +567,7 @@ def telegram_webhook():
                             usr_res = supabase_client.table("usuarios").select("*").eq("id", w["usuario_id"]).execute()
                             if usr_res.data:
                                 usr = usr_res.data[0]
-                                if w["tipo"] == "liquidacion_total" or w.get("milestone") == 2000 or w.get("milestone") >= 2000:
+                                if w["tipo"] == "liquidacion_total" or w.get("milestone", 0) >= 2000:
                                     supabase_client.table("usuarios").update({
                                         "cantidad_barajitas": 0,
                                         "saldo_bs": 0.0
@@ -577,11 +578,11 @@ def telegram_webhook():
                                         "saldo_bs": nuevo_saldo
                                     }).eq("id", w["usuario_id"]).execute()
 
-                            send_telegram_message(chat_id, f"✅ <b>LIQUIDACIÓN APROBADA Y REGISTRADA</b>\nReferencia: <code>{referencia_ingresada}</code>")
+                            # Confirmación al chat del administrador en Telegram
+                            send_telegram_message(chat_id, f"✅ <b>PAGO REGISTRADO Y APROBADO</b>\nReferencia: <code>{referencia_ingresada}</code>")
                             return jsonify({"status": "ok"}), 200
                     except Exception as e:
                         print(f"Error procesando mensaje de texto en webhook: {e}")
-
     # 2. Manejo de clics en botones interactivos (Inline Buttons)
     callback_query = data.get("callback_query")
     if not callback_query:
