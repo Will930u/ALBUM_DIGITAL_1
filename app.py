@@ -182,6 +182,7 @@ def verificar_admin():
     data = request.get_json(silent=True) or {}
     usuario_id = str(data.get("usuario_id", "")).strip()
 
+    # Validación estricta del administrador principal
     if usuario_id == ADMIN_USER_ID:
         return jsonify({"status": "authorized"}), 200
 
