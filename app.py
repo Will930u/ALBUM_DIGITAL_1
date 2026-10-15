@@ -530,10 +530,6 @@ def procesar_retiro_admin():
     return jsonify({"status": "error", "message": "Sin conexión"}), 500
 
 # ==========================================
-# WEBHOOK DE TELEGRAM (MENSAJES Y BOTONES)
-# ==========================================
-
-# ==========================================
 # WEBHOOK DE TELEGRAM (ACTUALIZADO CON NOTIFICACIONES AL USUARIO)
 # ==========================================
 
@@ -558,28 +554,32 @@ def telegram_webhook():
                         w_res = supabase_client.table("retiros").select("*").eq("id", w_id).execute()
                         if w_res.data:
                             w = w_res.data[0]
-                            # Actualizamos el estado a aprobado y guardamos la referencia ingresada por texto
+                            tipo_retiro = w.get("tipo", "")
+                            milestone_val = int(w.get("milestone") or 0)
+
+                            # 1. Actualizar el retiro con la referencia y estado aprobado
                             supabase_client.table("retiros").update({
                                 "estado": "aprobado",
                                 "referencia": referencia_ingresada
                             }).eq("id", w_id).execute()
 
-                            usr_res = supabase_client.table("usuarios").select("*").eq("id", w["usuario_id"]).execute()
-                            if usr_res.data:
-                                usr = usr_res.data[0]
-                                if w["tipo"] == "liquidacion_total" or w.get("milestone", 0) >= 2000:
-                                    supabase_client.table("usuarios").update({
-                                        "cantidad_barajitas": 0,
-                                        "saldo_bs": 0.0
-                                    }).eq("id", w["usuario_id"]).execute()
-                                else:
+                            # 2. Aplicar el reinicio del álbum si es liquidación total o ciclo completo
+                            if tipo_retiro == "liquidacion_total" or milestone_val >= 2000 or tipo_retiro == "ciclo_completo":
+                                supabase_client.table("usuarios").update({
+                                    "cantidad_barajitas": 0,
+                                    "saldo_bs": 0.0
+                                }).eq("id", w["usuario_id"]).execute()
+                            else:
+                                # Descontar solo el monto del hito parcial del saldo
+                                usr_res = supabase_client.table("usuarios").select("*").eq("id", w["usuario_id"]).execute()
+                                if usr_res.data:
+                                    usr = usr_res.data[0]
                                     nuevo_saldo = max(0.0, (usr.get("saldo_bs") or 0.0) - float(w["monto_bs"]))
                                     supabase_client.table("usuarios").update({
                                         "saldo_bs": nuevo_saldo
                                     }).eq("id", w["usuario_id"]).execute()
 
-                            # Confirmación al chat del administrador en Telegram
-                            send_telegram_message(chat_id, f"✅ <b>PAGO REGISTRADO Y APROBADO</b>\nReferencia: <code>{referencia_ingresada}</code>")
+                            send_telegram_message(chat_id, f"✅ <b>PAGO REGISTRADO, ÁLBUM REINICIADO Y APROBADO</b>\nReferencia: <code>{referencia_ingresada}</code>")
                             return jsonify({"status": "ok"}), 200
                     except Exception as e:
                         print(f"Error procesando mensaje de texto en webhook: {e}")
