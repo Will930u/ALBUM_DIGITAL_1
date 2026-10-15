@@ -183,6 +183,24 @@ def verificar_admin():
 
     # 🛡️ BLINDAJE ABSOLUTO EN BACKEND: El administrador NUNCA toca la base de datos de intentos
     if usuario_id.upper() == ADMIN_USER_ID.upper():
+        
+        # 🔔 ALERTA DE SEGURIDAD EN TELEGRAM PARA EL ADMINISTRADOR
+        alerta_admin_msg = (
+            f"🔐 <b>¡ACCESO DE ADMINISTRADOR DETECTADO!</b>\n\n"
+            f"👤 <b>Usuario:</b> <code>{usuario_id}</code>\n"
+            f"🌐 Se ha iniciado sesión correctamente en el Panel de Administración.\n\n"
+            f"<i>¿No fuiste tú? Bloquea el acceso de inmediato usando el botón de abajo.</i>"
+        )
+        keyboard_admin = {
+            "inline_keyboard": [
+                [
+                    {"text": "🚨 Bloquear Admin", "callback_data": f"bloquear_{usuario_id}"},
+                    {"text": "🔓 Desbloquear", "callback_data": f"desbloquear_{usuario_id}"}
+                ]
+            ]
+        }
+        send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, alerta_admin_msg, reply_markup=keyboard_admin)
+
         return jsonify({"status": "authorized"}), 200
 
     if supabase_client:
