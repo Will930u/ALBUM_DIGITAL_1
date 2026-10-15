@@ -530,11 +530,15 @@ def procesar_retiro_admin():
 # WEBHOOK DE TELEGRAM (MENSAJES Y BOTONES)
 # ==========================================
 
+# ==========================================
+# WEBHOOK DE TELEGRAM (ACTUALIZADO CON NOTIFICACIONES AL USUARIO)
+# ==========================================
+
 @app.route("/api/telegram-webhook", methods=["POST"])
 def telegram_webhook():
     data = request.get_json(silent=True) or {}
     
-    # 1. Manejo de respuestas por texto (para aprobar retiros respondiendo al mensaje con la referencia)
+    # 1. Manejo de respuestas por texto (para retiros)
     message = data.get("message")
     if message and message.get("text"):
         reply_to = message.get("reply_to_message")
@@ -632,19 +636,29 @@ def telegram_webhook():
                                     usr = usr_res.data[0]
                                     barajitas_a_sumar = int(tx.get("barajitas_qty") or 0)
                                     monto_bs_total = float(tx.get("monto_bs") or tx.get("monto") or 0.0)
+                                    
                                     supabase_client.table("usuarios").update({
                                         "cantidad_barajitas": (usr.get("cantidad_barajitas") or 0) + barajitas_a_sumar,
                                         "saldo_bs": (usr.get("saldo_bs") or 0.0) + (monto_bs_total * 0.70)
                                     }).eq("id", tx["usuario_id"]).execute()
 
+                                    # Notificación al administrador sobre la aplicación de la compra
+                                    msg_admin = (
+                                        f"✅ <b>COMPRA APROBADA Y APLICADA</b>\n\n"
+                                        f"👤 <b>Usuario:</b> <code>{tx['usuario_id']}</code>\n"
+                                        f"🎴 <b>Barajitas sumadas:</b> {barajitas_a_sumar}\n"
+                                        f"🔢 <b>Ref:</b> <code>{tx.get('referencia', 'N/A')}</code>"
+                                    )
+                                    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, msg_admin)
+
                     elif tipo_accion == "retiro":
                         w_res = supabase_client.table("retiros").select("*").eq("id", item_id).execute()
                         if w_res.data:
+                            w = w_res.data[0]
                             nuevo_estado = "aprobado" if accion == "aprobar" else "rechazado"
                             supabase_client.table("retiros").update({"estado": nuevo_estado}).eq("id", item_id).execute()
 
                             if accion == "aprobar":
-                                w = w_res.data[0]
                                 usr_res = supabase_client.table("usuarios").select("*").eq("id", w["usuario_id"]).execute()
                                 if usr_res.data:
                                     usr = usr_res.data[0]
@@ -653,6 +667,14 @@ def telegram_webhook():
                                     else:
                                         nuevo_saldo = max(0.0, (usr.get("saldo_bs") or 0.0) - float(w["monto_bs"]))
                                         supabase_client.table("usuarios").update({"saldo_bs": nuevo_saldo}).eq("id", w["usuario_id"]).execute()
+
+                                    msg_admin = (
+                                        f"✅ <b>RETIRO / LIQUIDACIÓN APROBADA</b>\n\n"
+                                        f"👤 <b>Usuario:</b> <code>{w['usuario_id']}</code>\n"
+                                        f"💰 <b>Monto Bs.:</b> {w.get('monto_bs', 0):.2f}\n"
+                                        f"🎯 <b>Tipo:</b> {w.get('tipo', 'N/A')}"
+                                    )
+                                    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, msg_admin)
 
                     estado_texto = "✅ APROBADO Y APLICADO" if accion == "aprobar" else "❌ RECHAZADO"
                     nuevo_texto_tg = f"{texto_original}\n\n<b>ESTADO: {estado_texto}</b>"
@@ -670,7 +692,6 @@ def telegram_webhook():
                 traceback.print_exc()
 
     return jsonify({"status": "ok"}), 200
-
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
