@@ -182,8 +182,9 @@ def verificar_admin():
     data = request.get_json(silent=True) or {}
     usuario_id = str(data.get("usuario_id", "")).strip()
 
-    # Validación estricta del administrador principal
-    if usuario_id == ADMIN_USER_ID:
+    # 🛡️ BLINDAJE TOTAL: Verificación estricta del administrador principal
+    # Comparamos en mayúsculas y sin espacios para evitar cualquier error de escritura
+    if usuario_id.upper() == ADMIN_USER_ID.upper():
         return jsonify({"status": "authorized"}), 200
 
     if supabase_client:
@@ -226,8 +227,6 @@ def verificar_admin():
                     )
                     send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, alerta_msg)
                     
-                    # 💡 AQUÍ ESTÁ EL CAMBIO CLAVE: Devuelve código 200 y status "warning" 
-                    # para que el frontend muestre la notificación en el álbum pero NO saque al usuario.
                     return jsonify({
                         "status": "warning", 
                         "intentos": intentos_actuales,
