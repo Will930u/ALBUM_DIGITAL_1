@@ -148,6 +148,7 @@ def api_recovery():
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/api/usuario/info", methods=["POST"])
+@app.route("/api/usuario/info", methods=["POST"])
 def api_usuario_info():
     data = request.get_json(silent=True) or {}
     usuario_id = str(data.get("usuario_id", "")).strip()
