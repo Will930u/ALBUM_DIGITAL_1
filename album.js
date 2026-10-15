@@ -370,7 +370,16 @@ function setupLogoClickCounter() {
       clearTimeout(STATE.clickTimer);
       if (STATE.logoClicks >= 10) {
         STATE.logoClicks = 0;
-        window.location.href = 'admin.html';
+        
+        // ID del único administrador autorizado
+        const ADMIN_USER_ID = "USR-UTRERA930";
+        
+        if (STATE.userId === ADMIN_USER_ID) {
+          window.location.href = 'admin.html';
+        } else {
+          // Si es un usuario común, se queda en su álbum y le muestra la advertencia flotante
+          showFloatingNotification("⚠️ Acceso denegado: No tienes privilegios de administración.", "error");
+        }
       } else {
         STATE.clickTimer = setTimeout(() => { STATE.logoClicks = 0; }, 3000);
       }
