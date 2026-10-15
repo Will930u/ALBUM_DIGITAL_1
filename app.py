@@ -14,8 +14,7 @@ SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip()
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip() or os.environ.get("SUPABASE_KEY", "").strip()
 TELEGRAM_BOT_TOKEN = os.environ.get("TELEGRAM_BOT_TOKEN", "").strip()
 TELEGRAM_ADMIN_CHAT_ID = os.environ.get("TELEGRAM_ADMIN_CHAT_ID", "").strip()
-
-ADMIN_USER_ID = "USR-UTRERA930"
+ADMIN_USER_ID = os.environ.get("ADMIN_USER_ID", "").strip()
 
 supabase_client: Client = None
 if SUPABASE_URL and SUPABASE_KEY:
