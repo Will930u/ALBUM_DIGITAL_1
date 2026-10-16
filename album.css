@@ -28,37 +28,29 @@ body {
 }
 
 /* ==========================================
-   ANIMACIÓN DE CAMBIO DE COLOR GLOBAL PARA EL HUMO
+   ANIMACIÓN DE CAMBIO DE COLOR METÁLICO (10 SEGUNDOS)
    ========================================== */
 @keyframes humoColorGlobal {
   0% {
-    filter: hue-rotate(260deg) saturate(450%) brightness(1.25) contrast(130%); /* Púrpura Metálico / Cromo */
+    filter: hue-rotate(0deg) saturate(420%) brightness(1.25) contrast(130%); /* Púrpura / Cromo inicial */
   }
-   80% {
-    filter: hue-rotate(280deg) saturate(440%) brightness(1.2) contrast(130%);  /* Violeta / Magenta Brillante */
-  }
-  40% {
-    filter: hue-rotate(110deg) saturate(420%) brightness(1.2) contrast(130%);  /* Verde Esmeralda Metalizado */
-  }
-  25% {
-    filter: hue-rotate(315deg) saturate(480%) brightness(1.3) contrast(135%);  /* Fucsia Metálico Intenso */
-  }
-  75% {
-    filter: hue-rotate(195deg) saturate(460%) brightness(1.25) contrast(135%); /* Azul Acero / Cromo Eléctrico */
-  }
-  50% {
-    filter: hue-rotate(110deg) saturate(420%) brightness(1.2) contrast(130%);  /* Verde Esmeralda Metalizado */
-  }
-   20% {
-    filter: hue-rotate(70deg) saturate(350%) brightness(1.15); /* Tonos amarillos/verdes */
+  20% {
+    filter: hue-rotate(70deg) saturate(450%) brightness(1.3) contrast(135%); /* Tonos amarillos/verdes metálicos */
   }
   40% {
-    filter: hue-rotate(140deg) saturate(350%) brightness(1.1); /* Tonos cian/verde agua */
+    filter: hue-rotate(140deg) saturate(450%) brightness(1.25) contrast(130%); /* Tonos cian/verde agua metalizados */
+  }
+  60% {
+    filter: hue-rotate(210deg) saturate(480%) brightness(1.3) contrast(135%); /* Tonos azules intensos tipo cromo */
+  }
+  80% {
+    filter: hue-rotate(290deg) saturate(450%) brightness(1.25) contrast(130%); /* Tonos magenta/rosados brillantes */
   }
   100% {
-    filter: hue-rotate(260deg) saturate(450%) brightness(1.25) contrast(130%); /* Retorna al inicio con fluidez */
+    filter: hue-rotate(360deg) saturate(420%) brightness(1.25) contrast(130%); /* Retorna al inicio con fluidez */
   }
 }
+
 /* ==========================================
    CLASE DEL VIDEO DE HUMO
    ========================================== */
@@ -73,7 +65,7 @@ body {
   z-index: -1;
   
   /* Opacidad espesa y con presencia */
-  opacity: 0.75; 
+  opacity: 0.78; 
   
   /* Aplicamos la animación de cambio de color en todo el video */
   animation: humoColorGlobal 10s ease-in-out infinite;
@@ -83,23 +75,6 @@ body {
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
   will-change: filter;
-}
-
-/* ==========================================
-   CAPA DE COLOR DINÁMICA SOBRE EL HUMO (10 SEGUNDOS)
-   ========================================== */
-.bg-smoke-video::after, body::before {
-  content: '';
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none;
-  z-index: -1; /* Encima del video pero detrás del contenido */
-  mix-blend-mode: color; /* Fusiona perfectamente el color con la escala de grises del humo */
-  animation: capaColorFluida 10s ease-in-out infinite;
-  -webkit-animation: capaColorFluida 10s ease-in-out infinite;
 }
 
 /* ==========================================
