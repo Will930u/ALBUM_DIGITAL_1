@@ -28,6 +28,13 @@ body {
   text-shadow: 0 0 10px rgba(168, 85, 247, 0.8);
 }
 
-::-webkit-scrollbar { width: 8px; }
+/* Estilos personalizados para tablas de auditoría y reportes gerenciales */
+table th, table td {
+  border-color: rgba(168, 85, 247, 0.15);
+}
+
+/* Scrollbars personalizados */
+::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: #080314; }
 ::-webkit-scrollbar-thumb { background: #581c87; border-radius: 4px; }
+::-webkit-scrollbar-thumb:hover { background: #7e22ce; }
