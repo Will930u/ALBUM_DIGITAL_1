@@ -2,107 +2,121 @@
 <html lang="es">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
   <title>ÁLBUM DIGITAL</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
   <link rel="stylesheet" href="album.css">
 </head>
-<body class="flex flex-col min-h-screen relative overflow-x-hidden">
+<body class="flex flex-col min-h-screen relative overflow-x-hidden bg-[#080314] text-slate-100">
 
   <!-- ==========================================
-     UN SOLO VIDEO DE HUMO QUE ABARCA TODA LA PÁGINA DE FONDO
-     ========================================== -->
-<video autoplay muted loop playsinline class="bg-smoke-video">
-  <source src="smoke.mp4" type="video/mp4">
-</video>
+       VIDEO DE HUMO GENERAL DE FONDO (ADAPTABLE)
+       ========================================== -->
+  <video autoplay muted loop playsinline class="bg-smoke-video">
+    <source src="smoke.mp4" type="video/mp4">
+  </video>
 
-  <!-- CABECERA DE NAVEGACIÓN ADAPTABLE (PC, TABLET Y MÓVIL) -->
-  <header class="sticky top-0 z-40 metal-card rounded-none px-4 md:px-6 py-3 flex flex-col lg:flex-row justify-between items-center gap-4">
+  <!-- CABECERA DE NAVEGACIÓN ADAPTABLE MÓVIL Y PC -->
+  <header class="sticky top-0 z-40 metal-card rounded-none px-3 py-2.5 md:px-6 md:py-3 flex flex-col gap-3 shadow-xl">
     
-    <!-- Fila Superior / Logo y Título -->
-    <div class="flex w-full lg:w-auto justify-between items-center">
-      <div class="flex items-center space-x-3 cursor-pointer select-none" id="appLogo">
-        <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center font-bold text-xl shadow-lg border border-white/20">Á</div>
+    <!-- Fila 1: Logo y Título Principal -->
+    <div class="flex justify-between items-center w-full">
+      <div class="flex items-center space-x-2.5 cursor-pointer select-none" id="appLogo">
+        <div class="w-9 h-9 md:w-10 md:h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center font-bold text-lg md:text-xl shadow-lg border border-white/20 shrink-0">Á</div>
         <div>
-          <h1 class="text-base md:text-lg font-bold glow-text leading-none">ÁLBUM DIGITAL</h1>
-          <span class="text-xs text-purple-300">2000 Barajitas Coleccionables</span>
+          <h1 class="text-sm md:text-lg font-bold glow-text leading-tight">ÁLBUM DIGITAL</h1>
+          <span class="text-[11px] md:text-xs text-purple-300">2000 Barajitas Coleccionables</span>
         </div>
       </div>
+      
+      <!-- Botón Salir en móvil arriba a la derecha para ganar espacio -->
+      <button onclick="logoutUser()" class="md:hidden px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-900/50 text-red-200 border border-red-500/30">
+        Salir
+      </button>
     </div>
     
-    <!-- Controles Centrales y Acciones Financieras -->
-    <div class="flex flex-wrap items-center justify-center lg:justify-end gap-2.5 w-full lg:w-auto">
+    <!-- Fila 2: Controles Financieros y Acciones -->
+    <div class="flex flex-wrap items-center justify-between gap-2 w-full pt-1 border-t border-purple-500/20">
       
       <!-- Botón Premio Hito -->
-      <button id="btnHeaderMilestone" onclick="openWithdrawModal()" class="px-3 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-emerald-600 text-white font-bold text-xs flex items-center space-x-1.5 shadow-lg transition disabled:opacity-50">
-        <i data-lucide="award" class="w-4 h-4"></i>
+      <button id="btnHeaderMilestone" onclick="openWithdrawModal()" class="px-2.5 py-1.5 rounded-full bg-gradient-to-r from-amber-500 to-emerald-600 text-white font-bold text-[11px] md:text-xs flex items-center space-x-1 shadow-lg transition disabled:opacity-50">
+        <i data-lucide="award" class="w-3.5 h-3.5"></i>
         <span>Premio Hito ($200)</span>
       </button>
 
       <!-- Saldo Neto y Liquidación -->
-      <div class="bg-slate-900/80 border border-purple-500/40 px-3 py-1.5 rounded-full flex items-center space-x-2">
-        <i data-lucide="wallet" class="w-4 h-4 text-purple-400 hidden sm:inline-block"></i>
-        <span class="text-xs text-slate-400">Valor Neto:</span>
+      <div class="bg-slate-900/90 border border-purple-500/40 px-2.5 py-1 rounded-full flex items-center space-x-1.5">
+        <span class="text-[10px] md:text-xs text-slate-400">Neto:</span>
         <span id="userBalanceBs" class="font-bold text-emerald-400 text-xs md:text-sm">Bs. 0.00 ($0.00)</span>
-        <button id="btnHeaderTotalLiquidate" onclick="confirmTotalLiquidate()" class="ml-1 px-2 py-0.5 rounded-full bg-red-600 hover:bg-red-500 text-white font-extrabold text-[10px] uppercase transition disabled:opacity-50">
+        <button id="btnHeaderTotalLiquidate" onclick="confirmTotalLiquidate()" class="px-2 py-0.5 rounded-full bg-red-600 hover:bg-red-500 text-white font-extrabold text-[9px] uppercase transition disabled:opacity-50">
           Liquidar
         </button>
       </div>
 
     </div>
 
-    <!-- Menú de Enlaces a otros Módulos (Adaptable horizontalmente) -->
-    <nav class="flex flex-wrap items-center justify-center gap-2 w-full lg:w-auto pt-2 lg:pt-0 border-t lg:border-t-0 border-purple-500/20">
-      <a href="album.html" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold bg-purple-600/30 text-purple-200 border border-purple-500/30">Álbum</a>
-      <a href="tienda.html" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold bg-slate-800 text-slate-300 hover:bg-purple-600/30">Tienda</a>
-      <button onclick="logoutUser()" class="px-3 py-1.5 rounded-lg text-xs md:text-sm font-semibold bg-red-900/40 text-red-200">Salir</button>
+    <!-- Menú de Enlaces (Oculto en móvil pequeño, reubicado de forma limpia) -->
+    <nav class="hidden md:flex items-center justify-center gap-2 w-full pt-2 border-t border-purple-500/20">
+      <a href="album.html" class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-purple-600/30 text-purple-200 border border-purple-500/30">Álbum</a>
+      <a href="tienda.html" class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-800 text-slate-300 hover:bg-purple-600/30">Tienda</a>
+      <button onclick="logoutUser()" class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-red-900/40 text-red-200">Salir</button>
     </nav>
 
   </header>
 
+  <!-- BARRA DE NAVEGACIÓN INFERIOR FLOTANTE PARA MÓVILES (UX PROFESIONAL) -->
+  <div class="md:hidden fixed bottom-3 left-3 right-3 z-50 bg-slate-950/90 backdrop-blur-md border border-purple-500/40 rounded-2xl p-2 flex justify-around items-center shadow-2xl">
+    <a href="album.html" class="flex flex-col items-center text-purple-300 text-[10px] font-semibold py-1 px-4 rounded-xl bg-purple-600/30 border border-purple-500/40">
+      <i data-lucide="book-open" class="w-4 h-4 mb-0.5"><span>Álbum</span></i>
+    </a>
+    <a href="tienda.html" class="flex flex-col items-center text-slate-400 text-[10px] font-semibold py-1 px-4 rounded-xl hover:bg-slate-800">
+      <i data-lucide="shopping-bag" class="w-4 h-4 mb-0.5"><span>Tienda</span></i>
+    </a>
+  </div>
+
   <!-- CONTENEDOR DE NOTIFICACIONES FLOTANTES EN TIEMPO REAL -->
-  <div class="w-full max-w-6xl mx-auto px-4 mt-4 relative z-20">
+  <div class="w-full max-w-6xl mx-auto px-3 mt-3 relative z-20">
     <div id="userNotificationsContainer" class="w-full space-y-2"></div>
   </div>
 
   <!-- CONTENIDO PRINCIPAL DEL ÁLBUM -->
-  <main class="flex-grow flex flex-col items-center justify-center p-4 w-full max-w-6xl mx-auto space-y-6 relative z-20">
+  <main class="flex-grow flex flex-col items-center justify-start p-3 md:p-4 w-full max-w-6xl mx-auto space-y-4 pb-20 md:pb-6 relative z-20">
     
-    <!-- Barra de Paginación y Progreso -->
-    <div class="metal-card p-4 w-full flex flex-col md:flex-row justify-between items-center gap-4">
-      <div class="flex items-center space-x-4">
-        <button onclick="changePage(-1)" class="p-2 rounded-lg bg-slate-800 border border-purple-500/30 text-white hover:bg-slate-700 transition"><i data-lucide="chevron-left" class="w-6 h-6"></i></button>
-        <span class="text-lg font-bold text-purple-200">Página <span id="currentPageNum" class="text-blue-400">1</span> de 80</span>
-        <button onclick="changePage(1)" class="p-2 rounded-lg bg-slate-800 border border-purple-500/30 text-white hover:bg-slate-700 transition"><i data-lucide="chevron-right" class="w-6 h-6"></i></button>
+    <!-- Barra de Paginación y Progreso Adaptada -->
+    <div class="metal-card p-3 md:p-4 w-full flex flex-col sm:flex-row justify-between items-center gap-3">
+      <div class="flex items-center justify-between w-sm sm:w-auto space-x-3">
+        <button onclick="changePage(-1)" class="p-2 rounded-lg bg-slate-800 border border-purple-500/30 text-white hover:bg-slate-700 transition"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
+        <span class="text-sm md:text-lg font-bold text-purple-200">Pág. <span id="currentPageNum" class="text-blue-400">1</span> / 80</span>
+        <button onclick="changePage(1)" class="p-2 rounded-lg bg-slate-800 border border-purple-500/30 text-white hover:bg-slate-700 transition"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
       </div>
       
-      <div class="w-full md:w-1/3 space-y-1">
-        <div class="flex justify-between text-xs text-purple-300 font-semibold">
+      <div class="w-full sm:w-1/3 space-y-1">
+        <div class="flex justify-between text-[11px] text-purple-300 font-semibold">
           <span>Progreso Global</span>
           <span id="albumProgressText">0 / 2000 (0%)</span>
         </div>
-        <div class="w-full bg-slate-900 rounded-full h-3 overflow-hidden border border-purple-500/30">
+        <div class="w-full bg-slate-900 rounded-full h-2.5 overflow-hidden border border-purple-500/30">
           <div id="albumProgressBar" class="bg-gradient-to-r from-blue-500 to-purple-600 h-full w-0 transition-all duration-500"></div>
         </div>
       </div>
     </div>
 
-    <!-- Cuadrícula Dinámica de Barajitas -->
-    <div id="stickersGrid" class="grid grid-cols-4 sm:grid-cols-5 md:grid-cols-5 lg:grid-cols-5 gap-6 p-4 w-full justify-items-center"></div>
+    <!-- Cuadrícula Dinámica de Barajitas Optimizada para Móviles (2 o 3 columnas en pantallas estrechas) -->
+    <div id="stickersGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6 p-1 md:p-4 w-full justify-items-center"></div>
 
   </main>
 
   <!-- MODAL DE PREMIOS DE HITO / CICLO -->
   <div id="withdrawModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-    <div class="metal-card max-w-lg w-full p-6 space-y-5 border border-amber-500/50 relative z-20">
+    <div class="metal-card max-w-lg w-full p-5 md:p-6 space-y-4 border border-amber-500/50 relative z-20">
       <div class="flex justify-between items-center border-b border-amber-500/30 pb-3">
-        <h3 class="text-xl font-bold text-amber-400">Premios de Hito / Ciclo ($200)</h3>
-        <button onclick="closeWithdrawModal()" class="text-slate-400 font-bold hover:text-white">✕</button>
+        <h3 class="text-lg md:text-xl font-bold text-amber-400">Premios de Hito / Ciclo ($200)</h3>
+        <button onclick="closeWithdrawModal()" class="text-slate-400 font-bold hover:text-white p-1">✕</button>
       </div>
       <div id="milestoneOptions" class="grid grid-cols-2 gap-2 text-xs"></div>
-      <form onsubmit="submitWithdrawalRequest(event)" class="space-y-3 pt-2">
+      <form onsubmit="submitWithdrawalRequest(event)" class="space-y-3 pt-1">
         <input type="text" id="wBank" required placeholder="Banco (Ej: 0134)" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2.5 text-xs text-white focus:outline-none">
         <input type="text" id="wPhone" required placeholder="Teléfono (Ej: 04121234567)" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2.5 text-xs text-white focus:outline-none">
         <input type="text" id="wId" required placeholder="Cédula" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2.5 text-xs text-white focus:outline-none">
@@ -111,6 +125,14 @@
     </div>
   </div>
 
+  <script>
+    // Inicializar iconos de Lucide al cargar la página
+    document.addEventListener("DOMContentLoaded", () => {
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    });
+  </script>
   <script src="album.js"></script>
 </body>
 </html>
