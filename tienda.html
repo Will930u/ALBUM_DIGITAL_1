@@ -3,7 +3,8 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Tienda - Álbum Digital</title>
+  <title>TIENDA</title>
+  <link rel="icon" type="image/jpeg" href="logo-album.jpg">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="https://unpkg.com/lucide@latest"></script>
@@ -13,8 +14,11 @@
 
   <!-- CABECERA -->
   <header class="sticky top-0 z-40 metal-card rounded-none px-6 py-4 flex justify-between items-center">
-    <div class="flex items-center space-x-3 cursor-pointer select-none" onclick="window.location.href='album.html'">
-      <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-blue-500 to-purple-600 flex items-center justify-center font-bold text-xl shadow-lg border border-white/20">Á</div>
+    <div class="flex items-center space-x-3 cursor-pointer select-none group" onclick="window.location.href='album.html'">
+      <!-- NUEVO LOGO CON LA IMAGEN DEL LIBRO -->
+      <div class="w-10 h-10 rounded-xl overflow-hidden shadow-lg border-2 border-purple-500/80 group-hover:border-cyan-400 transition shrink-0 bg-slate-900">
+        <img src="logo-album.jpg" alt="Logo Álbum" class="w-full h-full object-cover">
+      </div>
       <div>
         <h1 class="text-lg font-bold glow-text leading-none">ÁLBUM DIGITAL</h1>
         <span class="text-xs text-purple-300">Tienda Oficial</span>
