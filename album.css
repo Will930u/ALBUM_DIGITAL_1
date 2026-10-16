@@ -221,7 +221,32 @@ button[onclick*="changePage"] {
     opacity: 1;
   }
 }
+/* ==========================================
+   CUADRÍCULA DE BARAJITAS ADAPTATIVA PARA MÓVIL
+   ========================================== */
+#stickersGrid {
+  display: grid;
+  /* En teléfonos fuerza 4 columnas de tamaño igual */
+  grid-template-columns: repeat(4, 1fr); 
+  gap: 0.375rem; /* Separación pequeña (6px) para maximizar espacio */
+  padding: 0.25rem;
+  width: 100%;
+}
 
+/* Ajuste para que las tarjetas no se deformen en pantallas pequeñas */
+.sticker-card {
+  max-width: 100% !important;
+  aspect-ratio: 3 / 4;
+}
+
+/* En pantallas de PC o tablets (más de 768px) mantiene más espacio */
+@media (min-width: 768px) {
+  #stickersGrid {
+    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    gap: 1rem;
+    padding: 1rem;
+  }
+}
 /* ==========================================
    SCROLLBARS ESTILIZADOS
    ========================================== */
