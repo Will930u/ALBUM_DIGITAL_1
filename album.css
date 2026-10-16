@@ -28,33 +28,29 @@ body {
 }
 
 /* ==========================================
-   ANIMACIÓN DE HUMO CON CAMBIO DE COLOR ESPESO (10s)
+   ANIMACIÓN DE CAMBIO DE COLOR SUAVE (10 SEGUNDOS)
    ========================================== */
-@keyframes humoCambioColorSuave {
+@keyframes capaColorFluida {
   0% {
-    filter: hue-rotate(0deg) saturate(380%) brightness(1.1);
-    -webkit-filter: hue-rotate(0deg) saturate(380%) brightness(1.1);
+    background: rgba(139, 92, 246, 0.35); /* Púrpura */
+    transform: rotate(0deg) scale(1);
   }
-  25% {
-    filter: hue-rotate(90deg) saturate(400%) brightness(1.15);
-    -webkit-filter: hue-rotate(90deg) saturate(400%) brightness(1.15);
+  33% {
+    background: rgba(59, 130, 246, 0.35); /* Azul eléctrico */
+    transform: rotate(120deg) scale(1.05);
   }
-  50% {
-    filter: hue-rotate(180deg) saturate(420%) brightness(1.1);
-    -webkit-filter: hue-rotate(180deg) saturate(420%) brightness(1.1);
-  }
-  75% {
-    filter: hue-rotate(270deg) saturate(400%) brightness(1.15);
-    -webkit-filter: hue-rotate(270deg) saturate(400%) brightness(1.15);
+  66% {
+    background: rgba(236, 72, 153, 0.35); /* Rosa fucsia / Magenta */
+    transform: rotate(240deg) scale(1);
   }
   100% {
-    filter: hue-rotate(360deg) saturate(380%) brightness(1.1);
-    -webkit-filter: hue-rotate(360deg) saturate(380%) brightness(1.1);
+    background: rgba(139, 92, 246, 0.35); /* Retorna a Púrpura */
+    transform: rotate(360deg) scale(1);
   }
 }
 
 /* ==========================================
-   CLASE DEL VIDEO DE HUMO FLUIDO Y DENSO
+   VIDEO DE HUMO BASE (FLUIDO Y SIN CORTES)
    ========================================== */
 .bg-smoke-video {
   position: fixed;
@@ -64,21 +60,29 @@ body {
   height: 100vh;
   object-fit: cover;
   pointer-events: none;
-  z-index: -1;
-  
-  /* Opacidad densa y espesa */
-  opacity: 0.75; 
-  
-  /* Animación continua y fluida de 10 segundos */
-  animation: humoCambioColorSuave 10s ease-in-out infinite;
-  -webkit-animation: humoCambioColorSuave 10s ease-in-out infinite;
-  
-  /* Forzar renderizado por GPU para evitar tirones y cortes en el cambio de color */
+  z-index: -2; /* Detrás de todo */
+  opacity: 0.85;
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
   backface-visibility: hidden;
   -webkit-backface-visibility: hidden;
-  will-change: filter, transform;
+}
+
+/* ==========================================
+   CAPA DE COLOR DINÁMICA SOBRE EL HUMO (10 SEGUNDOS)
+   ========================================== */
+.bg-smoke-video::after, body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: -1; /* Encima del video pero detrás del contenido */
+  mix-blend-mode: color; /* Fusiona perfectamente el color con la escala de grises del humo */
+  animation: capaColorFluida 10s ease-in-out infinite;
+  -webkit-animation: capaColorFluida 10s ease-in-out infinite;
 }
 
 /* ==========================================
