@@ -9,7 +9,7 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <link rel="stylesheet" href="tienda.css">
 </head>
-<body class="flex flex-col min-h-screen">
+<body class="flex flex-col min-h-screen bg-[#080314] text-slate-100">
 
   <!-- CABECERA -->
   <header class="sticky top-0 z-40 metal-card rounded-none px-6 py-4 flex justify-between items-center">
@@ -69,6 +69,22 @@
           </div>
         </div>
 
+        <!-- AVISO DE SEGURIDAD Y VERIFICACIÓN MANUAL (ELEGANTE Y PREVENTIVO) -->
+        <div class="bg-amber-950/30 border border-amber-500/40 p-4 rounded-xl flex items-start gap-3 shadow-lg">
+          <div class="p-2 rounded-lg bg-amber-500/20 text-amber-400 mt-0.5 shrink-0">
+            <i data-lucide="shield-alert" class="w-5 h-5"></i>
+          </div>
+          <div class="space-y-1 text-xs leading-relaxed">
+            <h4 class="font-bold text-amber-300 text-sm">Verificación Manual de Pagos</h4>
+            <p class="text-slate-300">
+              Asegúrate de ingresar la <b>referencia exactas, banco y teléfono emisor</b>. Cada reporte es auditado manualmente contra nuestro estado de cuenta bancario antes de acreditar las barajitas.
+            </p>
+            <p class="text-amber-200/90 font-medium pt-0.5">
+              ⚠️ Reportes con datos erróneos o ficticios no serán procesados y pueden acarrear la suspensión temporal o permanente de la cuenta.
+            </p>
+          </div>
+        </div>
+
         <form onsubmit="submitPurchase(event)" class="space-y-4">
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div>
@@ -99,6 +115,13 @@
     </section>
   </main>
 
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      if (typeof lucide !== 'undefined') {
+        lucide.createIcons();
+      }
+    });
+  </script>
   <script src="tienda.js"></script>
 </body>
 </html>
