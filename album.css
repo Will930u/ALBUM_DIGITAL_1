@@ -37,12 +37,13 @@ body {
   left: 0;
   width: 100vw;
   height: 100vh;
-  object-fit: cover;
+  min-height: 100%;
+  object-fit: cover; /* Llena toda la pantalla manteniendo la proporción */
   pointer-events: none;
-  z-index: -1; /* Lo manda al fondo absoluto */
-  opacity: 0.60; /* Translúcido para no estorbar */
-  mix-blend-mode: screen; /* Elimina el fondo negro y funde la bruma */
-  filter: hue-rotate(240deg) saturate(250%) brightness(0.9) contrast(120%); /* Tinte acorde a tu tema */
+  z-index: -1; /* Estrictamente al fondo */
+  opacity: 0.28; /* Translúcido y elegante */
+  mix-blend-mode: screen; /* Elimina el fondo negro y funde el humo */
+  filter: hue-rotate(240deg) saturate(250%) brightness(0.9) contrast(120%);
 }
 /* ==========================================
    CONTENIDO PRINCIPAL, BARAJITAS Y PANELES (CAPA 2 - AL FRENTE)
