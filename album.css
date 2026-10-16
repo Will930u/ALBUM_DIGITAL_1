@@ -62,7 +62,7 @@ body {
   object-fit: cover;
   pointer-events: none;
   z-index: -1;
-  opacity: 0.30;
+  opacity: 3;
   mix-blend-mode: screen;
   
   /* Duración exacta de 10 segundos con interpolación fluida (ease-in-out) */
