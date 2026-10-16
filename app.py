@@ -347,12 +347,34 @@ def admin_retiros_pendientes():
 @app.route("/api/admin/metricas", methods=["GET"])
 def admin_metricas():
     if not supabase_client:
-        return jsonify({"total_sales": 0}), 200
+        return jsonify({"total_sales": 0, "bcv_rate": 1.0, "approved_count": 0, "stickers_sold": 0}), 200
     try:
+        # Consultar transacciones aprobadas
         res = supabase_client.table("transacciones").select("*").eq("estado", "aprobado").execute()
-        total_sales = sum([float(t.get("monto_bs") or t.get("monto") or 0) for t in (res.data or [])])
-        return jsonify({"total_sales": total_sales}), 200
+        transacciones = res.data or []
+        
+        total_sales = sum([float(t.get("monto_bs") or t.get("monto") or 0) for t in transacciones])
+        approved_count = len(transacciones)
+        stickers_sold = sum([int(t.get("barajitas_qty") or 0) for t in transacciones])
+        
+        # Intentar obtener la tasa BCV actual en vivo para mantener la referencia dual
+        bcv_rate = 1.0
+        try:
+            r_bcv = requests.get("https://ve.dolarapi.com/v1/dolares/oficial", timeout=3)
+            if r_bcv.ok:
+                bcv_data = r_bcv.json()
+                bcv_rate = float(bcv_data.get("promedio", 1.0))
+        except:
+            pass
+
+        return jsonify({
+            "total_sales": total_sales,
+            "bcv_rate": bcv_rate,
+            "approved_count": approved_count,
+            "stickers_sold": stickers_sold
+        }), 200
     except Exception as e:
+        print(f"Error en admin_metricas: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/admin/usuarios", methods=["GET"])
