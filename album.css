@@ -41,7 +41,7 @@ body {
   object-fit: cover;  /* Expande el video sin deformarlo */
   pointer-events: none;
   z-index: -1;        /* Estrictamente al fondo */
-  opacity: 0.28;
+  opacity: 3;
   mix-blend-mode: screen;
   filter: hue-rotate(240deg) saturate(280%) brightness(0.95) contrast(120%);
 }
