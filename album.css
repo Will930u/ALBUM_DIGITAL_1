@@ -34,29 +34,26 @@ body {
   0% {
     filter: hue-rotate(260deg) saturate(450%) brightness(1.25) contrast(130%); /* Púrpura Metálico / Cromo */
   }
-  25% {
-    filter: hue-rotate(315deg) saturate(480%) brightness(1.3) contrast(135%);  /* Fucsia Metálico Intenso */
+   80% {
+    filter: hue-rotate(280deg) saturate(440%) brightness(1.2) contrast(130%);  /* Violeta / Magenta Brillante */
   }
-  50% {
+  40% {
     filter: hue-rotate(110deg) saturate(420%) brightness(1.2) contrast(130%);  /* Verde Esmeralda Metalizado */
-  }
-  75% {
-    filter: hue-rotate(195deg) saturate(460%) brightness(1.25) contrast(135%); /* Azul Acero / Cromo Eléctrico */
-  }
-  100% {
-    filter: hue-rotate(260deg) saturate(450%) brightness(1.25) contrast(130%); /* Retorna al inicio con fluidez */
-  }
-   0% {
-    filter: hue-rotate(260deg) saturate(450%) brightness(1.25) contrast(130%); /* Púrpura Metálico / Cromo */
   }
   25% {
     filter: hue-rotate(315deg) saturate(480%) brightness(1.3) contrast(135%);  /* Fucsia Metálico Intenso */
   }
+  75% {
+    filter: hue-rotate(195deg) saturate(460%) brightness(1.25) contrast(135%); /* Azul Acero / Cromo Eléctrico */
+  }
   50% {
     filter: hue-rotate(110deg) saturate(420%) brightness(1.2) contrast(130%);  /* Verde Esmeralda Metalizado */
   }
-  75% {
-    filter: hue-rotate(195deg) saturate(460%) brightness(1.25) contrast(135%); /* Azul Acero / Cromo Eléctrico */
+   20% {
+    filter: hue-rotate(70deg) saturate(350%) brightness(1.15); /* Tonos amarillos/verdes */
+  }
+  40% {
+    filter: hue-rotate(140deg) saturate(350%) brightness(1.1); /* Tonos cian/verde agua */
   }
   100% {
     filter: hue-rotate(260deg) saturate(450%) brightness(1.25) contrast(130%); /* Retorna al inicio con fluidez */
