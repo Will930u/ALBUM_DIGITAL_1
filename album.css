@@ -28,35 +28,6 @@ body {
   position: relative;
 }
 
-/* ==========================================
-   ANIMACIÓN DE CAMBIO DE COLOR GLOBAL (CAPA DEGRADADA)
-   ========================================== */
-@keyframes humoColorGlobal {
-  0% {
-    background: linear-gradient(135deg, rgba(147, 51, 234, 0.85), rgba(59, 130, 246, 0.85)); /* Púrpura / Azul */
-    transform: scale(1) rotate(0deg);
-  }
-  25% {
-    background: linear-gradient(135deg, rgba(236, 72, 153, 0.85), rgba(147, 51, 234, 0.85)); /* Fucsia / Púrpura */
-    transform: scale(1.05) rotate(90deg);
-  }
-  50% {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.85), rgba(59, 130, 246, 0.85)); /* Verde / Azul cromo */
-    transform: scale(1) rotate(180deg);
-  }
-  75% {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.85), rgba(236, 72, 153, 0.85)); /* Azul / Fucsia metálico */
-    transform: scale(1.05) rotate(270deg);
-  }
-  100% {
-    background: linear-gradient(135deg, rgba(147, 51, 234, 0.85), rgba(59, 130, 246, 0.85)); /* Retorna al inicio */
-    transform: scale(1) rotate(360deg);
-  }
-}
-
-/* ==========================================
-   VIDEO DE HUMO BASE (EN ESCALA DE GRISES PARA RECIBIR COLOR)
-   ========================================== */
 .bg-smoke-video {
   position: fixed;
   top: 0;
@@ -65,17 +36,9 @@ body {
   height: 100vh;
   object-fit: cover;
   pointer-events: none;
-  z-index: -2;
-  
-  /* Volvemos el video blanco y negro puro para que asuma perfectamente el color */
-  filter: grayscale(100%) contrast(150%) brightness(1.2);
-  -webkit-filter: grayscale(100%) contrast(150%) brightness(1.2);
-  
-  opacity: 0.85;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
+  z-index: -1;
+  opacity: 0.8;
 }
-
 /* ==========================================
    CAPA DE COLOR ANIMADA SOBRE EL HUMO (EFECTO METÁLICO)
    ========================================== */
