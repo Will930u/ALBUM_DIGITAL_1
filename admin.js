@@ -10,7 +10,6 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   try {
-    // Consultamos al backend para que verifique de forma oficial en Supabase
     const response = await fetch(`${API_URL}/api/verificar-admin`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -19,7 +18,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     
     const data = await response.json();
     
-    // Si el servidor confirma en Supabase que es el administrador autorizado (status 200)
     if (response.status === 200 && data.status === 'authorized') {
       if (typeof switchAdminTab === 'function') {
         switchAdminTab('pagos');
@@ -27,7 +25,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    // Si el backend responde con advertencia (Intento 1 o 2 por link directo)
     if (data.status === 'warning') {
       document.body.innerHTML = `
         <div style="background-color: #020617; color: #ffffff; min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: sans-serif;">
@@ -44,7 +41,6 @@ document.addEventListener('DOMContentLoaded', async () => {
       return;
     }
 
-    // Si llega al tercer intento o está bloqueado (status 403 o blocked)
     if (response.status === 403 || data.status === 'blocked') {
       document.body.innerHTML = `
         <div style="background-color: #020617; color: #ffffff; min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: sans-serif;">
@@ -68,9 +64,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // Por seguridad predeterminada si hay respuestas inesperadas
   window.location.href = 'album.html';
 });
+
 function switchAdminTab(tab) {
   document.getElementById('adminContentPagos').classList.add('hidden');
   document.getElementById('adminContentRetiros').classList.add('hidden');
@@ -263,23 +259,55 @@ async function renderFinancialMetrics() {
   try {
     const res = await fetch(`${API_URL}/api/admin/metricas`);
     const data = await res.json();
-    const totalSales = data.total_sales || 0;
+    
+    const totalSalesBs = data.total_sales || 0;
+    const bcvRate = data.bcv_rate || 1.0;
+    const totalSalesUsd = bcvRate > 0 ? totalSalesBs / bcvRate : 0;
+    
+    const approvedCount = data.approved_count || 0;
+    const stickersSold = data.stickers_sold || 0;
 
-    document.getElementById('metricTotalSales').innerText = `Bs. ${totalSales.toFixed(2)}`;
-    document.getElementById('metricPlatformProfit').innerText = `Bs. ${(totalSales * 0.30).toFixed(2)}`;
-    document.getElementById('metricUserNetValue').innerText = `Bs. ${(totalSales * 0.70).toFixed(2)}`;
+    document.getElementById('metricTotalSalesBs').innerText = `Bs. ${totalSalesBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    document.getElementById('metricTotalSalesUsd').innerText = `($${totalSalesUsd.toFixed(2)} USD)`;
+
+    document.getElementById('metricPlatformProfitBs').innerText = `Bs. ${(totalSalesBs * 0.30).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    document.getElementById('metricPlatformProfitUsd').innerText = `($${(totalSalesUsd * 0.30).toFixed(2)} USD)`;
+
+    document.getElementById('metricUserNetValueBs').innerText = `Bs. ${(totalSalesBs * 0.70).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    document.getElementById('metricUserNetValueUsd').innerText = `($${(totalSalesUsd * 0.70).toFixed(2)} USD)`;
+
+    document.getElementById('metricCountApproved').innerText = approvedCount;
+    document.getElementById('metricTotalStickersSold').innerText = stickersSold;
+    document.getElementById('metricBcvReference').innerText = `Bs. ${bcvRate.toFixed(2)}`;
 
     const ctx = document.getElementById('financialChart').getContext('2d');
     if (window.myChart) window.myChart.destroy();
+    
     window.myChart = new Chart(ctx, {
       type: 'doughnut',
       data: {
-        labels: ['Plataforma (30%)', 'Usuarios (70%)'],
-        datasets: [{ data: [totalSales * 0.30, totalSales * 0.70], backgroundColor: ['#a855f7', '#10b981'] }]
+        labels: ['Caja Plataforma (30%)', 'Fondo Neto Usuarios (70%)'],
+        datasets: [{
+          data: [totalSalesBs * 0.30, totalSalesBs * 0.70],
+          backgroundColor: ['#a855f7', '#10b981'],
+          borderWidth: 1,
+          borderColor: '#1e293b'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: '#cbd5e1', font: { size: 11 } }
+          }
+        }
       }
     });
+
   } catch (err) {
-    console.error('Error cargando métricas:', err);
+    console.error('Error cargando métricas analíticas:', err);
   }
 }
 
