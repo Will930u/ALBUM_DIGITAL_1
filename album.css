@@ -249,30 +249,55 @@ button[onclick*="changePage"] {
   }
 }
 /* ==========================================
-   CUADRÍCULA DE BARAJITAS ADAPTATIVA PARA MÓVIL
+   CUADRÍCULA ORGANIZADA Y PROFESIONAL
    ========================================== */
 #stickersGrid {
   display: grid;
-  /* En teléfonos fuerza 4 columnas de tamaño igual */
-  grid-template-columns: repeat(4, 1fr); 
-  gap: 0.375rem; /* Separación pequeña (6px) para maximizar espacio */
-  padding: 0.25rem;
+  /* Celda adaptable: se ajusta automáticamente según la pantalla, con un ancho mínimo ideal */
+  grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
+  gap: 0.5rem; /* Espaciado uniforme y limpio entre tarjetas */
+  padding: 0.5rem;
   width: 100%;
+  max-width: 1200px;
+  margin: 0 auto;
+  justify-content: center;
+  align-content: start;
 }
 
-/* Ajuste para que las tarjetas no se deformen en pantallas pequeñas */
-.sticker-card {
-  max-width: 100% !important;
-  aspect-ratio: 3 / 4;
+/* Para pantallas medianas y tablets */
+@media (min-width: 480px) {
+  #stickersGrid {
+    grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
+    gap: 0.75rem;
+    padding: 0.75rem;
+  }
 }
 
-/* En pantallas de PC o tablets (más de 768px) mantiene más espacio */
+/* Para computadoras / pantallas grandes */
 @media (min-width: 768px) {
   #stickersGrid {
-    grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: 1rem;
     padding: 1rem;
   }
+}
+
+/* ==========================================
+   ESTILO DE CADA TARJETA (BARAJITA)
+   ========================================== */
+.sticker-card {
+  width: 100%;
+  aspect-ratio: 3 / 4; /* Proporción exacta de barajita coleccionable */
+  border-radius: 10px;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+}
+
+.sticker-card:hover {
+  transform: translateY(-3px);
 }
 /* ==========================================
    SCROLLBARS ESTILIZADOS
