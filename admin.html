@@ -4,6 +4,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Panel de Administración - Álbum Digital</title>
+  <link rel="icon" type="image/jpeg" href="logo-album.jpg">
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -14,8 +15,11 @@
 
   <!-- CABECERA DE ADMINISTRACIÓN -->
   <header class="sticky top-0 z-40 metal-card rounded-none px-6 py-4 flex justify-between items-center">
-    <div class="flex items-center space-x-3 cursor-pointer select-none" onclick="window.location.href='album.html'">
-      <div class="w-10 h-10 rounded-full bg-gradient-to-tr from-red-600 to-purple-600 flex items-center justify-center font-bold text-xl shadow-lg border border-white/20">A</div>
+    <div class="flex items-center space-x-3 cursor-pointer select-none group" onclick="window.location.href='album.html'">
+      <!-- NUEVO LOGO CON LA IMAGEN DEL LIBRO -->
+      <div class="w-10 h-10 rounded-xl overflow-hidden shadow-lg border-2 border-red-500/80 group-hover:border-purple-400 transition shrink-0 bg-slate-900">
+        <img src="logo-album.jpg" alt="Logo Admin" class="w-full h-full object-cover">
+      </div>
       <div>
         <h1 class="text-lg font-bold glow-text leading-none">PANEL ADMIN</h1>
         <span class="text-xs text-red-300">Gestión General del Sistema</span>
@@ -111,6 +115,7 @@
           </div>
           <button onclick="purgeAllData()" class="px-4 py-2 bg-red-600/30 text-red-300 rounded-lg text-xs font-bold border border-red-500/40 hover:bg-red-600/50 transition">PURGA TOTAL DEL SISTEMA</button>
         </div>
+
         <!-- SECCIÓN CONFIGURACIÓN DE PAGOS -->
         <div id="adminContentConfig" class="hidden space-y-6">
           <div class="metal-card p-6 max-w-xl mx-auto space-y-4">
@@ -120,22 +125,23 @@
                 <label class="block text-xs font-semibold text-purple-300 mb-1">Banco (Código y Nombre):</label>
                 <input type="text" id="cfgBanco" required class="w-full bg-slate-900 border border-purple-500/40 rounded-xl p-3 text-white text-sm focus:outline-none">
               </div>
-               <div>
-                  <label class="block text-xs font-semibold text-purple-300 mb-1">Teléfono:</label>
-                 <input type="text" id="cfgTelefono" required class="w-full bg-slate-900 border border-purple-500/40 rounded-xl p-3 text-white text-sm focus:outline-none font-mono">
-                  </div>
-               <div>
-                 <label class="block text-xs font-semibold text-purple-300 mb-1">Cédula o RIF:</label>
-                 <input type="text" id="cfgCedula" required class="w-full bg-slate-900 border border-purple-500/40 rounded-xl p-3 text-white text-sm focus:outline-none font-mono">
-               </div>
+              <div>
+                <label class="block text-xs font-semibold text-purple-300 mb-1">Teléfono:</label>
+                <input type="text" id="cfgTelefono" required class="w-full bg-slate-900 border border-purple-500/40 rounded-xl p-3 text-white text-sm focus:outline-none font-mono">
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-purple-300 mb-1">Cédula o RIF:</label>
+                <input type="text" id="cfgCedula" required class="w-full bg-slate-900 border border-purple-500/40 rounded-xl p-3 text-white text-sm focus:outline-none font-mono">
+              </div>
               <div>
                 <label class="block text-xs font-semibold text-purple-300 mb-1">Titular de la Cuenta:</label>
-                 <input type="text" id="cfgTitular" required class="w-full bg-slate-900 border border-purple-500/40 rounded-xl p-3 text-white text-sm focus:outline-none">
+                <input type="text" id="cfgTitular" required class="w-full bg-slate-900 border border-purple-500/40 rounded-xl p-3 text-white text-sm focus:outline-none">
               </div>
               <button type="submit" class="w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold rounded-xl text-sm transition">GUARDAR DATOS DE PAGO</button>
-              </form>
-            </div>
+            </form>
           </div>
+        </div>
+
       </div>
     </section>
   </main>
