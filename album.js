@@ -454,3 +454,47 @@ function triggerStickerAnimation(cardElement) {
     cardElement.classList.remove('rotate-360');
   }, 600);
 }
+// ==========================================
+// VISOR DE BARAJITAS A PANTALLA COMPLETA (LIGHTBOX)
+// ==========================================
+let currentModalIndex = 0;
+let allPageStickers = []; // Almacena temporalmente las barajitas de la página actual
+
+function openStickerModal(imgSrc, titleText, index) {
+  const modal = document.getElementById('stickerModal');
+  const modalImg = document.getElementById('modalStickerImg');
+  const modalTitle = document.getElementById('modalStickerTitle');
+
+  if (!modal) return;
+
+  modalImg.src = imgSrc;
+  modalTitle.textContent = titleText;
+  currentModalIndex = index;
+
+  modal.classList.remove('hidden');
+  
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+}
+
+function closeStickerModal() {
+  const modal = document.getElementById('stickerModal');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+}
+
+function navigateStickerModal(direction) {
+  if (allPageStickers.length > 0) {
+    currentModalIndex += direction;
+    
+    if (currentModalIndex < 0) currentModalIndex = allPageStickers.length - 1;
+    if (currentModalIndex >= allPageStickers.length) currentModalIndex = 0;
+
+    const targetSticker = allPageStickers[currentModalIndex];
+    if (targetSticker) {
+      openStickerModal(targetSticker.image, targetSticker.title, currentModalIndex);
+    }
+  }
+}
