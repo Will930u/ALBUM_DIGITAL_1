@@ -12,26 +12,26 @@ body {
 }
 
 /* ==========================================
-   ANIMACIÓN DE CAMBIO DE COLOR SUAVE (10s)
+   ANIMACIÓN DE CAMBIO DE COLOR METÁLICO (10s)
    ========================================== */
 @keyframes humoColorGlobal {
   0% {
-    filter: hue-rotate(0deg) saturate(320%) brightness(1.1);
+    filter: hue-rotate(0deg) saturate(420%) brightness(1.25) contrast(130%);
   }
   20% {
-    filter: hue-rotate(70deg) saturate(350%) brightness(1.15); /* Tonos amarillos/verdes */
+    filter: hue-rotate(70deg) saturate(450%) brightness(1.3) contrast(135%);
   }
   40% {
-    filter: hue-rotate(140deg) saturate(350%) brightness(1.1); /* Tonos cian/verde agua */
+    filter: hue-rotate(140deg) saturate(450%) brightness(1.25) contrast(130%);
   }
   60% {
-    filter: hue-rotate(210deg) saturate(380%) brightness(1.15); /* Tonos azules intensos */
+    filter: hue-rotate(210deg) saturate(480%) brightness(1.3) contrast(135%);
   }
   80% {
-    filter: hue-rotate(290deg) saturate(350%) brightness(1.1); /* Tonos magenta/rosados */
+    filter: hue-rotate(290deg) saturate(450%) brightness(1.25) contrast(130%);
   }
   100% {
-    filter: hue-rotate(360deg) saturate(320%) brightness(1.1); /* Retorna al inicio */
+    filter: hue-rotate(360deg) saturate(420%) brightness(1.25) contrast(130%);
   }
 }
 
@@ -48,14 +48,15 @@ body {
   object-fit: cover;
   pointer-events: none;
   z-index: -1;
-  opacity: 0.82;
-  mix-blend-mode: screen;
+  opacity: 0.78;
   
-  /* Animación idéntica a la del álbum */
-  animation: humoCambioColorSuave 10s ease-in-out infinite;
+  /* Animación unificada idéntica a la del álbum */
+  animation: humoColorGlobal 10s ease-in-out infinite;
+  -webkit-animation: humoColorGlobal 10s ease-in-out infinite;
   
   /* Aceleración por GPU */
   transform: translateZ(0);
+  -webkit-transform: translateZ(0);
   will-change: filter;
 }
 
@@ -73,7 +74,7 @@ body {
   -webkit-backdrop-filter: blur(12px);
   border-radius: 16px;
   position: relative;
-  z-index: 1; /* Asegura que el contenido quede por encima del video de humo */
+  z-index: 1;
 }
 
 .metal-card::before {
