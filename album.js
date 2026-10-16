@@ -11,6 +11,10 @@ const STATE = {
   isInitialLoad: true
 };
 
+// Variables globales para el visor de pantalla completa (Lightbox)
+let currentModalIndex = 0;
+let allPageStickers = [];
+
 document.addEventListener('DOMContentLoaded', async () => {
   if (!STATE.userId) {
     window.location.href = 'index.html';
@@ -49,6 +53,7 @@ async function logoutUser() {
   localStorage.removeItem('active_user_id');
   window.location.href = 'index.html';
 }
+
 // ----------------------------------------------------
 // SISTEMA DE NOTIFICACIONES FLOTANTES EN TIEMPO REAL
 // ----------------------------------------------------
@@ -102,23 +107,37 @@ function renderAlbumPage() {
     const startIndex = (STATE.currentPage - 1) * STATE.stickersPerPage + 1;
     const endIndex = startIndex + STATE.stickersPerPage - 1;
 
+    // Reiniciar arreglo temporal para el visor de la página actual
+    allPageStickers = [];
+
     for (let i = startIndex; i <= endIndex; i++) {
       const isUnlocked = i <= STATE.userStickersCount;
       const isMilestone = (i % 500 === 0);
       const slot = document.createElement('div');
       slot.className = `metal-slot sticker-card aspect-[3/4] w-full max-w-[130px] rounded-xl flex flex-col items-center justify-center p-2 relative overflow-hidden cursor-pointer ${isUnlocked ? 'filled' : ''} ${isMilestone ? 'milestone-slot' : ''}`;
       
-      if (isMilestone && isUnlocked) {
-        slot.onclick = () => openWithdrawModal();
-      } else if (isUnlocked) {
-        slot.onclick = () => {
-          triggerStickerAnimation(slot);
-        };
-      }
-
       if (isUnlocked) {
         const imgUrl = `https://dxicbitnnesjsqzxisea.supabase.co/storage/v1/object/public/barajitas/${i}.jpg?t=${Date.now()}`;
-        slot.innerHTML = `<img src="${imgUrl}" class="w-full h-full object-cover rounded-lg" onerror="this.src='https://via.placeholder.com/150/1e1b4b/a855f7?text=${i}'"><span class="absolute bottom-1 right-1 bg-black/80 px-1.5 rounded text-[10px] font-bold text-purple-300">#${i}</span>`;
+        
+        // Registrar en el arreglo para la navegación del visor Lightbox
+        const stickerObj = {
+          image: imgUrl,
+          title: `Barajita #${i}`
+        };
+        allPageStickers.push(stickerObj);
+        const currentIndexInPage = allPageStickers.length - 1;
+
+        slot.innerHTML = `<img src="${imgUrl}" class="w-full h-full object-cover rounded-lg pointer-events-none" onerror="this.src='https://via.placeholder.com/150/1e1b4b/a855f7?text=${i}'"><span class="absolute bottom-1 right-1 bg-black/80 px-1.5 rounded text-[10px] font-bold text-purple-300">#${i}</span>`;
+        
+        // Configurar acción al hacer clic: Si es hito y no reclamado abre retiro, de lo contrario abre el visor de pantalla completa
+        if (isMilestone) {
+          slot.onclick = () => openWithdrawModal();
+        } else {
+          slot.onclick = () => {
+            triggerStickerAnimation(slot);
+            openStickerModal(stickerObj.image, stickerObj.title, currentIndexInPage);
+          };
+        }
       } else {
         slot.innerHTML = `<i data-lucide="${isMilestone ? 'award' : 'lock'}" class="w-6 h-6 text-purple-500/40 mb-1"></i><span class="text-xs font-bold text-slate-500">#${i}</span>`;
       }
@@ -173,12 +192,10 @@ async function loadUserDataFromDB() {
       STATE.userBalanceBs = data.user.saldo_bs || 0;
     }
 
-    // Si cambió el conteo de barajitas (compras aprobadas o álbum reiniciado a 0), redibujar la cuadrícula
     if (previousStickersCount !== STATE.userStickersCount && !STATE.isInitialLoad) {
       renderAlbumPage();
     }
 
-    // Procesar Transacciones (compras de barajitas)
     if (data && data.transacciones) {
       data.transacciones.forEach(tx => {
         if (tx.estado === 'aprobado') {
@@ -199,7 +216,6 @@ async function loadUserDataFromDB() {
     if (data && data.retiros) {
       data.retiros.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
 
-      // 1. PRIMERO: Procesar todas las notificaciones de retiros aprobados globalmente para asegurar la alerta flotante de liquidación
       data.retiros.forEach(r => {
         if ((r.estado === 'aprobado' || r.estado === 'liquidado') && r.referencia) {
           const trackingKey = `approved_ref_${r.id}_${r.referencia}`;
@@ -209,7 +225,7 @@ async function loadUserDataFromDB() {
               const refText = ` Referencia bancaria: <b>${r.referencia}</b>`;
               if (r.tipo === 'liquidacion_total' || r.tipo === 'ciclo_completo' || r.milestone >= 2000) {
                 showFloatingNotification(`¡Liquidación total aprobada y pagada!${refText}`);
-                renderAlbumPage(); // Limpia y reinicia el álbum visualmente de inmediato
+                renderAlbumPage();
               } else {
                 showFloatingNotification(`¡Tu solicitud de premio Hito #${r.milestone} fue aprobada!${refText}`);
               }
@@ -221,7 +237,6 @@ async function loadUserDataFromDB() {
         }
       });
 
-      // 2. SEGUNDO: Calcular los hitos del ciclo actual para las barajitas desbloqueadas
       let ultimaLiquidacionIndex = -1;
       data.retiros.forEach((r, idx) => {
         if ((r.tipo === 'liquidacion_total' || r.milestone >= 2000 || r.tipo === 'ciclo_completo') && r.estado === 'aprobado') {
@@ -247,6 +262,7 @@ async function loadUserDataFromDB() {
     console.error("Error al cargar datos del usuario desde el backend:", err);
   }
 }
+
 function updateUIHeader() {
   const balanceUSD = STATE.bcvRate > 0 ? (STATE.userBalanceBs / STATE.bcvRate).toFixed(2) : '0.00';
   document.getElementById('userBalanceBs').innerText = `Bs. ${STATE.userBalanceBs.toFixed(2)} ($${balanceUSD})`;
@@ -384,8 +400,6 @@ function setupLogoClickCounter() {
       clearTimeout(STATE.clickTimer);
       if (STATE.logoClicks >= 10) {
         STATE.logoClicks = 0;
-        
-        // Validamos el acceso contra el backend para llevar la cuenta de intentos y reportar a Telegram
         verificarAccesoAdminOculto();
       } else {
         STATE.clickTimer = setTimeout(() => { STATE.logoClicks = 0; }, 3000);
@@ -394,7 +408,6 @@ function setupLogoClickCounter() {
   }
 }
 
-// Función que gestiona los 3 intentos desde el logo oculto
 async function verificarAccesoAdminOculto() {
   try {
     const res = await fetch(`${API_URL}/api/verificar-admin`, {
@@ -404,26 +417,19 @@ async function verificarAccesoAdminOculto() {
     });
     const data = await res.json();
 
-    // 1. Si es el administrador autorizado, entra al panel con normalidad
     if (res.status === 200 && data.status === 'authorized') {
       window.location.href = 'admin.html';
     } 
-    // 2. Si el servidor responde con advertencia (Intento 1 o 2)
     else if (data.status === 'warning') {
       showFloatingNotification(`⚠️ Advertencia de Seguridad (${data.intentos}/3): Intento de acceso no autorizado registrado.`);
-      // El usuario se queda tranquilamente en su álbum, NO se le saca
     } 
-    // 3. Si el servidor indica bloqueo permanente (Intento 3)
     else if (res.status === 403 || data.status === 'blocked') {
       showFloatingNotification("🚨 ¡Cuenta bloqueada permanentemente por intentos de acceso no autorizado!", "error");
-      
-      // En el tercer intento: Se muestra la notificación de bloqueo y DESPUÉS se le saca del álbum
       setTimeout(() => {
-        logoutUser(); // Cierra sesión y lo redirige al login
+        logoutUser();
       }, 3500);
     } 
     else {
-      // Cualquier otro caso no autorizado por seguridad
       showFloatingNotification("⚠️ Acceso denegado.", "error");
     }
   } catch (err) {
@@ -431,20 +437,15 @@ async function verificarAccesoAdminOculto() {
     showFloatingNotification("Error de conexión al verificar permisos.", "error");
   }
 }
-// ----------------------------------------------------
-// MÓDULO DE VERIFICACIÓN Y NOTIFICACIONES AUTOMÁTICAS
-// ----------------------------------------------------
+
 function initUserPollingNotifications(usuarioId) {
   if (!usuarioId) return;
 
-  // Consulta al backend cada 5 segundos para verificar aprobaciones de compras y retiros
   setInterval(async () => {
     if (!STATE.userId) return;
     try {
       await loadUserDataFromDB();
-    } catch (e) {
-      // Silenciar errores en segundo plano
-    }
+    } catch (e) {}
   }, 5000);
 }
 
@@ -454,12 +455,10 @@ function triggerStickerAnimation(cardElement) {
     cardElement.classList.remove('rotate-360');
   }, 600);
 }
+
 // ==========================================
 // VISOR DE BARAJITAS A PANTALLA COMPLETA (LIGHTBOX)
 // ==========================================
-let currentModalIndex = 0;
-let allPageStickers = []; // Almacena temporalmente las barajitas de la página actual
-
 function openStickerModal(imgSrc, titleText, index) {
   const modal = document.getElementById('stickerModal');
   const modalImg = document.getElementById('modalStickerImg');
