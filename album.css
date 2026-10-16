@@ -29,18 +29,19 @@ body {
 }
 
 /* ==========================================
-   VIDEO DE HUMO GENERAL DE FONDO (TODA LA PÁGINA)
+   VIDEO DE HUMO GENERAL DE FONDO (CUBRE TODA LA PÁGINA)
    ========================================== */
 .bg-smoke-video {
-  position: fixed;
+  position: absolute; /* Cambiado de fixed a absolute para que acompañe todo el documento */
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100vh;
-  object-fit: cover;
-  pointer-events: none; /* <--- CRUCIAL: Evita que bloquee los toques */
-  z-index: -1;
-  opacity: 0.8;
+  height: 100%;       /* Cubre el 100% de la altura total de la página */
+  min-height: 100vh;  /* Asegura que al menos cubra toda la pantalla inicial */
+  object-fit: cover;  /* Expande el video sin deformarlo */
+  pointer-events: none;
+  z-index: -1;        /* Estrictamente al fondo */
+  opacity: 0.28;
   mix-blend-mode: screen;
   filter: hue-rotate(240deg) saturate(280%) brightness(0.95) contrast(120%);
 }
