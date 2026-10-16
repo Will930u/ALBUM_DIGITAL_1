@@ -12,7 +12,7 @@
 <body class="flex flex-col min-h-screen relative overflow-x-hidden bg-[#080314] text-slate-100">
 
   <!-- ==========================================
-       VIDEO DE HUMO GENERAL DE FONDO (ADAPTABLE)
+       VIDEO DE HUMO GENERAL DE FONDO
        ========================================== -->
   <video autoplay muted loop playsinline class="bg-smoke-video">
     <source src="smoke.mp4" type="video/mp4">
@@ -31,7 +31,7 @@
         </div>
       </div>
       
-      <!-- Botón Salir en móvil arriba a la derecha para ganar espacio -->
+      <!-- Botón Salir en móvil arriba a la derecha -->
       <button onclick="logoutUser()" class="md:hidden px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-900/50 text-red-200 border border-red-500/30">
         Salir
       </button>
@@ -57,7 +57,7 @@
 
     </div>
 
-    <!-- Menú de Enlaces (Oculto en móvil pequeño, reubicado de forma limpia) -->
+    <!-- Menú de Enlaces (PC) -->
     <nav class="hidden md:flex items-center justify-center gap-2 w-full pt-2 border-t border-purple-500/20">
       <a href="album.html" class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-purple-600/30 text-purple-200 border border-purple-500/30">Álbum</a>
       <a href="tienda.html" class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-800 text-slate-300 hover:bg-purple-600/30">Tienda</a>
@@ -66,27 +66,24 @@
 
   </header>
 
-  <!-- BARRA DE NAVEGACIÓN INFERIOR FLOTANTE PARA MÓVILES (UX PROFESIONAL) -->
+  <!-- BARRA DE NAVEGACIÓN INFERIOR FLOTANTE PARA MÓVILES -->
   <div class="md:hidden fixed bottom-3 left-3 right-3 z-50 bg-slate-950/90 backdrop-blur-md border border-purple-500/40 rounded-2xl p-2 flex justify-around items-center shadow-2xl">
     <a href="album.html" class="flex flex-col items-center text-purple-300 text-[10px] font-semibold py-1 px-4 rounded-xl bg-purple-600/30 border border-purple-500/40">
-      <i data-lucide="book-open" class="w-4 h-4 mb-0.5"><span>Álbum</span></i>
+      <i data-lucide="book-open" class="w-4 h-4 mb-0.5"></i>
+      <span>Álbum</span>
     </a>
     <a href="tienda.html" class="flex flex-col items-center text-slate-400 text-[10px] font-semibold py-1 px-4 rounded-xl hover:bg-slate-800">
-      <i data-lucide="shopping-bag" class="w-4 h-4 mb-0.5"><span>Tienda</span></i>
+      <i data-lucide="shopping-bag" class="w-4 h-4 mb-0.5"></i>
+      <span>Tienda</span>
     </a>
-  </div>
-
-  <!-- CONTENEDOR DE NOTIFICACIONES FLOTANTES EN TIEMPO REAL -->
-  <div class="w-full max-w-6xl mx-auto px-3 mt-3 relative z-20">
-    <div id="userNotificationsContainer" class="w-full space-y-2"></div>
   </div>
 
   <!-- CONTENIDO PRINCIPAL DEL ÁLBUM -->
   <main class="flex-grow flex flex-col items-center justify-start p-3 md:p-4 w-full max-w-6xl mx-auto space-y-4 pb-20 md:pb-6 relative z-20">
     
-    <!-- Barra de Paginación y Progreso Adaptada -->
+    <!-- Barra de Paginación y Progreso -->
     <div class="metal-card p-3 md:p-4 w-full flex flex-col sm:flex-row justify-between items-center gap-3">
-      <div class="flex items-center justify-between w-sm sm:w-auto space-x-3">
+      <div class="flex items-center justify-between w-full sm:w-auto space-x-3">
         <button onclick="changePage(-1)" class="p-2 rounded-lg bg-slate-800 border border-purple-500/30 text-white hover:bg-slate-700 transition"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
         <span class="text-sm md:text-lg font-bold text-purple-200">Pág. <span id="currentPageNum" class="text-blue-400">1</span> / 80</span>
         <button onclick="changePage(1)" class="p-2 rounded-lg bg-slate-800 border border-purple-500/30 text-white hover:bg-slate-700 transition"><i data-lucide="chevron-right" class="w-5 h-5"></i></button>
@@ -103,66 +100,56 @@
       </div>
     </div>
 
-    <!-- Cuadrícula Dinámica de Barajitas Optimizada para Móviles (2 o 3 columnas en pantallas estrechas) -->
-    <div id="stickersGrid" class="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3 md:gap-6 p-1 md:p-4 w-full justify-items-center"></div>
+    <!-- Cuadrícula Estricta de 5 Columnas -->
+    <div id="stickersGrid" class="w-full"></div>
 
   </main>
 
-  <!-- MODAL DE PREMIOS DE HITO / CICLO -->
+  <!-- MODAL DE PREMIOS DE HITO / CICLO (SIN INPUTS MANUALES) -->
   <div id="withdrawModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="metal-card max-w-lg w-full p-5 md:p-6 space-y-4 border border-amber-500/50 relative z-20">
       <div class="flex justify-between items-center border-b border-amber-500/30 pb-3">
         <h3 class="text-lg md:text-xl font-bold text-amber-400">Premios de Hito / Ciclo ($200)</h3>
         <button onclick="closeWithdrawModal()" class="text-slate-400 font-bold hover:text-white p-1">✕</button>
       </div>
+      
       <div id="milestoneOptions" class="grid grid-cols-2 gap-2 text-xs"></div>
-      <form onsubmit="submitWithdrawalRequest(event)" class="space-y-3 pt-1">
-        <input type="text" id="wBank" required placeholder="Banco (Ej: 0134)" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2.5 text-xs text-white focus:outline-none">
-        <input type="text" id="wPhone" required placeholder="Teléfono (Ej: 04121234567)" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2.5 text-xs text-white focus:outline-none">
-        <input type="text" id="wId" required placeholder="Cédula" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2.5 text-xs text-white focus:outline-none">
-        <button type="submit" id="btnSendWithdraw" class="w-full py-3 bg-gradient-to-r from-amber-500 to-emerald-600 text-white font-bold rounded-xl text-sm transition disabled:opacity-50" disabled>RECLAMAR PREMIO HITO</button>
-      </form>
+      
+      <!-- Información de datos de pago precargados -->
+      <div id="infoDatosPrecargados" class="p-3 rounded-xl bg-purple-950/60 border border-purple-500/40 text-xs text-purple-200 leading-relaxed">
+        Cargando tus datos de pago guardados...
+      </div>
+
+      <button type="button" onclick="submitWithdrawalRequest()" id="btnSendWithdraw" class="w-full py-3 bg-gradient-to-r from-amber-500 to-emerald-600 text-white font-bold rounded-xl text-sm transition disabled:opacity-50 shadow-lg" disabled>RECLAMAR PREMIO HITO</button>
     </div>
   </div>
-  <!-- ==========================================
-     MODAL DE VISOR DE BARAJITAS A PANTALLA COMPLETA
-     ========================================== -->
-<div id="stickerModal" class="hidden fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-2 md:p-6">
-  
-  <!-- Botón de Cerrar (Esquina Superior) -->
-  <button onclick="closeStickerModal()" class="absolute top-4 right-4 z-50 bg-red-600/80 hover:bg-red-600 text-white p-3 rounded-full shadow-lg transition flex items-center justify-center">
-    <i data-lucide="x" class="w-6 h-6"></i>
-  </button>
 
-  <!-- Contenedor Principal del Visor -->
-  <div class="relative max-w-4xl w-full h-[80vh] flex flex-col items-center justify-center">
-    
-    <!-- Botón Anterior (Izquierda) -->
-    <button onclick="navigateStickerModal(-1)" class="absolute left-2 md:-left-12 z-40 bg-slate-800/80 hover:bg-purple-600 text-white p-3 md:p-4 rounded-full border border-purple-500/40 shadow-xl transition">
-      <i data-lucide="chevron-left" class="w-6 h-6 md:w-8 md:h-8"></i>
+  <!-- VISOR DE BARAJITAS A PANTALLA COMPLETA (LIGHTBOX) -->
+  <div id="stickerModal" class="hidden fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-2 md:p-6">
+    <button onclick="closeStickerModal()" class="absolute top-4 right-4 z-50 bg-red-600/80 hover:bg-red-600 text-white p-3 rounded-full shadow-lg transition flex items-center justify-center">
+      <i data-lucide="x" class="w-6 h-6"></i>
     </button>
 
-    <!-- Imagen Ampliada de la Barajita -->
-    <div class="metal-card p-2 md:p-4 max-h-full flex items-center justify-center overflow-hidden rounded-2xl border border-purple-500/60 shadow-2xl">
-      <img id="modalStickerImg" src="" alt="Barajita Ampliada" class="max-h-[70vh] w-auto object-contain rounded-xl select-none">
+    <div class="relative max-w-4xl w-full h-[80vh] flex flex-col items-center justify-center">
+      <button onclick="navigateStickerModal(-1)" class="absolute left-2 md:-left-12 z-40 bg-slate-800/80 hover:bg-purple-600 text-white p-3 md:p-4 rounded-full border border-purple-500/40 shadow-xl transition">
+        <i data-lucide="chevron-left" class="w-6 h-6 md:w-8 md:h-8"></i>
+      </button>
+
+      <div class="metal-card p-2 md:p-4 max-h-full flex items-center justify-center overflow-hidden rounded-2xl border border-purple-500/60 shadow-2xl">
+        <img id="modalStickerImg" src="" alt="Barajita Ampliada" class="max-h-[70vh] w-auto object-contain rounded-xl select-none">
+      </div>
+
+      <button onclick="navigateStickerModal(1)" class="absolute right-2 md:-right-12 z-40 bg-slate-800/80 hover:bg-purple-600 text-white p-3 md:p-4 rounded-full border border-purple-500/40 shadow-xl transition">
+        <i data-lucide="chevron-right" class="w-6 h-6 md:w-8 md:h-8"></i>
+      </button>
     </div>
 
-    <!-- Botón Siguiente (Derecha) -->
-    <button onclick="navigateStickerModal(1)" class="absolute right-2 md:-right-12 z-40 bg-slate-800/80 hover:bg-purple-600 text-white p-3 md:p-4 rounded-full border border-purple-500/40 shadow-xl transition">
-      <i data-lucide="chevron-right" class="w-6 h-6 md:w-8 md:h-8"></i>
-    </button>
-
+    <div class="mt-4 text-center">
+      <span id="modalStickerTitle" class="text-purple-300 font-bold text-base md:text-xl tracking-wider">Barajita #0</span>
+    </div>
   </div>
-
-  <!-- Información o Número de la Barajita -->
-  <div class="mt-4 text-center">
-    <span id="modalStickerTitle" class="text-purple-300 font-bold text-base md:text-xl tracking-wider">Barajita #0</span>
-  </div>
-
-</div>
 
   <script>
-    // Inicializar iconos de Lucide al cargar la página
     document.addEventListener("DOMContentLoaded", () => {
       if (typeof lucide !== 'undefined') {
         lucide.createIcons();
