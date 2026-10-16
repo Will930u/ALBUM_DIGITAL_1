@@ -11,52 +11,16 @@ body {
   position: relative;
 }
 
-/* ==========================================
-   ANIMACIÓN DE CAMBIO DE COLOR METÁLICO (10 SEGUNDOS)
-   ========================================== */
-@keyframes humoColorGlobal {
-  0% {
-    background: linear-gradient(135deg, rgba(147, 51, 234, 0.85), rgba(59, 130, 246, 0.85));
-    transform: scale(1) rotate(0deg);
-  }
-  25% {
-    background: linear-gradient(135deg, rgba(236, 72, 153, 0.85), rgba(147, 51, 234, 0.85));
-    transform: scale(1.05) rotate(90deg);
-  }
-  50% {
-    background: linear-gradient(135deg, rgba(16, 185, 129, 0.85), rgba(59, 130, 246, 0.85));
-    transform: scale(1) rotate(180deg);
-  }
-  75% {
-    background: linear-gradient(135deg, rgba(59, 130, 246, 0.85), rgba(236, 72, 153, 0.85));
-    transform: scale(1.05) rotate(270deg);
-  }
-  100% {
-    background: linear-gradient(135deg, rgba(147, 51, 234, 0.85), rgba(59, 130, 246, 0.85));
-    transform: scale(1) rotate(360deg);
-  }
-}
-
-/* ==========================================
-   VIDEO DE HUMO BASE (EN ESCALA DE GRISES)
-   ========================================== */
 .bg-smoke-video {
-  position: absolute;
+  position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100%;
-  min-height: 100vh;
+  height: 100vh;
   object-fit: cover;
   pointer-events: none;
-  z-index: -2;
-  
-  filter: grayscale(100%) contrast(150%) brightness(1.2);
-  -webkit-filter: grayscale(100%) contrast(150%) brightness(1.2);
-  
-  opacity: 0.85;
-  transform: translateZ(0);
-  -webkit-transform: translateZ(0);
+  z-index: -1;
+  opacity: 0.8;
 }
 
 /* ==========================================
