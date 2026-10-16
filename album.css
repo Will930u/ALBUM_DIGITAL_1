@@ -28,18 +28,31 @@ body {
 }
 
 /* ==========================================
-   ANIMACIÓN DE HUMO (FONDO)
+   ANIMACIÓN DE HUMO CON CAMBIO DE COLOR (10 SEGUNDOS)
    ========================================== */
 @keyframes humoCambioColorSuave {
-  0% { filter: hue-rotate(0deg) saturate(260%) brightness(0.95); }
-  25% { filter: hue-rotate(90deg) saturate(280%) brightness(0.95); }
-  50% { filter: hue-rotate(180deg) saturate(290%) brightness(0.95); }
-  75% { filter: hue-rotate(270deg) saturate(280%) brightness(0.95); }
-  100% { filter: hue-rotate(360deg) saturate(260%) brightness(0.95); }
+  0% {
+    filter: hue-rotate(0deg) saturate(260%) brightness(0.95);
+  }
+  25% {
+    filter: hue-rotate(90deg) saturate(280%) brightness(0.95);
+  }
+  50% {
+    filter: hue-rotate(180deg) saturate(290%) brightness(0.95);
+  }
+  75% {
+    filter: hue-rotate(270deg) saturate(280%) brightness(0.95);
+  }
+  100% {
+    filter: hue-rotate(360deg) saturate(260%) brightness(0.95);
+  }
 }
 
+/* ==========================================
+   CLASE DEL VIDEO DE HUMO DINÁMICO
+   ========================================== */
 .bg-smoke-video {
-  position: fixed; /* Cambiado a fixed para cubrir toda la pantalla sin cortes al hacer scroll */
+  position: fixed;
   top: 0;
   left: 0;
   width: 100vw;
@@ -47,10 +60,16 @@ body {
   object-fit: cover;
   pointer-events: none;
   z-index: -1;
-  opacity: 0.30;
+  opacity: 0.35;
   mix-blend-mode: screen;
+  
+  /* Animación forzada a 10 segundos con bucle infinito */
   animation: humoCambioColorSuave 10s ease-in-out infinite;
+  -webkit-animation: humoCambioColorSuave 10s ease-in-out infinite;
+  
+  /* Forzar renderizado por GPU para que el filtro de color funcione fluido */
   transform: translateZ(0);
+  -webkit-transform: translateZ(0);
   will-change: filter;
 }
 
