@@ -9,7 +9,7 @@
 
 img, video, canvas {
   max-width: 100%;
-  height: 800%;
+  height: 100%;
 }
 
 /* ==========================================
@@ -62,7 +62,7 @@ body {
   object-fit: cover;
   pointer-events: none;
   z-index: -1;
-  opacity: 3;
+  opacity: 0.30;
   mix-blend-mode: screen;
   
   /* Duración exacta de 10 segundos con interpolación fluida (ease-in-out) */
@@ -72,6 +72,7 @@ body {
   transform: translateZ(0);
   will-change: filter;
 }
+
 /* ==========================================
    CONTENIDO PRINCIPAL, BARAJITAS Y PANELES (CAPA 2 - AL FRENTE)
    ========================================== */
@@ -161,7 +162,7 @@ header, nav {
 .sticker-card {
   position: relative;
   width: 100%;
-  aspect-ratio: 3/4;
+  aspect-ratio: 2.5 / 3.5;
   border-radius: 16px;
   background: linear-gradient(145deg, #1e1b4b, #090514);
   border: 2px solid rgba(168, 85, 247, 0.6);
@@ -173,6 +174,10 @@ header, nav {
     0 15px 35px rgba(0, 0, 0, 0.8),
     0 5px 15px rgba(168, 85, 247, 0.3),
     inset 0 0 15px rgba(255, 255, 255, 0.15);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
 }
 
 .sticker-card::after {
@@ -218,6 +223,7 @@ header, nav {
   object-fit: cover;
   border-radius: 14px;
 }
+
 /* ==========================================
    CORRECCIÓN TÁCTIL PARA FLECHAS DE PAGINACIÓN EN MÓVIL
    ========================================== */
@@ -227,6 +233,7 @@ button[onclick*="changePage"] {
   pointer-events: auto !important;
   cursor: pointer;
 }
+
 /* ==========================================
    ESTILOS PARA EL VISOR DE BARAJITAS A PANTALLA COMPLETA
    ========================================== */
@@ -248,57 +255,32 @@ button[onclick*="changePage"] {
     opacity: 1;
   }
 }
+
 /* ==========================================
-   CUADRÍCULA ORGANIZADA Y PROFESIONAL
+   CUADRÍCULA ESTRICTA DE 5 COLUMNAS (25 BARAJITAS)
    ========================================== */
 #stickersGrid {
   display: grid;
-  /* Celda adaptable: se ajusta automáticamente según la pantalla, con un ancho mínimo ideal */
-  grid-template-columns: repeat(auto-fill, minmax(75px, 1fr));
-  gap: 0.5rem; /* Espaciado uniforme y limpio entre tarjetas */
+  /* Forzamos exactamente 5 columnas simétricas para cubrir todo el ancho */
+  grid-template-columns: repeat(5, 1fr);
+  gap: 0.5rem; 
   padding: 0.5rem;
   width: 100%;
-  max-width: 1200px;
+  max-width: 1100px;
   margin: 0 auto;
+  box-sizing: border-box;
   justify-content: center;
   align-content: start;
 }
 
-/* Para pantallas medianas y tablets */
-@media (min-width: 480px) {
-  #stickersGrid {
-    grid-template-columns: repeat(auto-fill, minmax(95px, 1fr));
-    gap: 0.75rem;
-    padding: 0.75rem;
-  }
-}
-
-/* Para computadoras / pantallas grandes */
+/* Para pantallas medianas, tablets y PC aumentamos ligeramente el espacio */
 @media (min-width: 768px) {
   #stickersGrid {
-    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
     gap: 1rem;
     padding: 1rem;
   }
 }
 
-/* ==========================================
-   ESTILO DE CADA TARJETA (BARAJITA)
-   ========================================== */
-.sticker-card {
-  width: 100%;
-  aspect-ratio: 3 / 4; /* Proporción exacta de barajita coleccionable */
-  border-radius: 10px;
-  overflow: hidden;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.sticker-card:hover {
-  transform: translateY(-3px);
-}
 /* ==========================================
    SCROLLBARS ESTILIZADOS
    ========================================== */
