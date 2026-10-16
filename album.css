@@ -29,21 +29,48 @@ body {
 }
 
 /* ==========================================
-   VIDEO DE HUMO GENERAL DE FONDO (CUBRE TODA LA PÁGINA)
+   ANIMACIÓN DE HUMO CON TRANSICIÓN SUAVE (10 SEGUNDOS)
+   ========================================== */
+@keyframes humoCambioColorSuave {
+  0% {
+    filter: hue-rotate(0deg) saturate(260%) brightness(0.95);
+  }
+  25% {
+    filter: hue-rotate(90deg) saturate(280%) brightness(0.95);
+  }
+  50% {
+    filter: hue-rotate(180deg) saturate(290%) brightness(0.95);
+  }
+  75% {
+    filter: hue-rotate(270deg) saturate(280%) brightness(0.95);
+  }
+  100% {
+    filter: hue-rotate(360deg) saturate(260%) brightness(0.95);
+  }
+}
+
+/* ==========================================
+   CLASE DEL VIDEO DE HUMO
    ========================================== */
 .bg-smoke-video {
-  position: absolute; /* Cambiado de fixed a absolute para que acompañe todo el documento */
+  position: absolute;
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100%;       /* Cubre el 100% de la altura total de la página */
-  min-height: 100vh;  /* Asegura que al menos cubra toda la pantalla inicial */
-  object-fit: cover;  /* Expande el video sin deformarlo */
+  height: 100%;
+  min-height: 100vh;
+  object-fit: cover;
   pointer-events: none;
-  z-index: -1;        /* Estrictamente al fondo */
-  opacity: 3;
+  z-index: -1;
+  opacity: 0.30;
   mix-blend-mode: screen;
-  filter: hue-rotate(240deg) saturate(280%) brightness(0.95) contrast(120%);
+  
+  /* Duración exacta de 10 segundos con interpolación fluida (ease-in-out) */
+  animation: humoCambioColorSuave 10s ease-in-out infinite;
+  
+  /* Aceleración por GPU */
+  transform: translateZ(0);
+  will-change: filter;
 }
 /* ==========================================
    CONTENIDO PRINCIPAL, BARAJITAS Y PANELES (CAPA 2 - AL FRENTE)
