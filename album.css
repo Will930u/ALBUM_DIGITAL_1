@@ -1,5 +1,5 @@
 /* ==========================================
-   RESET Y ADAPTABILIDAD UNIVERSAL (PC, TABLET, MÓVIL)
+   RESET Y ADAPTABILIDAD UNIVERSAL
    ========================================== */
 * {
   box-sizing: border-box;
@@ -13,28 +13,7 @@ img, video, canvas {
 }
 
 /* ==========================================
-   ANIMACIONES DE HUMO / VAPOR METÁLICO EN MOVIMIENTO
-   ========================================== */
-@keyframes metalSmokeFlow {
-  0% {
-    transform: translateY(-10px) scale(1);
-    opacity: 0.35;
-    filter: blur(12px);
-  }
-  50% {
-    transform: translateY(15px) scale(1.08);
-    opacity: 0.65;
-    filter: blur(16px);
-  }
-  100% {
-    transform: translateY(-10px) scale(1);
-    opacity: 0.35;
-    filter: blur(12px);
-  }
-}
-
-/* ==========================================
-   ESTILOS GENERALES & TEMA: CENTRO DE OPERACIONES CIBERNÉTICO ULTRA 3D
+   ESTILOS GENERALES DE FONDO (CAPA 0)
    ========================================== */
 body {
   background-color: #080314;
@@ -50,49 +29,66 @@ body {
 }
 
 /* ==========================================
-   PANELES CON EFECTO DE HUMO / VAPOR METÁLICO LATERAL EN MOVIMIENTO
+   HUMO LATERAL DE FONDO CON VIDEO (CAPA -1)
+   ========================================== */
+.side-smoke {
+  position: fixed;
+  top: 0;
+  height: 100vh;
+  width: 350px;
+  object-fit: cover;
+  pointer-events: none;
+  z-index: -1; /* Lo manda estrictamente al fondo */
+  opacity: 0.28; /* Translúcido y sutil para no estorbar */
+  mix-blend-mode: screen; /* Elimina el fondo negro del video */
+}
+
+/* Lado Izquierdo: Tinte púrpura y desvanecimiento hacia el centro */
+.left-smoke {
+  left: 0;
+  transform: scaleX(-1);
+  filter: hue-rotate(240deg) saturate(250%) brightness(0.9) contrast(120%);
+  mask-image: linear-gradient(to right, rgba(0,0,0,1) 10%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0) 80%);
+  -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,1) 10%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0) 80%);
+}
+
+/* Lado Derecho: Tinte cian/azul y desvanecimiento hacia el centro */
+.right-smoke {
+  right: 0;
+  filter: hue-rotate(180deg) saturate(300%) brightness(0.95) contrast(120%);
+  mask-image: linear-gradient(to left, rgba(0,0,0,1) 10%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0) 80%);
+  -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,1) 10%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0) 80%);
+}
+
+/* ==========================================
+   CONTENIDO PRINCIPAL, BARAJITAS Y PANELES (CAPA 2 - AL FRENTE)
+   ========================================== */
+.main-content, 
+.metal-card, 
+.sticker-container, 
+header, nav {
+  position: relative;
+  z-index: 2; /* Fuerza a que las barajitas y paneles floten nítidos por encima del humo */
+}
+
+/* ==========================================
+   PANELES Y TARJETAS ESTILO SOC / CIBERNÉTICO
    ========================================== */
 .metal-card {
-  position: relative;
   background: linear-gradient(135deg, rgba(22, 16, 45, 0.95) 0%, rgba(10, 6, 22, 0.98) 100%);
   backdrop-filter: blur(20px);
   -webkit-backdrop-filter: blur(20px);
   border: 1.5px solid rgba(168, 85, 247, 0.5);
   border-radius: 20px;
-  
-  /* Sombra profunda y luces de neón base */
   box-shadow: 
     0 25px 50px rgba(0, 0, 0, 0.9),
     -18px 0 35px rgba(168, 85, 247, 0.22),
     18px 0 35px rgba(6, 182, 212, 0.22),
     0 0 45px rgba(168, 85, 247, 0.15),
     inset 0 1px 2px rgba(255, 255, 255, 0.3);
-    
   transform: translateZ(20px);
   transform-style: preserve-3d;
   transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
-  overflow: visible; /* Permite que el humo/bruma salga libremente por los laterales */
-}
-
-/* 🌊 CAPA DE HUMO/VAPOR METÁLICO LATERAL ANIMADO */
-.metal-card::before {
-  content: '';
-  position: absolute;
-  top: -15px;
-  left: -20px;
-  right: -20px;
-  bottom: -15px;
-  background: linear-gradient(
-    90deg, 
-    rgba(168, 85, 247, 0.35) 0%, 
-    transparent 25%, 
-    transparent 75%, 
-    rgba(6, 182, 212, 0.35) 100%
-  );
-  border-radius: 25px;
-  z-index: -2;
-  pointer-events: none;
-  animation: metalSmokeFlow 6s ease-in-out infinite;
 }
 
 .metal-card:hover {
@@ -106,13 +102,8 @@ body {
     inset 0 1px 3px rgba(255, 255, 255, 0.5);
 }
 
-.metal-card:hover::before {
-  animation-duration: 3s; /* El humo se acelera de forma dinámica al pasar el cursor */
-  opacity: 0.85;
-}
-
 /* ==========================================
-   BOTONES CON PROFUNDIDAD FÍSICA 3D
+   BOTONES CON RELIEVE FÍSICO 3D
    ========================================== */
 .metal-button {
   background: linear-gradient(135deg, #3b82f6 0%, #7c3aed 100%);
@@ -148,7 +139,7 @@ body {
 }
 
 /* ==========================================
-   BARAJITAS DINÁMICAS ULTRA 3D CON REFLEJO ESPECULAR
+   BARAJITAS DINÁMICAS ULTRA 3D
    ========================================== */
 .sticker-container {
   perspective: 1400px;
@@ -172,7 +163,6 @@ body {
     inset 0 0 15px rgba(255, 255, 255, 0.15);
 }
 
-/* Brillo holográfico especular al pasar el cursor */
 .sticker-card::after {
   content: '';
   position: absolute;
