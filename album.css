@@ -25,34 +25,37 @@ body {
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
+  position: relative;
 }
 
 /* ==========================================
-   ANIMACIÓN DE CAMBIO DE COLOR METÁLICO (10 SEGUNDOS)
+   ANIMACIÓN DE CAMBIO DE COLOR GLOBAL (CAPA DEGRADADA)
    ========================================== */
 @keyframes humoColorGlobal {
   0% {
-    filter: hue-rotate(0deg) saturate(420%) brightness(1.25) contrast(130%); /* Púrpura / Cromo inicial */
+    background: linear-gradient(135deg, rgba(147, 51, 234, 0.85), rgba(59, 130, 246, 0.85)); /* Púrpura / Azul */
+    transform: scale(1) rotate(0deg);
   }
-  20% {
-    filter: hue-rotate(70deg) saturate(450%) brightness(1.3) contrast(135%); /* Tonos amarillos/verdes metálicos */
+  25% {
+    background: linear-gradient(135deg, rgba(236, 72, 153, 0.85), rgba(147, 51, 234, 0.85)); /* Fucsia / Púrpura */
+    transform: scale(1.05) rotate(90deg);
   }
-  40% {
-    filter: hue-rotate(140deg) saturate(450%) brightness(1.25) contrast(130%); /* Tonos cian/verde agua metalizados */
+  50% {
+    background: linear-gradient(135deg, rgba(16, 185, 129, 0.85), rgba(59, 130, 246, 0.85)); /* Verde / Azul cromo */
+    transform: scale(1) rotate(180deg);
   }
-  60% {
-    filter: hue-rotate(210deg) saturate(480%) brightness(1.3) contrast(135%); /* Tonos azules intensos tipo cromo */
-  }
-  80% {
-    filter: hue-rotate(290deg) saturate(450%) brightness(1.25) contrast(130%); /* Tonos magenta/rosados brillantes */
+  75% {
+    background: linear-gradient(135deg, rgba(59, 130, 246, 0.85), rgba(236, 72, 153, 0.85)); /* Azul / Fucsia metálico */
+    transform: scale(1.05) rotate(270deg);
   }
   100% {
-    filter: hue-rotate(360deg) saturate(420%) brightness(1.25) contrast(130%); /* Retorna al inicio con fluidez */
+    background: linear-gradient(135deg, rgba(147, 51, 234, 0.85), rgba(59, 130, 246, 0.85)); /* Retorna al inicio */
+    transform: scale(1) rotate(360deg);
   }
 }
 
 /* ==========================================
-   CLASE DEL VIDEO DE HUMO
+   VIDEO DE HUMO BASE (EN ESCALA DE GRISES PARA RECIBIR COLOR)
    ========================================== */
 .bg-smoke-video {
   position: fixed;
@@ -62,25 +65,40 @@ body {
   height: 100vh;
   object-fit: cover;
   pointer-events: none;
-  z-index: -1;
+  z-index: -2;
   
-  /* Opacidad espesa y con presencia */
-  opacity: 0.78; 
+  /* Volvemos el video blanco y negro puro para que asuma perfectamente el color */
+  filter: grayscale(100%) contrast(150%) brightness(1.2);
+  -webkit-filter: grayscale(100%) contrast(150%) brightness(1.2);
   
-  /* Aplicamos la animación de cambio de color en todo el video */
-  animation: humoColorGlobal 10s ease-in-out infinite;
-  -webkit-animation: humoColorGlobal 10s ease-in-out infinite;
-  
-  /* Aceleración por GPU para que la transición sea suave */
+  opacity: 0.85;
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
-  will-change: filter;
+}
+
+/* ==========================================
+   CAPA DE COLOR ANIMADA SOBRE EL HUMO (EFECTO METÁLICO)
+   ========================================== */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: -1; /* Se ubica exactamente entre el video de fondo y las tarjetas */
+  
+  /* Mezcla perfecta para teñir el humo en escala de grises con tonos brillantes */
+  mix-blend-mode: color-dodge; 
+  
+  animation: humoColorGlobal 10s ease-in-out infinite;
+  -webkit-animation: humoColorGlobal 10s ease-in-out infinite;
 }
 
 /* ==========================================
    CAPA GENERAL AL FRENTE CON MÁXIMA NITIDEZ
    ========================================== */
-.main-content, 
 header, nav, 
 .metal-card {
   position: relative;
