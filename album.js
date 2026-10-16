@@ -497,3 +497,41 @@ function navigateStickerModal(direction) {
     }
   }
 }
+// ==========================================
+// DETECCIÓN DE GESTOS TÁCTILES (SWIPE EN MÓVIL)
+// ==========================================
+let touchStartX = 0;
+let touchEndX = 0;
+
+function setupSwipeGestures() {
+  const grid = document.getElementById('stickersGrid');
+  if (!grid) return;
+
+  grid.addEventListener('touchstart', (e) => {
+    touchStartX = e.changedTouches[0].screenX;
+  }, { passive: true });
+
+  grid.addEventListener('touchend', (e) => {
+    touchEndX = e.changedTouches[0].screenX;
+    handleSwipeGesture();
+  }, { passive: true });
+}
+
+function handleSwipeGesture() {
+  const swipeThreshold = 50; // Distancia mínima en píxeles para detectar el deslizamiento
+
+  // Deslizar hacia la izquierda -> Siguiente página
+  if (touchStartX - touchEndX > swipeThreshold) {
+    changePage(1);
+  }
+  
+  // Deslizar hacia la derecha -> Página anterior
+  if (touchEndX - touchStartX > swipeThreshold) {
+    changePage(-1);
+  }
+}
+
+// Inicializar la detección al cargar el documento
+document.addEventListener('DOMContentLoaded', () => {
+  setupSwipeGestures();
+});
