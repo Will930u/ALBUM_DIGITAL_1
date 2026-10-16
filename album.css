@@ -29,37 +29,21 @@ body {
 }
 
 /* ==========================================
-   HUMO LATERAL DE FONDO CON VIDEO (CAPA -1)
+   VIDEO DE HUMO GENERAL DE FONDO (TODA LA PÁGINA)
    ========================================== */
-.side-smoke {
+.bg-smoke-video {
   position: fixed;
   top: 0;
+  left: 0;
+  width: 100vw;
   height: 100vh;
-  width: 350px;
   object-fit: cover;
   pointer-events: none;
-  z-index: -1; /* Lo manda estrictamente al fondo */
-  opacity: 0.28; /* Translúcido y sutil para no estorbar */
-  mix-blend-mode: screen; /* Elimina el fondo negro del video */
+  z-index: -1; /* Lo manda al fondo absoluto */
+  opacity: 0.25; /* Translúcido para no estorbar */
+  mix-blend-mode: screen; /* Elimina el fondo negro y funde la bruma */
+  filter: hue-rotate(240deg) saturate(250%) brightness(0.9) contrast(120%); /* Tinte acorde a tu tema */
 }
-
-/* Lado Izquierdo: Tinte púrpura y desvanecimiento hacia el centro */
-.left-smoke {
-  left: 0;
-  transform: scaleX(-1);
-  filter: hue-rotate(240deg) saturate(250%) brightness(0.9) contrast(120%);
-  mask-image: linear-gradient(to right, rgba(0,0,0,1) 10%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0) 80%);
-  -webkit-mask-image: linear-gradient(to right, rgba(0,0,0,1) 10%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0) 80%);
-}
-
-/* Lado Derecho: Tinte cian/azul y desvanecimiento hacia el centro */
-.right-smoke {
-  right: 0;
-  filter: hue-rotate(180deg) saturate(300%) brightness(0.95) contrast(120%);
-  mask-image: linear-gradient(to left, rgba(0,0,0,1) 10%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0) 80%);
-  -webkit-mask-image: linear-gradient(to left, rgba(0,0,0,1) 10%, rgba(0,0,0,0.5) 45%, rgba(0,0,0,0) 80%);
-}
-
 /* ==========================================
    CONTENIDO PRINCIPAL, BARAJITAS Y PANELES (CAPA 2 - AL FRENTE)
    ========================================== */
