@@ -199,6 +199,27 @@ button[onclick*="changePage"] {
   pointer-events: auto !important;
   cursor: pointer;
 }
+/* ==========================================
+   ESTILOS PARA EL VISOR DE BARAJITAS A PANTALLA COMPLETA
+   ========================================== */
+#stickerModal {
+  transition: opacity 0.3s ease, backdrop-filter 0.3s ease;
+}
+
+#modalStickerImg {
+  animation: zoomInModal 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+}
+
+@keyframes zoomInModal {
+  from {
+    transform: scale(0.8);
+    opacity: 0;
+  }
+  to {
+    transform: scale(1);
+    opacity: 1;
+  }
+}
 
 /* ==========================================
    SCROLLBARS ESTILIZADOS
