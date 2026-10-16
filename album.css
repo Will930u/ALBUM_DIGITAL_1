@@ -50,7 +50,7 @@ body {
 }
 
 /* ==========================================
-   CLASE DEL VIDEO DE HUMO
+   CLASE DEL VIDEO DE HUMO (FONDO ABSOLUTO)
    ========================================== */
 .bg-smoke-video {
   position: absolute;
@@ -65,94 +65,86 @@ body {
   opacity: 0.30;
   mix-blend-mode: screen;
   
-  /* Duración exacta de 10 segundos con interpolación fluida (ease-in-out) */
   animation: humoCambioColorSuave 10s ease-in-out infinite;
-  
-  /* Aceleración por GPU */
   transform: translateZ(0);
   will-change: filter;
 }
 
 /* ==========================================
-   CONTENIDO PRINCIPAL, BARAJITAS Y PANELES (CAPA 2 - AL FRENTE)
+   CAPA PRINCIPAL AL FRENTE (NÍTIDA Y SIN BORROSIDAD)
    ========================================== */
 .main-content, 
 .metal-card, 
 .sticker-container, 
-header, nav {
+header, nav, 
+button, span, p, h1, h2, h3 {
   position: relative;
-  z-index: 2; /* Fuerza a que las barajitas y paneles floten nítidos por encima del humo */
+  z-index: 10; /* Fuerza absoluta al frente para evitar cualquier desenfoque por capas */
 }
 
 /* ==========================================
-   PANELES Y TARJETAS ESTILO SOC / CIBERNÉTICO
+   TARJETAS METÁLICAS (FONDO SÓLIDO Y NÍTIDO)
    ========================================== */
 .metal-card {
-  background: linear-gradient(135deg, rgba(22, 16, 45, 0.95) 0%, rgba(10, 6, 22, 0.98) 100%);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border: 1.5px solid rgba(168, 85, 247, 0.5);
+  background: rgba(14, 9, 30, 0.96); /* Fondo más sólido para eliminar efecto neblina */
+  border: 1.5px solid rgba(168, 85, 247, 0.7);
   border-radius: 20px;
   box-shadow: 
     0 25px 50px rgba(0, 0, 0, 0.9),
-    -18px 0 35px rgba(168, 85, 247, 0.22),
-    18px 0 35px rgba(6, 182, 212, 0.22),
-    0 0 45px rgba(168, 85, 247, 0.15),
-    inset 0 1px 2px rgba(255, 255, 255, 0.3);
+    0 0 30px rgba(168, 85, 247, 0.25),
+    inset 0 1px 2px rgba(255, 255, 255, 0.4);
   transform: translateZ(20px);
   transform-style: preserve-3d;
-  transition: all 0.5s cubic-bezier(0.25, 1, 0.5, 1);
+  transition: all 0.3s ease;
 }
 
 .metal-card:hover {
-  transform: translateZ(40px) rotateX(1deg) rotateY(-1deg);
-  border-color: rgba(6, 182, 212, 0.8);
+  border-color: rgba(6, 182, 212, 0.9);
   box-shadow: 
     0 35px 70px rgba(0, 0, 0, 0.95),
-    -28px 0 55px rgba(168, 85, 247, 0.45),
-    28px 0 55px rgba(6, 182, 212, 0.45),
-    0 0 75px rgba(168, 85, 247, 0.4),
-    inset 0 1px 3px rgba(255, 255, 255, 0.5);
+    0 0 50px rgba(6, 182, 212, 0.4),
+    inset 0 1px 3px rgba(255, 255, 255, 0.6);
 }
 
 /* ==========================================
-   BOTONES CON RELIEVE FÍSICO 3D
+   BOTONES CON RELIEVE 3D Y MÁXIMA NITIDEZ
    ========================================== */
 .metal-button {
   background: linear-gradient(135deg, #3b82f6 0%, #7c3aed 100%);
-  border: 1px solid rgba(255, 255, 255, 0.4);
+  border: 1.5px solid rgba(255, 255, 255, 0.6);
   box-shadow: 
-    0 8px 0 #1e1b4b,
-    0 12px 25px rgba(59, 130, 246, 0.5),
-    inset 0 1px 1px rgba(255, 255, 255, 0.6);
+    0 6px 0 #1e1b4b,
+    0 10px 20px rgba(59, 130, 246, 0.6),
+    inset 0 1px 2px rgba(255, 255, 255, 0.8);
   transform: translateY(0) translateZ(10px);
-  transition: all 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+  transition: all 0.15s ease;
+  font-weight: 600;
 }
 
 .metal-button:hover {
   background: linear-gradient(135deg, #2563eb 0%, #6d28d9 100%);
-  transform: translateY(-3px) translateZ(15px);
+  transform: translateY(-2px) translateZ(15px);
   box-shadow: 
-    0 11px 0 #1e1b4b,
-    0 18px 30px rgba(168, 85, 247, 0.7),
-    inset 0 1px 2px rgba(255, 255, 255, 0.8);
+    0 8px 0 #1e1b4b,
+    0 15px 25px rgba(168, 85, 247, 0.8),
+    inset 0 1px 2px rgba(255, 255, 255, 0.9);
 }
 
 .metal-button:active {
-  transform: translateY(4px) translateZ(5px);
+  transform: translateY(3px) translateZ(5px);
   box-shadow: 
-    0 3px 0 #1e1b4b,
-    0 6px 12px rgba(0, 0, 0, 0.8),
-    inset 0 1px 1px rgba(0, 0, 0, 0.5);
+    0 2px 0 #1e1b4b,
+    0 4px 8px rgba(0, 0, 0, 0.8);
 }
 
+/* Textos brillantes pero ultranítidos sin desfasarse */
 .glow-text {
-  text-shadow: 0 0 12px rgba(168, 85, 247, 0.9), 0 0 25px rgba(6, 182, 212, 0.5);
+  text-shadow: 0 0 8px rgba(168, 85, 247, 0.8);
   letter-spacing: 0.5px;
 }
 
 /* ==========================================
-   BARAJITAS DINÁMICAS ULTRA 3D
+   BARAJITAS DINÁMICAS (5 COLUMNAS SIMÉTRICAS)
    ========================================== */
 .sticker-container {
   perspective: 1400px;
@@ -163,71 +155,43 @@ header, nav {
   position: relative;
   width: 100%;
   aspect-ratio: 2.5 / 3.5;
-  border-radius: 16px;
+  border-radius: 14px;
   background: linear-gradient(145deg, #1e1b4b, #090514);
-  border: 2px solid rgba(168, 85, 247, 0.6);
+  border: 2px solid rgba(168, 85, 247, 0.7);
   transform-style: preserve-3d;
   transform: translateZ(30px);
-  transition: transform 0.5s cubic-bezier(0.25, 1, 0.5, 1), box-shadow 0.5s ease;
+  transition: transform 0.3s ease, box-shadow 0.3s ease;
   cursor: pointer;
   box-shadow: 
-    0 15px 35px rgba(0, 0, 0, 0.8),
-    0 5px 15px rgba(168, 85, 247, 0.3),
-    inset 0 0 15px rgba(255, 255, 255, 0.15);
+    0 12px 30px rgba(0, 0, 0, 0.8),
+    0 4px 12px rgba(168, 85, 247, 0.4),
+    inset 0 0 10px rgba(255, 255, 255, 0.2);
   display: flex;
   flex-direction: column;
   justify-content: space-between;
   overflow: hidden;
 }
 
-.sticker-card::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  border-radius: 14px;
-  background: linear-gradient(
-    125deg,
-    transparent 30%,
-    rgba(255, 255, 255, 0.25) 50%,
-    transparent 70%
-  );
-  opacity: 0;
-  transition: opacity 0.3s ease;
-  pointer-events: none;
-}
-
-.sticker-card:hover::after {
-  opacity: 1;
-}
-
 .sticker-card:hover {
-  transform: translateZ(70px) rotateX(8deg) rotateY(-8deg) scale(1.06);
+  transform: translateZ(50px) scale(1.04);
   border-color: #06b6d4;
   box-shadow: 
-    -20px 30px 50px rgba(0, 0, 0, 0.9),
-    0 0 40px rgba(6, 182, 212, 0.6),
-    inset 0 0 25px rgba(255, 255, 255, 0.4);
-}
-
-.sticker-card.rotate-360 {
-  transform: translateZ(90px) rotateY(360deg) scale(1.1);
-  border-color: #06b6d4;
-  box-shadow: 
-    0 0 60px rgba(6, 182, 212, 0.9),
-    inset 0 0 30px rgba(255, 255, 255, 0.6);
+    0 20px 40px rgba(0, 0, 0, 0.9),
+    0 0 30px rgba(6, 182, 212, 0.7),
+    inset 0 0 20px rgba(255, 255, 255, 0.4);
 }
 
 .sticker-img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-  border-radius: 14px;
+  border-radius: 12px;
 }
 
 /* ==========================================
    CORRECCIÓN TÁCTIL PARA FLECHAS DE PAGINACIÓN EN MÓVIL
    ========================================== */
-button[onclick*="changePage"] {
+button[onclick*="changePage"], .pagination-btn {
   position: relative;
   z-index: 30;
   pointer-events: auto !important;
@@ -235,33 +199,27 @@ button[onclick*="changePage"] {
 }
 
 /* ==========================================
-   ESTILOS PARA EL VISOR DE BARAJITAS A PANTALLA COMPLETA
+   VISOR MODAL A PANTALLA COMPLETA
    ========================================== */
 #stickerModal {
-  transition: opacity 0.3s ease, backdrop-filter 0.3s ease;
+  z-index: 100;
+  background: rgba(3, 1, 10, 0.92);
 }
 
 #modalStickerImg {
-  animation: zoomInModal 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+  animation: zoomInModal 0.25s ease-out;
 }
 
 @keyframes zoomInModal {
-  from {
-    transform: scale(0.8);
-    opacity: 0;
-  }
-  to {
-    transform: scale(1);
-    opacity: 1;
-  }
+  from { transform: scale(0.85); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
 }
 
 /* ==========================================
-   CUADRÍCULA ESTRICTA DE 5 COLUMNAS (25 BARAJITAS)
+   CUADRÍCULA ESTRICTA DE 5 COLUMNAS
    ========================================== */
 #stickersGrid {
   display: grid;
-  /* Forzamos exactamente 5 columnas simétricas para cubrir todo el ancho */
   grid-template-columns: repeat(5, 1fr);
   gap: 0.5rem; 
   padding: 0.5rem;
@@ -273,7 +231,6 @@ button[onclick*="changePage"] {
   align-content: start;
 }
 
-/* Para pantallas medianas, tablets y PC aumentamos ligeramente el espacio */
 @media (min-width: 768px) {
   #stickersGrid {
     gap: 1rem;
