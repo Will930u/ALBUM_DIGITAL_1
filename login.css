@@ -14,21 +14,24 @@ body {
 /* ==========================================
    ANIMACIÓN DE CAMBIO DE COLOR SUAVE (10s)
    ========================================== */
-@keyframes humoCambioColorSuave {
+@keyframes humoColorGlobal {
   0% {
-    filter: hue-rotate(0deg) saturate(260%) brightness(0.95);
+    filter: hue-rotate(0deg) saturate(320%) brightness(1.1);
   }
-  25% {
-    filter: hue-rotate(90deg) saturate(280%) brightness(0.95);
+  20% {
+    filter: hue-rotate(70deg) saturate(350%) brightness(1.15); /* Tonos amarillos/verdes */
   }
-  50% {
-    filter: hue-rotate(180deg) saturate(290%) brightness(0.95);
+  40% {
+    filter: hue-rotate(140deg) saturate(350%) brightness(1.1); /* Tonos cian/verde agua */
   }
-  75% {
-    filter: hue-rotate(270deg) saturate(280%) brightness(0.95);
+  60% {
+    filter: hue-rotate(210deg) saturate(380%) brightness(1.15); /* Tonos azules intensos */
+  }
+  80% {
+    filter: hue-rotate(290deg) saturate(350%) brightness(1.1); /* Tonos magenta/rosados */
   }
   100% {
-    filter: hue-rotate(360deg) saturate(260%) brightness(0.95);
+    filter: hue-rotate(360deg) saturate(320%) brightness(1.1); /* Retorna al inicio */
   }
 }
 
@@ -45,7 +48,7 @@ body {
   object-fit: cover;
   pointer-events: none;
   z-index: -1;
-  opacity: 3;
+  opacity: 0.82;
   mix-blend-mode: screen;
   
   /* Animación idéntica a la del álbum */
