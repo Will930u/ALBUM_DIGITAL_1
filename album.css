@@ -9,7 +9,7 @@
 
 img, video, canvas {
   max-width: 100%;
-  height: 200%;
+  height: 800%;
 }
 
 /* ==========================================
@@ -40,7 +40,7 @@ body {
   object-fit: cover;
   pointer-events: none;
   z-index: -1; /* Lo manda al fondo absoluto */
-  opacity: 0.25; /* Translúcido para no estorbar */
+  opacity: 0.60; /* Translúcido para no estorbar */
   mix-blend-mode: screen; /* Elimina el fondo negro y funde la bruma */
   filter: hue-rotate(240deg) saturate(250%) brightness(0.9) contrast(120%); /* Tinte acorde a tu tema */
 }
