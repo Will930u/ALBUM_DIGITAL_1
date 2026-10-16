@@ -709,6 +709,25 @@ def telegram_webhook():
                     }, timeout=5)
                     return jsonify({"status": "ok"}), 200
 
+                # 🔒 Caso Bloqueo / Expulsión Inmediata del Admin desde Telegram
+                if tipo_accion == "bloquear":
+                    target_user_id = parts[1] if len(parts) > 1 else ""
+                    if target_user_id:
+                        supabase_client.table("usuarios").update({
+                            "bloqueado": True
+                        }).eq("id", target_user_id).execute()
+
+                    estado_texto = f"🚨 USUARIO <code>{target_user_id}</code> BLOQUEADO Y EXPULSADO"
+                    nuevo_texto_tg = f"{texto_original}\n\n<b>ESTADO: {estado_texto}</b>"
+
+                    requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
+                        "chat_id": chat_id, "message_id": message_id, "text": nuevo_texto_tg, "parse_mode": "HTML"
+                    }, timeout=10)
+
+                    requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery", json={
+                        "callback_query_id": query_id, "text": f"¡Usuario {target_user_id} bloqueado y expulsado con éxito!"
+                    }, timeout=5)
+                    return jsonify({"status": "ok"}), 200
                 # Casos con 3 partes (Compras y Retiros)
                 if len(parts) >= 3:
                     accion = parts[1]
