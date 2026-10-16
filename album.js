@@ -3,9 +3,11 @@ const API_URL = "https://album-digital-1.onrender.com";
 const STATE = {
   currentPage: 1, totalPages: 80, stickersPerPage: 25, totalStickers: 2000,
   bcvRate: 36.5, userId: localStorage.getItem('active_user_id') || null,
-  userStickersCount: 0, userBalanceBs: 0, claimedMilestones: [], selectedMilestone: null,
+  userStickersCount: 0, userBalanceBs: 0, 
+  // Datos de pago precargados desde la tabla de usuarios de Supabase
+  userBanco: '', userCedula: '', userTelefono: '',
+  claimedMilestones: [], selectedMilestone: null,
   isProcessingWithdrawal: false, logoClicks: 0, clickTimer: null,
-  // Rastreo para evitar notificaciones repetidas
   notifiedTransactions: new Set(),
   notifiedWithdrawals: new Set(),
   isInitialLoad: true
@@ -26,6 +28,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     await fetchBcvRate();
     await loadUserDataFromDB();
     renderAlbumPage();
+    setupSwipeGestures();
     
     // Iniciar verificación periódica en tiempo real (cada 5 segundos)
     initUserPollingNotifications(STATE.userId);
@@ -39,7 +42,6 @@ async function logoutUser() {
   
   if (activeUserId) {
     try {
-      // 🔴 Envía la notificación de cierre de sesión a Telegram antes de salir
       await fetch(`${API_URL}/api/notificar-logout`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
@@ -107,19 +109,17 @@ function renderAlbumPage() {
     const startIndex = (STATE.currentPage - 1) * STATE.stickersPerPage + 1;
     const endIndex = startIndex + STATE.stickersPerPage - 1;
 
-    // Reiniciar arreglo temporal para el visor de la página actual
     allPageStickers = [];
 
     for (let i = startIndex; i <= endIndex; i++) {
       const isUnlocked = i <= STATE.userStickersCount;
       const isMilestone = (i % 500 === 0);
       const slot = document.createElement('div');
-      slot.className = `metal-slot sticker-card aspect-[3/4] w-full max-w-[130px] rounded-xl flex flex-col items-center justify-center p-2 relative overflow-hidden cursor-pointer ${isUnlocked ? 'filled' : ''} ${isMilestone ? 'milestone-slot' : ''}`;
+      slot.className = `metal-slot sticker-card aspect-[2.5/3.5] w-full rounded-xl flex flex-col items-center justify-center p-2 relative overflow-hidden cursor-pointer ${isUnlocked ? 'filled' : ''} ${isMilestone ? 'milestone-slot' : ''}`;
       
       if (isUnlocked) {
         const imgUrl = `https://dxicbitnnesjsqzxisea.supabase.co/storage/v1/object/public/barajitas/${i}.jpg?t=${Date.now()}`;
         
-        // Registrar en el arreglo para la navegación del visor Lightbox
         const stickerObj = {
           image: imgUrl,
           title: `Barajita #${i}`
@@ -127,9 +127,8 @@ function renderAlbumPage() {
         allPageStickers.push(stickerObj);
         const currentIndexInPage = allPageStickers.length - 1;
 
-        slot.innerHTML = `<img src="${imgUrl}" class="w-full h-full object-cover rounded-lg pointer-events-none" onerror="this.src='https://via.placeholder.com/150/1e1b4b/a855f7?text=${i}'"><span class="absolute bottom-1 right-1 bg-black/80 px-1.5 rounded text-[10px] font-bold text-purple-300">#${i}</span>`;
+        slot.innerHTML = `<img src="${imgUrl}" class="sticker-img pointer-events-none" onerror="this.src='https://via.placeholder.com/150/1e1b4b/a855f7?text=${i}'"><span class="absolute bottom-1 right-1 bg-black/80 px-1.5 rounded text-[10px] font-bold text-purple-300">#${i}</span>`;
         
-        // Configurar acción al hacer clic: Si es hito y no reclamado abre retiro, de lo contrario abre el visor de pantalla completa
         if (isMilestone) {
           slot.onclick = () => openWithdrawModal();
         } else {
@@ -190,6 +189,10 @@ async function loadUserDataFromDB() {
     if (data && data.user) {
       STATE.userStickersCount = data.user.cantidad_barajitas || 0;
       STATE.userBalanceBs = data.user.saldo_bs || 0;
+      // Capturar los datos de pago precargados de Supabase
+      STATE.userBanco = data.user.banco || '';
+      STATE.userCedula = data.user.cedula || '';
+      STATE.userTelefono = data.user.telefono || '';
     }
 
     if (previousStickersCount !== STATE.userStickersCount && !STATE.isInitialLoad) {
@@ -287,18 +290,24 @@ function updateUIHeader() {
   if(btnLiq) btnLiq.disabled = STATE.userBalanceBs <= 0;
 }
 
+// ----------------------------------------------------
+// GESTIÓN DE PREMIOS CON DATOS PRECARGADOS DE SUPABASE
+// ----------------------------------------------------
 function openWithdrawModal() {
   if (STATE.isProcessingWithdrawal) return alert('Tienes una solicitud de retiro activa.');
   
+  if (!STATE.userBanco || !STATE.userTelefono || !STATE.userCedula) {
+    alert("⚠️ No tienes configurados tus datos de pago (Banco, Cédula y Teléfono) en tu perfil.");
+    return;
+  }
+
   if (STATE.userStickersCount >= 2000 && !STATE.claimedMilestones.includes(2000)) {
     const confirmarCiclo = confirm(
       "🌟 ¡FELICIDADES Y GRACIAS POR COMPLETAR EL ÁLBUM! 🌟\n\n" +
-      "Has completado las 2000 barajitas (Ciclo Completo). Tu solicitud de pago será enviada para verificación y abono manual por parte del administrador.\n\n" +
-      "Una vez aprobado y pagado exitosamente, recibirás tu notificación de éxito y el álbum se reiniciará para iniciar un nuevo ciclo completo.\n\n" +
-      "¿Deseas proceder con la solicitud?"
+      "Has completado las 2000 barajitas (Ciclo Completo). Tu solicitud de pago se enviará automáticamente con tus datos registrados:\n" +
+      `🏦 Banco: ${STATE.userBanco}\n📱 Teléfono: ${STATE.userTelefono}\n🆔 Cédula: ${STATE.userCedula}\n\n¿Deseas proceder?`
     );
     if (confirmarCiclo) {
-      STATE.selectedMilestone = 2000;
       ejecutarSolicitudPremio(2000, 'ciclo_completo');
     }
     return;
@@ -326,32 +335,47 @@ function openWithdrawModal() {
     }
     container.appendChild(btn);
   });
+
+  // Mostrar datos precargados en el modal
+  const infoDatos = document.getElementById('infoDatosPrecargados');
+  if (infoDatos) {
+    infoDatos.innerHTML = `💳 <b>Datos de Pago:</b> Banco: ${STATE.userBanco} | Tel: ${STATE.userTelefono} | Cédula: ${STATE.userCedula}`;
+  }
+
   document.getElementById('withdrawModal').classList.remove('hidden');
 }
 
-function closeWithdrawModal() { document.getElementById('withdrawModal').classList.add('hidden'); }
+function closeWithdrawModal() { 
+  document.getElementById('withdrawModal').classList.add('hidden'); 
+}
 
-async function submitWithdrawalRequest(e) {
-  e.preventDefault();
+async function submitWithdrawalRequest() {
   if (!STATE.selectedMilestone) return alert('Selecciona un hito primero.');
   ejecutarSolicitudPremio(STATE.selectedMilestone, STATE.selectedMilestone === 2000 ? 'ciclo_completo' : 'hito_parcial');
 }
 
 async function ejecutarSolicitudPremio(milestoneVal, tipoRetiro) {
-  const bank = document.getElementById('wBank')?.value.trim() || prompt("Ingresa tu Banco:");
-  const phone = document.getElementById('wPhone')?.value.trim() || prompt("Ingresa tu Teléfono de Pago Móvil:");
-  const id = document.getElementById('wId')?.value.trim() || prompt("Ingresa tu Cédula:");
-  if (!bank || !phone || !id) return;
+  if (!STATE.userBanco || !STATE.userTelefono || !STATE.userCedula) {
+    return alert('Error: Faltan los datos de pago del usuario en el sistema.');
+  }
 
   const bsVal = (200 * STATE.bcvRate).toFixed(2);
 
   const res = await fetch(`${API_URL}/api/notificar-retiro`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ usuario_id: STATE.userId, tipo: tipoRetiro, milestone: milestoneVal, monto_bs: bsVal, monto_usd: 200.00, datos_pago: `${bank} | ${phone} | ${id}` })
+    method: 'POST', 
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ 
+      usuario_id: STATE.userId, 
+      tipo: tipoRetiro, 
+      milestone: milestoneVal, 
+      monto_bs: bsVal, 
+      monto_usd: 200.00, 
+      datos_pago: `${STATE.userBanco} | ${STATE.userTelefono} | ${STATE.userCedula}` 
+    })
   });
 
   if (res.ok) {
-    alert('¡Solicitud enviada con éxito! Queda pendiente de verificación.');
+    alert('¡Solicitud enviada con éxito con tus datos guardados! Queda pendiente de verificación.');
     closeWithdrawModal();
     loadUserDataFromDB();
   } else {
@@ -362,30 +386,36 @@ async function ejecutarSolicitudPremio(milestoneVal, tipoRetiro) {
 async function confirmTotalLiquidate() {
   if (STATE.userBalanceBs <= 0) return alert('Sin saldo neto para liquidar.');
   
+  if (!STATE.userBanco || !STATE.userTelefono || !STATE.userCedula) {
+    return alert('⚠️ No tienes tus datos de pago registrados en la base de datos.');
+  }
+
   const aceptarLiquidacion = confirm(
     "⚠️ ADVERTENCIA DE LIQUIDACIÓN TOTAL ⚠️\n\n" +
-    "Si aceptas liquidar tu dinero, este se te depositará, pero **el álbum se reiniciará por completo**.\n\n" +
-    "Los hitos que no hayas reclamado individualmente no quedarán como reclamados, sino que se restablecerán como si nunca hubiesen llegado ahí (empezarás un nuevo ciclo).\n\n" +
-    "¿Estás seguro de que deseas aceptar y liquidar tu saldo?"
+    `Se procesará tu pago a los siguientes datos guardados:\n🏦 Banco: ${STATE.userBanco}\n📱 Teléfono: ${STATE.userTelefono}\n🆔 Cédula: ${STATE.userCedula}\n\n` +
+    "Al aceptar, el saldo será enviado y **el álbum se reiniciará por completo**.\n\n¿Estás seguro de que deseas aceptar y liquidar tu saldo?"
   );
   
   if (!aceptarLiquidacion) return;
-
-  const bank = prompt("Ingresa tu Banco:");
-  const phone = prompt("Ingresa tu Teléfono de Pago Móvil:");
-  const id = prompt("Ingresa tu Cédula:");
-  if (!bank || !phone || !id) return;
 
   const bsVal = STATE.userBalanceBs;
   const usdVal = STATE.bcvRate > 0 ? (bsVal / STATE.bcvRate).toFixed(2) : 0;
 
   const res = await fetch(`${API_URL}/api/notificar-retiro`, {
-    method: 'POST', headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ usuario_id: STATE.userId, tipo: 'liquidacion_total', milestone: 0, monto_bs: bsVal.toFixed(2), monto_usd: usdVal, datos_pago: `${bank} | ${phone} | ${id}` })
+    method: 'POST', 
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ 
+      usuario_id: STATE.userId, 
+      tipo: 'liquidacion_total', 
+      milestone: 0, 
+      monto_bs: bsVal.toFixed(2), 
+      monto_usd: usdVal, 
+      datos_pago: `${STATE.userBanco} | ${STATE.userTelefono} | ${STATE.userCedula}` 
+    })
   });
 
   if (res.ok) {
-    alert('Liquidación total solicitada con éxito. Al aprobarse, tu progreso se reiniciará.');
+    alert('¡Liquidación total solicitada con éxito con tus datos guardados! Al aprobarse, tu progreso se reiniciará.');
     loadUserDataFromDB();
   } else {
     alert('Error al solicitar liquidación.');
@@ -497,6 +527,7 @@ function navigateStickerModal(direction) {
     }
   }
 }
+
 // ==========================================
 // DETECCIÓN DE GESTOS TÁCTILES (SWIPE EN MÓVIL)
 // ==========================================
@@ -518,20 +549,13 @@ function setupSwipeGestures() {
 }
 
 function handleSwipeGesture() {
-  const swipeThreshold = 50; // Distancia mínima en píxeles para detectar el deslizamiento
+  const swipeThreshold = 50;
 
-  // Deslizar hacia la izquierda -> Siguiente página
   if (touchStartX - touchEndX > swipeThreshold) {
     changePage(1);
   }
   
-  // Deslizar hacia la derecha -> Página anterior
   if (touchEndX - touchStartX > swipeThreshold) {
     changePage(-1);
   }
 }
-
-// Inicializar la detección al cargar el documento
-document.addEventListener('DOMContentLoaded', () => {
-  setupSwipeGestures();
-});
