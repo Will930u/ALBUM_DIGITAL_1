@@ -65,7 +65,7 @@ body {
   
   /* Animación forzada a 10 segundos con bucle infinito */
   animation: humoCambioColorSuave 3s ease-in-out infinite;
-  -webkit-animation: humoCambioColorSuave 6s ease-in-out infinite;
+  -webkit-animation: humoCambioColorSuave 3s ease-in-out infinite;
   
   /* Forzar renderizado por GPU para que el filtro de color funcione fluido */
   transform: translateZ(0);
