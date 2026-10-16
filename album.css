@@ -13,7 +13,7 @@ img, video, canvas {
 }
 
 /* ==========================================
-   ESTILOS GENERALES DE FONDO (CAPA 0)
+   FONDO Y CUERPO
    ========================================== */
 body {
   background-color: #080314;
@@ -25,194 +25,81 @@ body {
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
-  perspective: 1400px;
 }
 
 /* ==========================================
-   ANIMACIÓN DE HUMO CON TRANSICIÓN SUAVE (10 SEGUNDOS)
+   ANIMACIÓN DE HUMO (FONDO)
    ========================================== */
 @keyframes humoCambioColorSuave {
-  0% {
-    filter: hue-rotate(0deg) saturate(260%) brightness(0.95);
-  }
-  25% {
-    filter: hue-rotate(90deg) saturate(280%) brightness(0.95);
-  }
-  50% {
-    filter: hue-rotate(180deg) saturate(290%) brightness(0.95);
-  }
-  75% {
-    filter: hue-rotate(270deg) saturate(280%) brightness(0.95);
-  }
-  100% {
-    filter: hue-rotate(360deg) saturate(260%) brightness(0.95);
-  }
+  0% { filter: hue-rotate(0deg) saturate(260%) brightness(0.95); }
+  25% { filter: hue-rotate(90deg) saturate(280%) brightness(0.95); }
+  50% { filter: hue-rotate(180deg) saturate(290%) brightness(0.95); }
+  75% { filter: hue-rotate(270deg) saturate(280%) brightness(0.95); }
+  100% { filter: hue-rotate(360deg) saturate(260%) brightness(0.95); }
 }
 
-/* ==========================================
-   CLASE DEL VIDEO DE HUMO (FONDO ABSOLUTO)
-   ========================================== */
 .bg-smoke-video {
-  position: absolute;
+  position: fixed; /* Cambiado a fixed para cubrir toda la pantalla sin cortes al hacer scroll */
   top: 0;
   left: 0;
   width: 100vw;
-  height: 100%;
-  min-height: 100vh;
+  height: 100vh;
   object-fit: cover;
   pointer-events: none;
   z-index: -1;
   opacity: 0.30;
   mix-blend-mode: screen;
-  
   animation: humoCambioColorSuave 10s ease-in-out infinite;
   transform: translateZ(0);
   will-change: filter;
 }
 
 /* ==========================================
-   CAPA PRINCIPAL AL FRENTE (NÍTIDA Y SIN BORROSIDAD)
+   CAPA GENERAL AL FRENTE CON MÁXIMA NITIDEZ
    ========================================== */
 .main-content, 
-.metal-card, 
-.sticker-container, 
 header, nav, 
-button, span, p, h1, h2, h3 {
+.metal-card {
   position: relative;
-  z-index: 10; /* Fuerza absoluta al frente para evitar cualquier desenfoque por capas */
+  z-index: 10;
+  /* Eliminamos cualquier backdrop-filter borroso heredado en contenedores generales */
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* ==========================================
-   TARJETAS METÁLICAS (FONDO SÓLIDO Y NÍTIDO)
+   TARJETAS Y PANELES (FONDO SÓLIDO Y NÍTIDO)
    ========================================== */
 .metal-card {
-  background: rgba(14, 9, 30, 0.96); /* Fondo más sólido para eliminar efecto neblina */
-  border: 1.5px solid rgba(168, 85, 247, 0.7);
-  border-radius: 20px;
+  background: rgba(14, 9, 30, 0.98); /* Fondo casi opaco para evitar efectos de neblina */
+  border: 1.5px solid rgba(168, 85, 247, 0.8);
+  border-radius: 16px;
   box-shadow: 
-    0 25px 50px rgba(0, 0, 0, 0.9),
-    0 0 30px rgba(168, 85, 247, 0.25),
-    inset 0 1px 2px rgba(255, 255, 255, 0.4);
-  transform: translateZ(20px);
-  transform-style: preserve-3d;
-  transition: all 0.3s ease;
-}
-
-.metal-card:hover {
-  border-color: rgba(6, 182, 212, 0.9);
-  box-shadow: 
-    0 35px 70px rgba(0, 0, 0, 0.95),
-    0 0 50px rgba(6, 182, 212, 0.4),
-    inset 0 1px 3px rgba(255, 255, 255, 0.6);
+    0 15px 35px rgba(0, 0, 0, 0.8),
+    0 0 20px rgba(168, 85, 247, 0.3);
 }
 
 /* ==========================================
-   BOTONES CON RELIEVE 3D Y MÁXIMA NITIDEZ
+   TEXTOS Y TÍTULOS NÍTIDOS
+   ========================================== */
+h1, h2, h3, p, span, a, button {
+  text-rendering: optimizeLegibility;
+  -webkit-font-smoothing: antialiased;
+}
+
+/* ==========================================
+   BOTONES E INTERFAZ
    ========================================== */
 .metal-button {
   background: linear-gradient(135deg, #3b82f6 0%, #7c3aed 100%);
-  border: 1.5px solid rgba(255, 255, 255, 0.6);
-  box-shadow: 
-    0 6px 0 #1e1b4b,
-    0 10px 20px rgba(59, 130, 246, 0.6),
-    inset 0 1px 2px rgba(255, 255, 255, 0.8);
-  transform: translateY(0) translateZ(10px);
-  transition: all 0.15s ease;
+  border: 1.5px solid rgba(255, 255, 255, 0.7);
+  box-shadow: 0 4px 12px rgba(59, 130, 246, 0.5);
   font-weight: 600;
 }
 
 .metal-button:hover {
   background: linear-gradient(135deg, #2563eb 0%, #6d28d9 100%);
-  transform: translateY(-2px) translateZ(15px);
-  box-shadow: 
-    0 8px 0 #1e1b4b,
-    0 15px 25px rgba(168, 85, 247, 0.8),
-    inset 0 1px 2px rgba(255, 255, 255, 0.9);
-}
-
-.metal-button:active {
-  transform: translateY(3px) translateZ(5px);
-  box-shadow: 
-    0 2px 0 #1e1b4b,
-    0 4px 8px rgba(0, 0, 0, 0.8);
-}
-
-/* Textos brillantes pero ultranítidos sin desfasarse */
-.glow-text {
-  text-shadow: 0 0 8px rgba(168, 85, 247, 0.8);
-  letter-spacing: 0.5px;
-}
-
-/* ==========================================
-   BARAJITAS DINÁMICAS (5 COLUMNAS SIMÉTRICAS)
-   ========================================== */
-.sticker-container {
-  perspective: 1400px;
-  transform-style: preserve-3d;
-}
-
-.sticker-card {
-  position: relative;
-  width: 100%;
-  aspect-ratio: 2.5 / 3.5;
-  border-radius: 14px;
-  background: linear-gradient(145deg, #1e1b4b, #090514);
-  border: 2px solid rgba(168, 85, 247, 0.7);
-  transform-style: preserve-3d;
-  transform: translateZ(30px);
-  transition: transform 0.3s ease, box-shadow 0.3s ease;
-  cursor: pointer;
-  box-shadow: 
-    0 12px 30px rgba(0, 0, 0, 0.8),
-    0 4px 12px rgba(168, 85, 247, 0.4),
-    inset 0 0 10px rgba(255, 255, 255, 0.2);
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
-  overflow: hidden;
-}
-
-.sticker-card:hover {
-  transform: translateZ(50px) scale(1.04);
-  border-color: #06b6d4;
-  box-shadow: 
-    0 20px 40px rgba(0, 0, 0, 0.9),
-    0 0 30px rgba(6, 182, 212, 0.7),
-    inset 0 0 20px rgba(255, 255, 255, 0.4);
-}
-
-.sticker-img {
-  width: 100%;
-  height: 100%;
-  object-fit: cover;
-  border-radius: 12px;
-}
-
-/* ==========================================
-   CORRECCIÓN TÁCTIL PARA FLECHAS DE PAGINACIÓN EN MÓVIL
-   ========================================== */
-button[onclick*="changePage"], .pagination-btn {
-  position: relative;
-  z-index: 30;
-  pointer-events: auto !important;
-  cursor: pointer;
-}
-
-/* ==========================================
-   VISOR MODAL A PANTALLA COMPLETA
-   ========================================== */
-#stickerModal {
-  z-index: 100;
-  background: rgba(3, 1, 10, 0.92);
-}
-
-#modalStickerImg {
-  animation: zoomInModal 0.25s ease-out;
-}
-
-@keyframes zoomInModal {
-  from { transform: scale(0.85); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
+  box-shadow: 0 6px 16px rgba(168, 85, 247, 0.7);
 }
 
 /* ==========================================
@@ -239,9 +126,39 @@ button[onclick*="changePage"], .pagination-btn {
 }
 
 /* ==========================================
+   ESTILO DE LAS BARAJITAS
+   ========================================== */
+.sticker-card {
+  position: relative;
+  width: 100%;
+  aspect-ratio: 2.5 / 3.5;
+  border-radius: 12px;
+  background: linear-gradient(145deg, #1e1b4b, #090514);
+  border: 2px solid rgba(168, 85, 247, 0.8);
+  box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  overflow: hidden;
+  cursor: pointer;
+  transition: transform 0.2s ease;
+}
+
+.sticker-card:hover {
+  transform: scale(1.03);
+  border-color: #06b6d4;
+}
+
+.sticker-img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  border-radius: 10px;
+}
+
+/* ==========================================
    SCROLLBARS ESTILIZADOS
    ========================================== */
 ::-webkit-scrollbar { width: 8px; height: 8px; }
 ::-webkit-scrollbar-track { background: #080314; }
 ::-webkit-scrollbar-thumb { background: linear-gradient(to bottom, #3b82f6, #9333ea); border-radius: 4px; }
-::-webkit-scrollbar-thumb:hover { background: #06b6d4; }
