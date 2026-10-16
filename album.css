@@ -37,13 +37,12 @@ body {
   left: 0;
   width: 100vw;
   height: 100vh;
-  min-height: 100%;
-  object-fit: cover; /* Llena toda la pantalla manteniendo la proporción */
-  pointer-events: none;
-  z-index: -1; /* Estrictamente al fondo */
-  opacity: 0.28; /* Translúcido y elegante */
-  mix-blend-mode: screen; /* Elimina el fondo negro y funde el humo */
-  filter: hue-rotate(240deg) saturate(250%) brightness(0.9) contrast(120%);
+  object-fit: cover;
+  pointer-events: none; /* <--- CRUCIAL: Evita que bloquee los toques */
+  z-index: -1;
+  opacity: 0.28;
+  mix-blend-mode: screen;
+  filter: hue-rotate(240deg) saturate(280%) brightness(0.95) contrast(120%);
 }
 /* ==========================================
    CONTENIDO PRINCIPAL, BARAJITAS Y PANELES (CAPA 2 - AL FRENTE)
@@ -190,6 +189,15 @@ header, nav {
   height: 100%;
   object-fit: cover;
   border-radius: 14px;
+}
+/* ==========================================
+   CORRECCIÓN TÁCTIL PARA FLECHAS DE PAGINACIÓN EN MÓVIL
+   ========================================== */
+button[onclick*="changePage"] {
+  position: relative;
+  z-index: 30;
+  pointer-events: auto !important;
+  cursor: pointer;
 }
 
 /* ==========================================
