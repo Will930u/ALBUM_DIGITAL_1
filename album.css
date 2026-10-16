@@ -28,28 +28,33 @@ body {
 }
 
 /* ==========================================
-   ANIMACIÓN DE HUMO CON COLORES ESPESOS E INTENSOS (10s)
+   ANIMACIÓN DE HUMO CON CAMBIO DE COLOR ESPESO (10s)
    ========================================== */
 @keyframes humoCambioColorSuave {
   0% {
     filter: hue-rotate(0deg) saturate(380%) brightness(1.1);
+    -webkit-filter: hue-rotate(0deg) saturate(380%) brightness(1.1);
   }
   25% {
     filter: hue-rotate(90deg) saturate(400%) brightness(1.15);
+    -webkit-filter: hue-rotate(90deg) saturate(400%) brightness(1.15);
   }
   50% {
     filter: hue-rotate(180deg) saturate(420%) brightness(1.1);
+    -webkit-filter: hue-rotate(180deg) saturate(420%) brightness(1.1);
   }
   75% {
     filter: hue-rotate(270deg) saturate(400%) brightness(1.15);
+    -webkit-filter: hue-rotate(270deg) saturate(400%) brightness(1.15);
   }
   100% {
     filter: hue-rotate(360deg) saturate(380%) brightness(1.1);
+    -webkit-filter: hue-rotate(360deg) saturate(380%) brightness(1.1);
   }
 }
 
 /* ==========================================
-   CLASE DEL VIDEO DE HUMO ESPESO Y VIBRANTE
+   CLASE DEL VIDEO DE HUMO FLUIDO Y DENSO
    ========================================== */
 .bg-smoke-video {
   position: fixed;
@@ -61,21 +66,23 @@ body {
   pointer-events: none;
   z-index: -1;
   
-  /* Opacidad alta para que se vea espeso, denso y con cuerpo */
+  /* Opacidad densa y espesa */
   opacity: 0.75; 
   
-  /* Animación fluida de 10 segundos en bucle infinito */
+  /* Animación continua y fluida de 10 segundos */
   animation: humoCambioColorSuave 10s ease-in-out infinite;
   -webkit-animation: humoCambioColorSuave 10s ease-in-out infinite;
   
-  /* Aceleración por GPU */
+  /* Forzar renderizado por GPU para evitar tirones y cortes en el cambio de color */
   transform: translateZ(0);
   -webkit-transform: translateZ(0);
-  will-change: filter;
+  backface-visibility: hidden;
+  -webkit-backface-visibility: hidden;
+  will-change: filter, transform;
 }
 
 /* ==========================================
-   CAPA GENERAL AL FRENTE CON MÁXima NITIDEZ
+   CAPA GENERAL AL FRENTE CON MÁXIMA NITIDEZ
    ========================================== */
 .main-content, 
 header, nav, 
