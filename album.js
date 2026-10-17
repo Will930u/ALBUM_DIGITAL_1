@@ -30,6 +30,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderAlbumPage();
     setupSwipeGestures();
     
+    // Iniciar el carrusel de actividad en tiempo real
+    initActivityTicker();
+    
     // Iniciar verificación periódica en tiempo real (cada 5 segundos)
     initUserPollingNotifications(STATE.userId);
   } catch (err) {
@@ -54,6 +57,51 @@ async function logoutUser() {
 
   localStorage.removeItem('active_user_id');
   window.location.href = 'index.html';
+}
+
+// ----------------------------------------------------
+// CARRUSEL / TICKER DE ACTIVIDAD EN TIEMPO REAL
+// ----------------------------------------------------
+async function initActivityTicker() {
+  await cargarFeedActividad();
+  // Actualizar el carrusel automáticamente cada 15 segundos
+  setInterval(cargarFeedActividad, 15000);
+}
+
+async function cargarFeedActividad() {
+  const tickerContainer = document.getElementById('tickerContent');
+  if (!tickerContainer) return;
+
+  try {
+    const res = await fetch(`${API_URL}/api/feed-actividad`);
+    const data = await res.json();
+
+    if (data.status === 'success' && data.actividades && data.actividades.length > 0) {
+      let htmlItems = '';
+      
+      data.actividades.forEach(item => {
+        const usuario = item.usuario_id || 'Comunidad';
+        const barajitas = item.barajitas_qty || 0;
+        const monto = item.monto_bs || 0;
+        
+        htmlItems += `
+          <span class="inline-flex items-center space-x-1.5 shrink-0">
+            <span class="text-amber-400 font-bold">🛒 <b>${usuario}</b></span>
+            <span class="text-purple-200">compró <b>${barajitas} barajitas</b></span>
+            <span class="text-emerald-400 text-[10px]">(Bs. ${parseFloat(monto).toFixed(2)})</span>
+            <span class="text-purple-500 mx-2">•</span>
+          </span>
+        `;
+      });
+
+      // Duplicamos el contenido para garantizar un bucle continuo y suave
+      tickerContainer.innerHTML = `<div class="animate-ticker">${htmlItems}${htmlItems}</div>`;
+    } else {
+      tickerContainer.innerHTML = `<span class="text-slate-400">✨ ¡Sé el primero en unirte a la acción comunitaria del álbum!</span>`;
+    }
+  } catch (err) {
+    console.error("Error al cargar feed de actividad:", err);
+  }
 }
 
 // ----------------------------------------------------
