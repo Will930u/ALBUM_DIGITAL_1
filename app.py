@@ -193,7 +193,7 @@ def notificar_login():
                     {"text": "🔓 Desbloquear", "callback_data": f"desbloquear_{usuario_id}"}
                 ],
                 [
-                    {"text": "🌐 Entrar al Panel Admin", "url": "https://album-digital-1.onrender.com/admin.html"}
+                    {"text": "🌐 Entrar al Panel Admin", "url": "https://will930u.github.io/ALBUM_DIGITAL_1/admin.html"}
                 ]
             ]
         }
