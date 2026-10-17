@@ -226,6 +226,7 @@ def notificar_login():
     if not usuario_id:
         return jsonify({"status": "error", "message": "ID no proporcionado"}), 400
 
+    # 🛡️ FILTRO ESTRICTO: Solo notificar a Telegram si es el Administrador
     if usuario_id.upper() == ADMIN_USER_ID.upper():
         mensaje = (
             f"🔐 <b>¡ACCESO DE ADMINISTRADOR DETECTADO!</b>\n\n"
@@ -249,12 +250,8 @@ def notificar_login():
             ]
         }
         send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje, reply_markup=keyboard_admin)
-    else:
-        mensaje = (
-            f"👤 <b>Nuevo Inicio de Sesión</b>\n\n"
-            f"ID de Usuario: <code>{usuario_id}</code>"
-        )
-        send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje)
+    
+    # Si es un usuario común, la función finaliza aquí de forma silenciosa sin enviar nada a Telegram.
 
     return jsonify({"status": "success"}), 200
 
@@ -266,14 +263,16 @@ def notificar_logout():
     if not usuario_id:
         return jsonify({"status": "error", "message": "ID no proporcionado"}), 400
 
-    mensaje = (
-        f"🔴 <b>CIERRE DE SESIÓN</b>\n\n"
-        f"👤 <b>Usuario:</b> <code>{usuario_id}</code>\n"
-        f"🚪 Ha cerrado sesión correctamente de la plataforma."
-    )
-    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje)
-    return jsonify({"status": "success"}), 200
+    # 🛡️ FILTRO ESTRICTO: Solo notificar a Telegram si el que cierra sesión es el Administrador
+    if usuario_id.upper() == ADMIN_USER_ID.upper():
+        mensaje = (
+            f"🔴 <b>CIERRE DE SESIÓN DE ADMIN</b>\n\n"
+            f"👤 <b>Usuario:</b> <code>{usuario_id}</code>\n"
+            f"🚪 Ha cerrado sesión correctamente del panel."
+        )
+        send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje)
 
+    return jsonify({"status": "success"}), 200
 # ==========================================
 # ENDPOINTS DEL PANEL ADMINISTRADOR
 # ==========================================
