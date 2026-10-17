@@ -49,9 +49,17 @@ def send_telegram_message(chat_id: str, text: str, reply_markup=None):
     thread.start()
     return True
 
+# Función auxiliar para extraer la IP real y el User-Agent
+def obtener_datos_cliente(req):
+    ip = req.headers.get("X-Forwarded-For", req.remote_addr)
+    if ip and "," in ip:
+        ip = ip.split(",")[0].strip()
+    user_agent = req.headers.get("User-Agent", "Desconocido")
+    return ip, user_agent
+
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.5.0"}), 200
+    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.6.0"}), 200
 
 @app.route("/api/bcv", methods=["GET"])
 def get_bcv_rate():
@@ -73,11 +81,14 @@ def api_login():
     data = request.get_json(silent=True) or {}
     username = str(data.get("username", "")).strip()
     password = str(data.get("password", "")).strip()
+    device_hash = str(data.get("device_hash", "")).strip()
 
     if not username or not password or not supabase_client:
         return jsonify({"success": False, "message": "Datos incompletos o sin BD"}), 400
 
     try:
+        client_ip, user_agent = obtener_datos_cliente(request)
+
         res = supabase_client.table("usuarios").select("*").eq("username", username).execute()
         user = res.data[0] if res.data and len(res.data) > 0 else None
 
@@ -86,6 +97,16 @@ def api_login():
 
         if user.get("bloqueado") is True:
             return jsonify({"success": False, "bloqueado": True, "message": "Cuenta bloqueada"}), 403
+
+        # 🌐 Actualizar datos de último acceso en Supabase
+        update_data = {
+            "ip_ultimo_acceso": client_ip,
+            "dispositivo_info": user_agent
+        }
+        if device_hash:
+            update_data["device_hash"] = device_hash
+
+        supabase_client.table("usuarios").update(update_data).eq("id", user.get("id")).execute()
 
         return jsonify({"success": True, "user_id": user.get("id")}), 200
     except Exception as e:
@@ -101,6 +122,7 @@ def api_register():
     banco = str(data.get("banco", "")).strip()
     cedula = str(data.get("cedula", "")).strip()
     telefono = str(data.get("telefono", "")).strip()
+    device_hash = str(data.get("device_hash", "")).strip()
 
     if not all([username, email, password]):
         return jsonify({"error": "Faltan campos obligatorios"}), 400
@@ -111,6 +133,8 @@ def api_register():
         return jsonify({"error": "Error de base de datos"}), 500
 
     try:
+        client_ip, user_agent = obtener_datos_cliente(request)
+
         existing_user = supabase_client.table("usuarios").select("id").eq("id", user_id).execute()
         if existing_user.data and len(existing_user.data) > 0:
             return jsonify({"error": "El nombre de usuario ya está registrado. Por favor elige otro."}), 400
@@ -128,7 +152,11 @@ def api_register():
             "terminos_aceptados": True,
             "privacidad_aceptada": True,
             "fecha_aceptacion": datetime.now(timezone.utc).isoformat(),
-            "bloqueado": False
+            "bloqueado": False,
+            "ip_registro": client_ip,
+            "ip_ultimo_acceso": client_ip,
+            "dispositivo_info": user_agent,
+            "device_hash": device_hash
         }]).execute()
         
         return jsonify({"success": True}), 200
@@ -278,20 +306,27 @@ def verificar_admin():
     data = request.get_json(silent=True) or {}
     usuario_id = str(data.get("usuario_id", "")).strip()
 
+    client_ip, user_agent = obtener_datos_cliente(request)
+
     if supabase_client:
         try:
+            if usuario_id:
+                supabase_client.table("usuarios").update({
+                    "ip_ultimo_acceso": client_ip,
+                    "dispositivo_info": user_agent
+                }).eq("id", usuario_id).execute()
+
             usr_res = supabase_client.table("usuarios").select("*").eq("id", usuario_id).execute()
             if usr_res.data and len(usr_res.data) > 0:
                 usr = usr_res.data[0]
                 if usr.get("bloqueado") is True:
                     return jsonify({"status": "blocked", "bloqueado": True, "message": "Acceso revocado por el administrador."}), 403
         except Exception as e:
-            print(f"Error consultando estado de bloqueo: {e}")
+            print(f"Error consultando estado de bloqueo o IP: {e}")
 
     if usuario_id.upper() == ADMIN_USER_ID.upper():
         return jsonify({"status": "authorized"}), 200
 
-    # Si es un usuario común intentando entrar al panel admin:
     if supabase_client:
         try:
             usr_res = supabase_client.table("usuarios").select("*").eq("id", usuario_id).execute()
@@ -305,14 +340,18 @@ def verificar_admin():
                 if intentos_actuales >= 3:
                     supabase_client.table("usuarios").update({
                         "intentos_admin": intentos_actuales,
-                        "bloqueado": True
+                        "bloqueado": True,
+                        "ip_ultimo_acceso": client_ip,
+                        "dispositivo_info": user_agent
                     }).eq("id", usuario_id).execute()
 
-                    # 🚨 Notificación a Telegram por reincidencia e intento en área restringida
+                    # 🚨 Notificación a Telegram con IP y Dispositivo
                     send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, 
                         f"🚨 <b>¡INTRUSIÓN BLOQUEADA (3 INTENTOS)!</b>\n\n"
-                        f"👤 <b>Usuario No Permitido:</b> <code>{usuario_id}</code>\n"
-                        f"⚠️ Intentó acceder al Área Restringida del Panel Admin 3 veces y ha sido bloqueado permanentemente.",
+                        f"👤 <b>Usuario:</b> <code>{usuario_id}</code>\n"
+                        f"🌐 <b>IP:</b> <code>{client_ip or 'Desconocida'}</code>\n"
+                        f"💻 <b>Dispositivo:</b> <code>{user_agent[:60]}...</code>\n"
+                        f"⚠️ Intentó acceder al Área Restringida 3 veces y fue bloqueado.",
                         reply_markup={
                             "inline_keyboard": [
                                 [{"text": "🔓 Desbloquear Usuario", "callback_data": f"desbloquear_{usuario_id}"}]
@@ -322,13 +361,17 @@ def verificar_admin():
                     return jsonify({"status": "blocked", "message": "Cuenta bloqueada por reincidencia."}), 403
                 else:
                     supabase_client.table("usuarios").update({
-                        "intentos_admin": intentos_actuales
+                        "intentos_admin": intentos_actuales,
+                        "ip_ultimo_acceso": client_ip,
+                        "dispositivo_info": user_agent
                     }).eq("id", usuario_id).execute()
 
-                    # ⚠️ Notificación de intento de acceso no autorizado
+                    # ⚠️ Notificación de intento con IP y Dispositivo
                     send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, 
                         f"⚠️ <b>¡ALERTA DE INTRUSIÓN!</b>\n\n"
                         f"👤 <b>Usuario:</b> <code>{usuario_id}</code>\n"
+                        f"🌐 <b>IP:</b> <code>{client_ip or 'Desconocida'}</code>\n"
+                        f"💻 <b>Dispositivo:</b> <code>{user_agent[:60]}...</code>\n"
                         f"🔒 Intentó entrar al Área Restringida (Intento {intentos_actuales}/3).",
                         reply_markup={
                             "inline_keyboard": [
@@ -658,14 +701,13 @@ def procesar_retiro_admin():
     return jsonify({"status": "error", "message": "Sin conexión"}), 500
 
 # ==========================================
-# WEBHOOK DE TELEGRAM CORREGIDO (CON CERROJO DE PAGO)
+# WEBHOOK DE TELEGRAM
 # ==========================================
 
 @app.route("/api/telegram-webhook", methods=["POST"])
 def telegram_webhook():
     data = request.get_json(silent=True) or {}
     
-    # 🛡️ FILTRO DE PRIVACIDAD ABSOLUTA PARA EL BOT
     message_data = data.get("message") or {}
     callback_query = data.get("callback_query") or {}
     chat = message_data.get("chat") or callback_query.get("message", {}).get("chat", {})
