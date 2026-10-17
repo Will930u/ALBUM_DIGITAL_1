@@ -203,7 +203,6 @@ def api_usuario_info():
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
-# 💓 Endpoint de Latido (Heartbeat) para Presencia en Tiempo Real
 @app.route("/api/heartbeat", methods=["POST"])
 def api_heartbeat():
     data = request.get_json(silent=True) or {}
@@ -226,7 +225,6 @@ def notificar_login():
     if not usuario_id:
         return jsonify({"status": "error", "message": "ID no proporcionado"}), 400
 
-    # 🛡️ FILTRO ESTRICTO: Solo notificar a Telegram si es el Administrador
     if usuario_id.upper() == ADMIN_USER_ID.upper():
         mensaje = (
             f"🔐 <b>¡ACCESO DE ADMINISTRADOR DETECTADO!</b>\n\n"
@@ -250,8 +248,6 @@ def notificar_login():
             ]
         }
         send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje, reply_markup=keyboard_admin)
-    
-    # Si es un usuario común, la función finaliza aquí de forma silenciosa sin enviar nada a Telegram.
 
     return jsonify({"status": "success"}), 200
 
@@ -263,7 +259,6 @@ def notificar_logout():
     if not usuario_id:
         return jsonify({"status": "error", "message": "ID no proporcionado"}), 400
 
-    # 🛡️ FILTRO ESTRICTO: Solo notificar a Telegram si el que cierra sesión es el Administrador
     if usuario_id.upper() == ADMIN_USER_ID.upper():
         mensaje = (
             f"🔴 <b>CIERRE DE SESIÓN DE ADMIN</b>\n\n"
@@ -273,8 +268,9 @@ def notificar_logout():
         send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje)
 
     return jsonify({"status": "success"}), 200
+
 # ==========================================
-# ENDPOINTS DEL PANEL ADMINISTRADOR
+# ENDPOINTS DEL PANEL ADMINISTRADOR Y VERIFICACIÓN
 # ==========================================
 
 @app.route("/api/verificar-admin", methods=["POST"])
@@ -295,6 +291,7 @@ def verificar_admin():
     if usuario_id.upper() == ADMIN_USER_ID.upper():
         return jsonify({"status": "authorized"}), 200
 
+    # Si es un usuario común intentando entrar al panel admin:
     if supabase_client:
         try:
             usr_res = supabase_client.table("usuarios").select("*").eq("id", usuario_id).execute()
@@ -310,11 +307,38 @@ def verificar_admin():
                         "intentos_admin": intentos_actuales,
                         "bloqueado": True
                     }).eq("id", usuario_id).execute()
+
+                    # 🚨 Notificación a Telegram por reincidencia e intento en área restringida
+                    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, 
+                        f"🚨 <b>¡INTRUSIÓN BLOQUEADA (3 INTENTOS)!</b>\n\n"
+                        f"👤 <b>Usuario No Permitido:</b> <code>{usuario_id}</code>\n"
+                        f"⚠️ Intentó acceder al Área Restringida del Panel Admin 3 veces y ha sido bloqueado permanentemente.",
+                        reply_markup={
+                            "inline_keyboard": [
+                                [{"text": "🔓 Desbloquear Usuario", "callback_data": f"desbloquear_{usuario_id}"}]
+                            ]
+                        }
+                    )
                     return jsonify({"status": "blocked", "message": "Cuenta bloqueada por reincidencia."}), 403
                 else:
                     supabase_client.table("usuarios").update({
                         "intentos_admin": intentos_actuales
                     }).eq("id", usuario_id).execute()
+
+                    # ⚠️ Notificación de intento de acceso no autorizado
+                    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, 
+                        f"⚠️ <b>¡ALERTA DE INTRUSIÓN!</b>\n\n"
+                        f"👤 <b>Usuario:</b> <code>{usuario_id}</code>\n"
+                        f"🔒 Intentó entrar al Área Restringida (Intento {intentos_actuales}/3).",
+                        reply_markup={
+                            "inline_keyboard": [
+                                [
+                                    {"text": "🚨 Bloquear Ya", "callback_data": f"bloquear_{usuario_id}"},
+                                    {"text": "🔓 Desbloquear", "callback_data": f"desbloquear_{usuario_id}"}
+                                ]
+                            ]
+                        }
+                    )
                     return jsonify({"status": "warning", "intentos": intentos_actuales}), 200
         except Exception as e:
             print(f"Error en verificación admin: {e}")
@@ -354,7 +378,6 @@ def admin_configuracion():
     elif request.method == "POST":
         data = request.get_json(silent=True) or {}
         try:
-            # 🔒 Validar si la configuración de pago está bloqueada por seguridad desde Telegram
             res_chk = supabase_client.table("configuracion").select("pago_bloqueado").limit(1).execute()
             if res_chk.data and res_chk.data[0].get("pago_bloqueado") is True:
                 return jsonify({"error": "La configuración de pago se encuentra bloqueada por seguridad desde Telegram."}), 403
@@ -642,7 +665,7 @@ def procesar_retiro_admin():
 def telegram_webhook():
     data = request.get_json(silent=True) or {}
     
-    # --- AQUÍ PEGABOS EL FILTRO DE SEGURIDAD NUEVO ---
+    # 🛡️ FILTRO DE PRIVACIDAD ABSOLUTA PARA EL BOT
     message_data = data.get("message") or {}
     callback_query = data.get("callback_query") or {}
     chat = message_data.get("chat") or callback_query.get("message", {}).get("chat", {})
@@ -658,14 +681,12 @@ def telegram_webhook():
             except:
                 pass
         return jsonify({"status": "unauthorized"}), 200
-    # -------------------------------------------------
 
-    # 1. Manejo de respuestas de texto (Aquí continúa tu código original exactamente igual)
+    # 1. Manejo de respuestas de texto
     message = data.get("message")
     if message and message.get("text"):
         reply_to = message.get("reply_to_message")
         if reply_to and reply_to.get("text"):
-            # ... (todo lo demás que ya tenías abajo sigue igual)
             text_original = reply_to.get("text")
             match = re.search(r'\[ID:(\d+)\]', text_original)
             if match:
@@ -706,7 +727,6 @@ def telegram_webhook():
                         print(f"Error procesando texto en webhook: {e}")
 
     # 2. Manejo de botones de acción (Callback Queries)
-    callback_query = data.get("callback_query")
     if not callback_query:
         return jsonify({"status": "ok"}), 200
 
@@ -717,7 +737,6 @@ def telegram_webhook():
     message_id = message_cb.get("message_id")
     texto_original = message_cb.get("text", "Solicitud")
 
-    # ⚡ RESPUESTA INMEDIATA OBLIGATORIA A TELEGRAM PARA EVITAR EL TIMEOUT (CODE #400)
     try:
         requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery", json={
             "callback_query_id": query_id,
@@ -726,10 +745,8 @@ def telegram_webhook():
     except Exception as e:
         print(f"Error al enviar answerCallbackQuery inicial: {e}")
 
-    # 🔒 Acciones directas de cerrojo de pago
     if supabase_client:
         try:
-            # Definición del teclado que DEBE PERMANECER SIEMPRE VISIBLE
             keyboard_admin = {
                 "inline_keyboard": [
                     [
@@ -753,7 +770,7 @@ def telegram_webhook():
                     "message_id": message_id,
                     "text": f"{texto_original.split('ESTADO:')[0].strip()}\n\n<b>ESTADO: 🔒 CONFIGURACIÓN DE PAGO BLOQUEADA</b>",
                     "parse_mode": "HTML",
-                    "reply_markup": keyboard_admin # 👈 Mantener la botonera visible
+                    "reply_markup": keyboard_admin
                 }, timeout=5)
                 return jsonify({"status": "ok"}), 200
 
@@ -764,7 +781,7 @@ def telegram_webhook():
                     "message_id": message_id,
                     "text": f"{texto_original.split('ESTADO:')[0].strip()}\n\n<b>ESTADO: 🔓 CONFIGURACIÓN DE PAGO DESBLOQUEADA</b>",
                     "parse_mode": "HTML",
-                    "reply_markup": keyboard_admin # 👈 Mantener la botonera visible
+                    "reply_markup": keyboard_admin
                 }, timeout=5)
                 return jsonify({"status": "ok"}), 200
 
@@ -777,7 +794,6 @@ def telegram_webhook():
 
         if supabase_client:
             try:
-                # 🔓 Caso Desbloqueo de Usuario
                 if tipo_accion == "desbloquear":
                     target_user_id = parts[1] if len(parts) > 1 else ""
                     if target_user_id:
@@ -794,7 +810,6 @@ def telegram_webhook():
                     }, timeout=5)
                     return jsonify({"status": "ok"}), 200
 
-                # 🔒 Caso Bloqueo de Usuario
                 if tipo_accion == "bloquear":
                     target_user_id = parts[1] if len(parts) > 1 else ""
                     if target_user_id:
@@ -810,7 +825,6 @@ def telegram_webhook():
                     }, timeout=5)
                     return jsonify({"status": "ok"}), 200
 
-                # 🛒 Caso Compras y Retiros (Ej: compra_aprobar_12 o compra_rechazar_12)
                 if len(parts) >= 3:
                     accion = parts[1]
                     item_id = parts[2]
@@ -851,7 +865,6 @@ def telegram_webhook():
                                         nuevo_saldo = max(0.0, (usr.get("saldo_bs") or 0.0) - float(w["monto_bs"]))
                                         supabase_client.table("usuarios").update({"saldo_bs": nuevo_saldo}).eq("id", w["usuario_id"]).execute()
 
-                    # Actualización visual del mensaje en el chat de Telegram
                     estado_texto = "✅ APROBADO Y APLICADO" if accion == "aprobar" else "❌ RECHAZADO"
                     nuevo_texto_tg = f"{texto_original}\n\n<b>ESTADO: {estado_texto}</b>"
 
