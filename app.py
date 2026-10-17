@@ -246,6 +246,9 @@ def verificar_admin():
                 [
                     {"text": "🚨 Bloquear / Expulsar", "callback_data": f"bloquear_{usuario_id}"},
                     {"text": "🔓 Desbloquear", "callback_data": f"desbloquear_{usuario_id}"}
+                ],
+                [
+                    {"text": "🌐 Entrar al Panel Admin", "url": "https://album-digital-1.onrender.com/admin.html"}
                 ]
             ]
         }
