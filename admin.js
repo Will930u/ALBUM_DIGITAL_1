@@ -16,15 +16,19 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // Verificación inicial al cargar
-  await checkAdminSessionSecurity(activeUserId);
-
   // 🔄 Monitoreo en vivo más agresivo (cada 3 segundos para expulsión casi instantánea)
   setInterval(async () => {
     await checkAdminSessionSecurity(activeUserId);
   }, 3000);
-});
 
+  // 🔄 Actualizar las métricas del panel automáticamente cada 2 segundos
+  setInterval(() => {
+    const metricTab = document.getElementById('adminContentMetricas');
+    if (metricTab && !metricTab.classList.contains('hidden')) {
+      renderFinancialMetrics();
+    }
+  }, 2000);
+}); // <-- Este es el ÚNICO cierre que debe cerrar el DOMContentLoaded de la línea 10
 async function checkAdminSessionSecurity(userId) {
   try {
     const response = await fetch(`${API_URL}/api/verificar-admin`, {
