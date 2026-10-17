@@ -131,25 +131,50 @@ def api_register():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-@app.route("/api/recovery", methods=["POST"])
-def api_recovery():
+@app.route("/api/solicitar-recuperacion", methods=["POST"])
+def solicitar_recuperacion():
     data = request.get_json(silent=True) or {}
     username = str(data.get("username", "")).strip()
     email = str(data.get("email", "")).strip()
+    cedula = str(data.get("cedula", "")).strip()
     telefono = str(data.get("telefono", "")).strip()
 
+    if not all([username, email, cedula, telefono]):
+        return jsonify({"success": False, "message": "Faltan datos obligatorios."}), 400
+
     if not supabase_client:
-        return jsonify({"success": False}), 500
+        return jsonify({"success": False, "message": "Error de base de datos."}), 500
 
     try:
+        # Verificar si el usuario existe en la base de datos
         res = supabase_client.table("usuarios").select("*").eq("username", username).execute()
         user = res.data[0] if res.data and len(res.data) > 0 else None
+
+        if not user:
+            return jsonify({"success": False, "message": "El nombre de usuario no existe en el sistema."}), 404
+
+        # Enviar la alerta detallada al chat de Telegram del Administrador
+        mensaje_admin = (
+            f"🔑 <b>¡SOLICITUD DE RECUPERACIÓN DE CONTRASEÑA!</b>\n\n"
+            f"👤 <b>Usuario:</b> <code>{username}</code>\n"
+            f"📧 <b>Correo:</b> <code>{email}</code>\n"
+            f"🆔 <b>Cédula:</b> <code>{cedula}</code>\n"
+            f"📱 <b>Teléfono:</b> <code>{telefono}</code>\n\n"
+            f"<i>⚠️ Valida estos datos llamando o escribiendo al usuario antes de entregar su contraseña.</i>"
+        )
         
-        if user and user.get("gmail", "").lower() == email.lower() and user.get("telefono", "").strip() == telefono.strip():
-            return jsonify({"success": True}), 200
-        return jsonify({"success": False}), 400
+        keyboard = {
+            "inline_keyboard": [
+                [{"text": "📞 Contactar por WhatsApp", "url": f"https://wa.me/58{telefono.replace('0', '', 1)}"}]
+            ]
+        }
+
+        send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje_admin, reply_markup=keyboard)
+
+        return jsonify({"success": True, "message": "Solicitud enviada al administrador."}), 200
+
     except Exception as e:
-        print(f"Error en recovery: {e}")
+        print(f"Error en solicitar_recuperacion: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/api/usuario/info", methods=["POST"])
