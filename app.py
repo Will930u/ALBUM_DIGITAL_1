@@ -179,7 +179,6 @@ def notificar_login():
     if not usuario_id:
         return jsonify({"status": "error", "message": "ID no proporcionado"}), 400
 
-    # Mensaje diferenciado si es el administrador o un usuario normal
     if usuario_id.upper() == ADMIN_USER_ID.upper():
         mensaje = (
             f"🟢 <b>¡INICIO DE SESIÓN DE ADMIN!</b>\n\n"
@@ -222,23 +221,35 @@ def verificar_admin():
     data = request.get_json(silent=True) or {}
     usuario_id = str(data.get("usuario_id", "")).strip()
 
-    # 🛡️ BLINDAJE ABSOLUTO EN BACKEND: El administrador NUNCA toca la base de datos de intentos
-   if usuario_id.upper() == ADMIN_USER_ID.upper():
-    alerta_admin_msg = (
-        f"🔐 <b>¡ACCESO DE ADMINISTRADOR DETECTADO!</b>\n\n"
-        f"👤 <b>Usuario:</b> <code>{usuario_id}</code>\n"
-        f"🌐 Se ha iniciado sesión correctamente en el Panel de Administración.\n\n"
-        f"<i>¿No fuiste tú? Bloquea el acceso de inmediato usando el botón de abajo.</i>"
-    )
-    keyboard_admin = {
-        "inline_keyboard": [
-            [
-                {"text": "🚨 Bloquear / Expulsar", "callback_data": f"bloquear_{usuario_id}"},
-                {"text": "🔓 Desbloquear", "callback_data": f"desbloquear_{usuario_id}"}
+    # 🛡️ VERIFICAR PRIMERO EN SUPABASE SI ESTÁ BLOQUEADO (INCLUSO EL ADMIN PRINCIPAL)
+    if supabase_client:
+        try:
+            usr_res = supabase_client.table("usuarios").select("*").eq("id", usuario_id).execute()
+            if usr_res.data and len(usr_res.data) > 0:
+                usr = usr_res.data[0]
+                if usr.get("bloqueado") is True:
+                    return jsonify({"status": "blocked", "bloqueado": True, "message": "Acceso revocado por el administrador."}), 403
+        except Exception as e:
+            print(f"Error consultando estado de bloqueo: {e}")
+
+    # Si es el administrador autorizado y NO está bloqueado
+    if usuario_id.upper() == ADMIN_USER_ID.upper():
+        # Verificamos si ya se envió la notificación o enviamos la alerta de acceso al ingresar por primera vez
+        alerta_admin_msg = (
+            f"🔐 <b>¡ACCESO DE ADMINISTRADOR DETECTADO!</b>\n\n"
+            f"👤 <b>Usuario:</b> <code>{usuario_id}</code>\n"
+            f"🌐 Se ha iniciado sesión correctamente en el Panel de Administración.\n\n"
+            f"<i>¿No fuiste tú? Bloquea el acceso de inmediato usando el botón de abajo.</i>"
+        )
+        keyboard_admin = {
+            "inline_keyboard": [
+                [
+                    {"text": "🚨 Bloquear / Expulsar", "callback_data": f"bloquear_{usuario_id}"},
+                    {"text": "🔓 Desbloquear", "callback_data": f"desbloquear_{usuario_id}"}
+                ]
             ]
-        ]
-    }
-    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, alerta_admin_msg, reply_markup=keyboard_admin)
+        }
+        send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, alerta_admin_msg, reply_markup=keyboard_admin)
         return jsonify({"status": "authorized"}), 200
 
     if supabase_client:
@@ -345,7 +356,6 @@ def admin_metricas():
     if not supabase_client:
         return jsonify({"total_sales": 0, "bcv_rate": 1.0, "approved_count": 0, "stickers_sold": 0}), 200
     try:
-        # Consultar transacciones aprobadas
         res = supabase_client.table("transacciones").select("*").eq("estado", "aprobado").execute()
         transacciones = res.data or []
         
@@ -353,7 +363,6 @@ def admin_metricas():
         approved_count = len(transacciones)
         stickers_sold = sum([int(t.get("barajitas_qty") or 0) for t in transacciones])
         
-        # Intentar obtener la tasa BCV actual en vivo para mantener la referencia dual
         bcv_rate = 1.0
         try:
             r_bcv = requests.get("https://ve.dolarapi.com/v1/dolares/oficial", timeout=3)
@@ -613,14 +622,13 @@ def procesar_retiro_admin():
     return jsonify({"status": "error", "message": "Sin conexión"}), 500
 
 # ==========================================
-# WEBHOOK DE TELEGRAM (ACTUALIZADO CON NOTIFICACIONES AL USUARIO)
+# WEBHOOK DE TELEGRAM
 # ==========================================
 
 @app.route("/api/telegram-webhook", methods=["POST"])
 def telegram_webhook():
     data = request.get_json(silent=True) or {}
     
-    # 1. Manejo de respuestas por texto (para retiros)
     message = data.get("message")
     if message and message.get("text"):
         reply_to = message.get("reply_to_message")
@@ -640,20 +648,17 @@ def telegram_webhook():
                             tipo_retiro = w.get("tipo", "")
                             milestone_val = int(w.get("milestone") or 0)
 
-                            # 1. Actualizar el retiro con la referencia y estado aprobado
                             supabase_client.table("retiros").update({
                                 "estado": "aprobado",
                                 "referencia": referencia_ingresada
                             }).eq("id", w_id).execute()
 
-                            # 2. Aplicar el reinicio del álbum si es liquidación total o ciclo completo
                             if tipo_retiro == "liquidacion_total" or milestone_val >= 2000 or tipo_retiro == "ciclo_completo":
                                 supabase_client.table("usuarios").update({
                                     "cantidad_barajitas": 0,
                                     "saldo_bs": 0.0
                                 }).eq("id", w["usuario_id"]).execute()
                             else:
-                                # Descontar solo el monto del hito parcial del saldo
                                 usr_res = supabase_client.table("usuarios").select("*").eq("id", w["usuario_id"]).execute()
                                 if usr_res.data:
                                     usr = usr_res.data[0]
@@ -666,7 +671,7 @@ def telegram_webhook():
                             return jsonify({"status": "ok"}), 200
                     except Exception as e:
                         print(f"Error procesando mensaje de texto en webhook: {e}")
-    # 2. Manejo de clics en botones interactivos (Inline Buttons)
+
     callback_query = data.get("callback_query")
     if not callback_query:
         return jsonify({"status": "ok"}), 200
@@ -693,7 +698,6 @@ def telegram_webhook():
                             "intentos_admin": 0
                         }).eq("id", target_user_id).execute()
 
-                    # Solo enviamos la notificación flotante en Telegram sin borrar los botones
                     requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery", json={
                         "callback_query_id": query_id, 
                         "text": f"🔓 ¡Usuario {target_user_id} desbloqueado con éxito!",
@@ -709,14 +713,13 @@ def telegram_webhook():
                             "bloqueado": True
                         }).eq("id", target_user_id).execute()
 
-                    # Solo enviamos la alerta flotante manteniendo los botones intactos en el chat
                     requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery", json={
                         "callback_query_id": query_id, 
                         "text": f"🚨 ¡Usuario {target_user_id} BLOQUEADO Y EXPULSADO del panel!",
                         "show_alert": True
                     }, timeout=5)
                     return jsonify({"status": "ok"}), 200
-                # Casos con 3 partes (Compras y Retiros)
+
                 if len(parts) >= 3:
                     accion = parts[1]
                     item_id = parts[2]
@@ -740,7 +743,6 @@ def telegram_webhook():
                                         "saldo_bs": (usr.get("saldo_bs") or 0.0) + (monto_bs_total * 0.70)
                                     }).eq("id", tx["usuario_id"]).execute()
 
-                                    # Notificación al administrador sobre la aplicación de la compra
                                     msg_admin = (
                                         f"✅ <b>COMPRA APROBADA Y APLICADA</b>\n\n"
                                         f"👤 <b>Usuario:</b> <code>{tx['usuario_id']}</code>\n"
@@ -790,6 +792,7 @@ def telegram_webhook():
                 traceback.print_exc()
 
     return jsonify({"status": "ok"}), 200
+
 if __name__ == "__main__":
     port = int(os.environ.get("PORT", 5000))
     app.run(host="0.0.0.0", port=port, debug=False)
