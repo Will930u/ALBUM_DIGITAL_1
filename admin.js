@@ -99,9 +99,63 @@ async function loadPlatformConfigAdmin() {
       document.getElementById('cfgTelefono').value = data.telefono || '';
       document.getElementById('cfgCedula').value = data.cedula || '';
       document.getElementById('cfgTitular').value = data.titular || '';
+
+      // 🔒 Control del cerrojo de seguridad remoto
+      const estaBloqueado = data.pago_bloqueado === true;
+      const btnGuardar = document.getElementById('btnGuardarConfig');
+      const inputs = ['cfgBanco', 'cfgTelefono', 'cfgCedula', 'cfgTitular'];
+      const avisoBloqueo = document.getElementById('avisoBloqueoConfig');
+
+      inputs.forEach(id => {
+        const el = document.getElementById(id);
+        if (el) el.disabled = estaBloqueado;
+      });
+
+      if (btnGuardar) {
+        btnGuardar.disabled = estaBloqueado;
+        if (estaBloqueado) {
+          btnGuardar.className = "w-full py-3 bg-slate-800 text-slate-500 font-bold rounded-xl text-sm cursor-not-allowed border border-red-500/30";
+          btnGuardar.innerText = "🔒 CONFIGURACIÓN BLOQUEADA DESDE TELEGRAM";
+        } else {
+          btnGuardar.className = "w-full py-3 bg-gradient-to-r from-purple-600 to-blue-600 text-white font-bold rounded-xl text-sm transition hover:opacity-90";
+          btnGuardar.innerText = "GUARDAR DATOS DE PAGO";
+        }
+      }
+
+      if (avisoBloqueo) {
+        avisoBloqueo.innerHTML = estaBloqueado 
+          ? `<div class="p-3 bg-red-950/50 border border-red-500/40 rounded-xl text-xs text-red-300 text-center font-bold">🔒 Cerrojo Activo: Los datos de pago están protegidos contra modificaciones. Desbloquéalos desde tu bot de Telegram si necesitas editarlos.</div>`
+          : `<div class="p-3 bg-emerald-950/50 border border-emerald-500/40 rounded-xl text-xs text-emerald-300 text-center font-bold">🔓 Cerrojo Abierto: Puedes editar y guardar los datos de pago.</div>`;
+      }
     }
   } catch (err) {
     console.error('Error al cargar configuración:', err);
+  }
+}
+
+async function savePlatformConfig(e) {
+  e.preventDefault();
+  const banco = document.getElementById('cfgBanco').value.trim();
+  const telefono = document.getElementById('cfgTelefono').value.trim();
+  const cedula = document.getElementById('cfgCedula').value.trim();
+  const titular = document.getElementById('cfgTitular').value.trim();
+
+  try {
+    const res = await fetch(`${API_URL}/api/admin/configuracion`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ banco, telefono, cedula, titular })
+    });
+
+    const resultado = await res.json();
+
+    if (res.ok && resultado.success) {
+      alert('¡Datos de pago de la plataforma actualizados con éxito!');
+    } else {
+      alert(resultado.error || 'Error al guardar la configuración (Posiblemente bloqueada por seguridad).');
+    }
+  } catch (err) {
+    console.error('Error:', err);
   }
 }
 
