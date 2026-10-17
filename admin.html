@@ -13,9 +13,7 @@
 </head>
 <body class="flex flex-col min-h-screen bg-[#080314] text-slate-100">
 
-   <!-- ==========================================
-       VIDEO DE HUMO GENERAL DE FONDO
-       ========================================== -->
+   <!-- VIDEO DE HUMO GENERAL DE FONDO -->
  <video autoplay muted loop playsinline class="bg-smoke-video">
   <source src="smoke.mp4" type="video/mp4">
 </video>
@@ -43,8 +41,8 @@
       <div class="metal-card p-6 md:p-8 space-y-6">
         
         <div class="flex justify-between items-center border-b border-purple-500/30 pb-4">
-          <h2 class="text-2xl font-bold glow-text">CENTRO DE INTELIGENCIA FINANCIERA</h2>
-          <span class="text-xs text-purple-300 font-mono">Modo Auditoría Activo</span>
+          <h2 class="text-2xl font-bold glow-text">CENTRO DE INTELIGENCIA FINANCIERA Y OPERATIVA</h2>
+          <span class="text-xs text-purple-300 font-mono">Modo Auditoría en Vivo</span>
         </div>
 
         <!-- Pestañas de Navegación del Panel -->
@@ -53,7 +51,7 @@
           <button onclick="switchAdminTab('retiros')" id="tabAdminRetiros" class="pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap">Solicitudes de Retiro</button>
           <button onclick="switchAdminTab('imagenes')" id="tabAdminImagenes" class="pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap">Carga Masiva</button>
           <button onclick="switchAdminTab('metricas')" id="tabAdminMetricas" class="pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap">Métricas y Caja (30%/70%)</button>
-          <button onclick="switchAdminTab('usuarios')" id="tabAdminUsuarios" class="pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap">Usuarios</button>
+          <button onclick="switchAdminTab('usuarios')" id="tabAdminUsuarios" class="pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap">Usuarios y Trazabilidad</button>
           <button onclick="switchAdminTab('config')" id="tabAdminConfig" class="pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap">Configuración de Pago</button>
         </div>
 
@@ -85,25 +83,38 @@
         <div id="adminContentImagenes" class="hidden space-y-4">
           <div class="bg-slate-950/60 p-5 rounded-xl border border-purple-500/30 space-y-4">
             <h3 class="text-base font-bold text-purple-200">Subida Masiva de Barajitas a Supabase Storage</h3>
-            <p class="text-xs text-slate-400">Selecciona imágenes nombradas con su número respectivo (Ej: 1.jpg, 2.jpg) o un archivo comprimido ZIP.</p>
+            <p class="text-xs text-slate-400">Selecciona imágenes nombradas con su número respectivo (Ej: 1.jpg, 2.jpg).</p>
             <form onsubmit="uploadStickerImagesBatch(event)" class="space-y-3">
               <input type="file" id="imgFileAssetBatch" accept="image/*,application/zip" multiple required class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-xs text-slate-300">
               <button type="submit" class="metal-button w-full py-3 rounded-lg text-xs font-bold text-white transition">Iniciar Carga Masiva</button>
             </form>
-            <div id="uploadProgressContainer" class="hidden space-y-1">
-              <span id="uploadProgressLabel" class="text-xs text-purple-300">Procesando...</span>
-              <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden"><div id="uploadProgressBar" class="bg-purple-600 h-full w-0 transition-all"></div></div>
-            </div>
           </div>
         </div>
 
-        <!-- Sub-tab: Métricas y Caja Avanzadas (Doble Divisa) -->
+        <!-- Sub-tab: Métricas y Caja Avanzadas (Doble Divisa + En Vivo) -->
         <div id="adminContentMetricas" class="hidden space-y-6">
           
-          <!-- Tarjetas de Indicadores Principales (KPIs) -->
+          <!-- Tarjetas Estadísticas en Vivo (Usuarios Totales y Activos) -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div class="bg-slate-950/70 p-5 rounded-2xl border border-indigo-500/30 flex items-center justify-between shadow-lg">
+              <div>
+                <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Total Registrados</span>
+                <p id="metricTotalUsers" class="text-2xl font-extrabold text-indigo-400 mt-1">0</p>
+              </div>
+              <div class="p-3 bg-indigo-950/50 rounded-xl border border-indigo-500/40 text-indigo-300 font-bold text-sm">👥 Usuarios</div>
+            </div>
+
+            <div class="bg-slate-950/70 p-5 rounded-2xl border border-emerald-500/30 flex items-center justify-between shadow-lg">
+              <div>
+                <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold">En Línea (Tiempo Real)</span>
+                <p id="metricOnlineUsers" class="text-2xl font-extrabold text-emerald-400 mt-1">0</p>
+              </div>
+              <div class="p-3 bg-emerald-950/50 rounded-xl border border-emerald-500/40 text-emerald-300 font-bold text-sm animate-pulse">🟢 Conectados</div>
+            </div>
+          </div>
+
+          <!-- Tarjetas de Indicadores Financieros (KPIs) -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
-            
-            <!-- Ventas Totales -->
             <div class="bg-slate-950/70 p-5 rounded-2xl border border-blue-500/30 space-y-2 shadow-lg">
               <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Ventas Brutas Totales (100%)</span>
               <div>
@@ -112,7 +123,6 @@
               </div>
             </div>
 
-            <!-- Caja Plataforma (30%) -->
             <div class="bg-slate-950/70 p-5 rounded-2xl border border-purple-500/30 space-y-2 shadow-lg">
               <span class="text-xs uppercase tracking-wider text-purple-300 font-semibold">Caja Plataforma (30%)</span>
               <div>
@@ -121,7 +131,6 @@
               </div>
             </div>
 
-            <!-- Valor Neto Usuarios (70%) -->
             <div class="bg-slate-950/70 p-5 rounded-2xl border border-emerald-500/30 space-y-2 shadow-lg">
               <span class="text-xs uppercase tracking-wider text-emerald-300 font-semibold">Fondo Neto Usuarios (70%)</span>
               <div>
@@ -129,13 +138,10 @@
                 <p id="metricUserNetValueUsd" class="text-xs font-mono text-slate-300 mt-0.5">($0.00 USD)</p>
               </div>
             </div>
-
           </div>
 
-          <!-- Panel Analítico Secundario y Gráfica -->
+          <!-- Gráfica -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            
-            <!-- Resumen Operativo de Auditoría -->
             <div class="bg-slate-950/70 p-5 rounded-2xl border border-purple-500/20 space-y-3 flex flex-col justify-between">
               <h4 class="text-sm font-bold text-purple-200 border-b border-purple-500/20 pb-2">Resumen de Auditoría</h4>
               <div class="space-y-2 text-xs text-slate-300">
@@ -143,26 +149,27 @@
                 <div class="flex justify-between"><span>Barajitas Comercializadas:</span> <span id="metricTotalStickersSold" class="font-bold text-white">0</span></div>
                 <div class="flex justify-between"><span>Tasa BCV de Referencia:</span> <span id="metricBcvReference" class="font-mono text-emerald-400">Calculando...</span></div>
               </div>
-              <div class="p-2.5 rounded-xl bg-purple-900/20 border border-purple-500/30 text-[11px] text-purple-200">
-                🔒 Cálculos en tiempo real sincronizados con la base de datos y la tasa oficial.
-              </div>
             </div>
-
-            <!-- Contenedor del Gráfico Dinámico -->
             <div class="md:col-span-2 bg-slate-950/70 p-4 rounded-2xl border border-purple-500/20 h-64 flex items-center justify-center relative">
               <canvas id="financialChart"></canvas>
             </div>
-
           </div>
 
         </div>
 
-        <!-- Sub-tab: Usuarios -->
+        <!-- Sub-tab: Usuarios y Trazabilidad -->
         <div id="adminContentUsuarios" class="hidden space-y-4">
           <div class="overflow-x-auto">
             <table class="w-full text-left text-sm text-slate-300">
               <thead class="bg-slate-900/80 text-xs uppercase text-purple-300">
-                <tr><th class="p-3">Usuario</th><th class="p-3">Gmail</th><th class="p-3">Barajitas</th><th class="p-3">Saldo Bs.</th><th class="p-3 text-center">Estado</th></tr>
+                <tr>
+                  <th class="p-3">Usuario</th>
+                  <th class="p-3">Gmail</th>
+                  <th class="p-3">Barajitas</th>
+                  <th class="p-3">Saldo Bs.</th>
+                  <th class="p-3">Trazabilidad Legal (Aceptación)</th>
+                  <th class="p-3 text-center">Estado (Bloqueo)</th>
+                </tr>
               </thead>
               <tbody id="userListTable"></tbody>
             </table>
