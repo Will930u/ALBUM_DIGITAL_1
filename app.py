@@ -642,11 +642,30 @@ def procesar_retiro_admin():
 def telegram_webhook():
     data = request.get_json(silent=True) or {}
     
-    # 1. Manejo de respuestas de texto (por ejemplo, al responder con número de referencia)
+    # --- AQUÍ PEGABOS EL FILTRO DE SEGURIDAD NUEVO ---
+    message_data = data.get("message") or {}
+    callback_query = data.get("callback_query") or {}
+    chat = message_data.get("chat") or callback_query.get("message", {}).get("chat", {})
+    remitente_chat_id = str(chat.get("id", ""))
+    
+    if remitente_chat_id != str(TELEGRAM_ADMIN_CHAT_ID):
+        if remitente_chat_id:
+            try:
+                requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage", json={
+                    "chat_id": remitente_chat_id,
+                    "text": "⛔ <b>Acceso denegado:</b> Bot exclusivo del administrador."
+                }, timeout=5)
+            except:
+                pass
+        return jsonify({"status": "unauthorized"}), 200
+    # -------------------------------------------------
+
+    # 1. Manejo de respuestas de texto (Aquí continúa tu código original exactamente igual)
     message = data.get("message")
     if message and message.get("text"):
         reply_to = message.get("reply_to_message")
         if reply_to and reply_to.get("text"):
+            # ... (todo lo demás que ya tenías abajo sigue igual)
             text_original = reply_to.get("text")
             match = re.search(r'\[ID:(\d+)\]', text_original)
             if match:
