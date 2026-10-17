@@ -1,561 +1,365 @@
 const API_URL = "https://album-digital-1.onrender.com";
 
-const STATE = {
-  currentPage: 1, totalPages: 80, stickersPerPage: 25, totalStickers: 2000,
-  bcvRate: 36.5, userId: localStorage.getItem('active_user_id') || null,
-  userStickersCount: 0, userBalanceBs: 0, 
-  // Datos de pago precargados desde la tabla de usuarios de Supabase
-  userBanco: '', userCedula: '', userTelefono: '',
-  claimedMilestones: [], selectedMilestone: null,
-  isProcessingWithdrawal: false, logoClicks: 0, clickTimer: null,
-  notifiedTransactions: new Set(),
-  notifiedWithdrawals: new Set(),
-  isInitialLoad: true
-};
-
-// Variables globales para el visor de pantalla completa (Lightbox)
-let currentModalIndex = 0;
-let allPageStickers = [];
-
-document.addEventListener('DOMContentLoaded', async () => {
-  if (!STATE.userId) {
-    window.location.href = 'index.html';
-    return;
-  }
-  try {
-    lucide.createIcons();
-    setupLogoClickCounter();
-    await fetchBcvRate();
-    await loadUserDataFromDB();
-    renderAlbumPage();
-    setupSwipeGestures();
-    
-    // Iniciar verificación periódica en tiempo real (cada 5 segundos)
-    initUserPollingNotifications(STATE.userId);
-  } catch (err) {
-    console.error("Error al inicializar el álbum:", err);
-  }
-});
-
-async function logoutUser() {
-  const activeUserId = localStorage.getItem('active_user_id');
-  
-  if (activeUserId) {
-    try {
-      await fetch(`${API_URL}/api/notificar-logout`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuario_id: activeUserId })
-      });
-    } catch (err) {
-      console.error('Error al notificar cierre de sesión:', err);
-    }
-  }
-
+// 🛡️ FUNCIÓN GLOBAL DE EXPULSIÓN Y CIERRE DE SESIÓN
+function forceLogoutAndExit(mensaje = "Tu acceso ha sido revocado remotamente.") {
+  alert(mensaje);
   localStorage.removeItem('active_user_id');
   window.location.href = 'index.html';
 }
 
-// ----------------------------------------------------
-// SISTEMA DE NOTIFICACIONES FLOTANTES EN TIEMPO REAL
-// ----------------------------------------------------
-function showFloatingNotification(message, type = 'success') {
-  let container = document.getElementById('floatingNotificationsContainer');
-  if (!container) {
-    container = document.createElement('div');
-    container.id = 'floatingNotificationsContainer';
-    container.className = 'fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-md w-full px-4 pointer-events-none';
-    document.body.appendChild(container);
-  }
-
-  const notif = document.createElement('div');
-  notif.className = `pointer-events-auto p-4 rounded-2xl shadow-2xl border backdrop-blur-md transition-all transform translate-y-[-20px] opacity-0 flex items-start gap-3 ${
-    type === 'success' 
-      ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200' 
-      : 'bg-purple-950/90 border-purple-500/50 text-purple-200'
-  }`;
-
-  notif.innerHTML = `
-    <div class="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 mt-0.5">
-      <i data-lucide="${type === 'success' ? 'check-circle-2' : 'bell'}" class="w-5 h-5"></i>
-    </div>
-    <div class="flex-1">
-      <h4 class="font-bold text-sm text-white">¡Actualización en tu Álbum!</h4>
-      <p class="text-xs mt-0.5 leading-relaxed">${message}</p>
-    </div>
-    <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white text-sm font-bold">&times;</button>
-  `;
-
-  container.appendChild(notif);
-  lucide.createIcons();
-
-  setTimeout(() => {
-    notif.classList.remove('translate-y-[-20px]', 'opacity-0');
-  }, 50);
-
-  setTimeout(() => {
-    notif.classList.add('translate-y-[-20px]', 'opacity-0');
-    setTimeout(() => notif.remove(), 300);
-  }, 8000);
-}
-
-function renderAlbumPage() {
-  const grid = document.getElementById('stickersGrid');
-  if (!grid) return;
-  grid.style.opacity = '0';
+// 🛡️ VALIDACIÓN DE SEGURIDAD INICIAL Y MONITOREO ACTIVO
+document.addEventListener('DOMContentLoaded', async () => {
+  const activeUserId = localStorage.getItem('active_user_id');
   
-  setTimeout(() => {
-    grid.innerHTML = '';
-    const startIndex = (STATE.currentPage - 1) * STATE.stickersPerPage + 1;
-    const endIndex = startIndex + STATE.stickersPerPage - 1;
+  if (!activeUserId) {
+    window.location.href = 'index.html';
+    return;
+  }
 
-    allPageStickers = [];
+  // Verificación inicial al cargar
+  await checkAdminSessionSecurity(activeUserId);
 
-    for (let i = startIndex; i <= endIndex; i++) {
-      const isUnlocked = i <= STATE.userStickersCount;
-      const isMilestone = (i % 500 === 0);
-      const slot = document.createElement('div');
-      slot.className = `metal-slot sticker-card aspect-[2.5/3.5] w-full rounded-xl flex flex-col items-center justify-center p-2 relative overflow-hidden cursor-pointer ${isUnlocked ? 'filled' : ''} ${isMilestone ? 'milestone-slot' : ''}`;
-      
-      if (isUnlocked) {
-        const imgUrl = `https://dxicbitnnesjsqzxisea.supabase.co/storage/v1/object/public/barajitas/${i}.jpg?t=${Date.now()}`;
-        
-        const stickerObj = {
-          image: imgUrl,
-          title: `Barajita #${i}`
-        };
-        allPageStickers.push(stickerObj);
-        const currentIndexInPage = allPageStickers.length - 1;
+  // 🔄 Monitoreo en vivo más agresivo (cada 3 segundos para expulsión casi instantánea)
+  setInterval(async () => {
+    await checkAdminSessionSecurity(activeUserId);
+  }, 3000);
+});
 
-        slot.innerHTML = `<img src="${imgUrl}" class="sticker-img pointer-events-none" onerror="this.src='https://via.placeholder.com/150/1e1b4b/a855f7?text=${i}'"><span class="absolute bottom-1 right-1 bg-black/80 px-1.5 rounded text-[10px] font-bold text-purple-300">#${i}</span>`;
-        
-        if (isMilestone) {
-          slot.onclick = () => openWithdrawModal();
-        } else {
-          slot.onclick = () => {
-            triggerStickerAnimation(slot);
-            openStickerModal(stickerObj.image, stickerObj.title, currentIndexInPage);
-          };
-        }
-      } else {
-        slot.innerHTML = `<i data-lucide="${isMilestone ? 'award' : 'lock'}" class="w-6 h-6 text-purple-500/40 mb-1"></i><span class="text-xs font-bold text-slate-500">#${i}</span>`;
-      }
-      grid.appendChild(slot);
+async function checkAdminSessionSecurity(userId) {
+  try {
+    const response = await fetch(`${API_URL}/api/verificar-admin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario_id: userId })
+    });
+    
+    const data = await response.json();
+    
+    if (response.status === 403 || data.status === 'blocked' || data.bloqueado === true) {
+      forceLogoutAndExit("🚨 ¡Acceso revocado! Has sido expulsado del panel de administración.");
     }
-    lucide.createIcons();
-    grid.style.opacity = '1';
-  }, 150);
-}
-
-function changePage(delta) {
-  const p = STATE.currentPage + delta;
-  if (p >= 1 && p <= STATE.totalPages) {
-    STATE.currentPage = p;
-    document.getElementById('currentPageNum').innerText = p;
-    renderAlbumPage();
+  } catch (e) {
+    console.error("Error en verificación de seguridad en vivo:", e);
   }
 }
 
-async function fetchBcvRate() {
+function switchAdminTab(tab) {
+  document.getElementById('adminContentPagos').classList.add('hidden');
+  document.getElementById('adminContentRetiros').classList.add('hidden');
+  document.getElementById('adminContentImagenes').classList.add('hidden');
+  document.getElementById('adminContentMetricas').classList.add('hidden');
+  document.getElementById('adminContentUsuarios').classList.add('hidden');
+  const cfgDiv = document.getElementById('adminContentConfig');
+  if (cfgDiv) cfgDiv.classList.add('hidden');
+
+  document.getElementById('tabAdminPagos').className = "pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap";
+  document.getElementById('tabAdminRetiros').className = "pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap";
+  document.getElementById('tabAdminImagenes').className = "pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap";
+  document.getElementById('tabAdminMetricas').className = "pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap";
+  document.getElementById('tabAdminUsuarios').className = "pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap";
+  const tabCfg = document.getElementById('tabAdminConfig');
+  if (tabCfg) tabCfg.className = "pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap";
+
+  if (tab === 'pagos') {
+    document.getElementById('adminContentPagos').classList.remove('hidden');
+    document.getElementById('tabAdminPagos').className = "pb-3 font-semibold text-sm border-b-2 border-purple-500 text-purple-300 whitespace-nowrap";
+    loadPendingPayments();
+  } else if (tab === 'retiros') {
+    document.getElementById('adminContentRetiros').classList.remove('hidden');
+    document.getElementById('tabAdminRetiros').className = "pb-3 font-semibold text-sm border-b-2 border-purple-500 text-purple-300 whitespace-nowrap";
+    loadPendingWithdrawals();
+  } else if (tab === 'imagenes') {
+    document.getElementById('adminContentImagenes').classList.remove('hidden');
+    document.getElementById('tabAdminImagenes').className = "pb-3 font-semibold text-sm border-b-2 border-purple-500 text-purple-300 whitespace-nowrap";
+  } else if (tab === 'metricas') {
+    document.getElementById('adminContentMetricas').classList.remove('hidden');
+    document.getElementById('tabAdminMetricas').className = "pb-3 font-semibold text-sm border-b-2 border-purple-500 text-purple-300 whitespace-nowrap";
+    renderFinancialMetrics();
+  } else if (tab === 'usuarios') {
+    document.getElementById('adminContentUsuarios').classList.remove('hidden');
+    document.getElementById('tabAdminUsuarios').className = "pb-3 font-semibold text-sm border-b-2 border-purple-500 text-purple-300 whitespace-nowrap";
+    loadUserList();
+  } else if (tab === 'config') {
+    if (cfgDiv) cfgDiv.classList.remove('hidden');
+    if (tabCfg) tabCfg.className = "pb-3 font-semibold text-sm border-b-2 border-purple-500 text-purple-300 whitespace-nowrap";
+    loadPlatformConfigAdmin();
+  }
+}
+
+async function loadPlatformConfigAdmin() {
   try {
-    const res = await fetch(`${API_URL}/api/bcv`);
+    const res = await fetch(`${API_URL}/api/admin/configuracion`);
     const data = await res.json();
-    if (data.promedio) {
-      STATE.bcvRate = data.promedio;
+    if (data) {
+      document.getElementById('cfgBanco').value = data.banco || '';
+      document.getElementById('cfgTelefono').value = data.telefono || '';
+      document.getElementById('cfgCedula').value = data.cedula || '';
+      document.getElementById('cfgTitular').value = data.titular || '';
+    }
+  } catch (err) {
+    console.error('Error al cargar configuración:', err);
+  }
+}
+
+async function savePlatformConfig(e) {
+  e.preventDefault();
+  const banco = document.getElementById('cfgBanco').value.trim();
+  const telefono = document.getElementById('cfgTelefono').value.trim();
+  const cedula = document.getElementById('cfgCedula').value.trim();
+  const titular = document.getElementById('cfgTitular').value.trim();
+
+  try {
+    const res = await fetch(`${API_URL}/api/admin/configuracion`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ banco, telefono, cedula, titular })
+    });
+
+    if (res.ok) {
+      alert('¡Datos de pago de la plataforma actualizados con éxito!');
+    } else {
+      alert('Error al guardar la configuración.');
+    }
+  } catch (err) {
+    console.error('Error:', err);
+  }
+}
+
+async function loadPendingPayments() {
+  const tbody = document.getElementById('pendingPaymentsTable');
+  tbody.innerHTML = '';
+  try {
+    const res = await fetch(`${API_URL}/api/admin/pagos-pendientes`);
+    const data = await res.json();
+
+    if (!data || data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Sin pagos pendientes en transacciones.</td></tr>`;
       return;
     }
-  } catch (e) {}
 
-  try {
-    const res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
-    const data = await res.json();
-    if (data.promedio) {
-      STATE.bcvRate = data.promedio;
-    }
-  } catch (e) {}
+    data.forEach(tx => {
+      const montoVal = tx.monto_bs !== null && tx.monto_bs !== undefined ? tx.monto_bs : (tx.monto !== null && tx.monto !== undefined ? tx.monto : 0.00);
+      tbody.innerHTML += `
+        <tr class="border-b border-slate-800">
+          <td class="p-3">${new Date(tx.created_at).toLocaleString()}</td>
+          <td class="p-3 font-mono">${tx.usuario_id || 'N/A'}</td>
+          <td class="p-3">${tx.barajitas_qty || 0}</td>
+          <td class="p-3">Bs. ${parseFloat(montoVal).toFixed(2)}</td>
+          <td class="p-3 font-mono">${tx.referencia || 'S/N'}</td>
+          <td class="p-3 text-center space-x-1">
+            <button onclick="processAdminPayment(${tx.id}, 'aprobar')" class="px-2.5 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs font-bold transition">Aprobar</button>
+            <button onclick="processAdminPayment(${tx.id}, 'rechazar')" class="px-2.5 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-xs font-bold transition">Rechazar</button>
+          </td>
+        </tr>`;
+    });
+  } catch (err) {
+    tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-red-500">Error al cargar pagos pendientes.</td></tr>`;
+  }
 }
 
-async function loadUserDataFromDB() {
+async function processAdminPayment(txId, accion) {
   try {
-    const res = await fetch(`${API_URL}/api/usuario/info`, {
+    const res = await fetch(`${API_URL}/api/procesar-compra-admin`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usuario_id: STATE.userId })
+      body: JSON.stringify({ tx_id: txId, accion: accion })
     });
+    if (res.ok) {
+      loadPendingPayments();
+    } else {
+      console.error('Error al procesar la compra.');
+    }
+  } catch (err) {
+    console.error('Error de conexión al procesar el pago:', err);
+  }
+}
+
+async function loadPendingWithdrawals() {
+  const tbody = document.getElementById('pendingWithdrawalsTable');
+  tbody.innerHTML = '';
+  try {
+    const res = await fetch(`${API_URL}/api/admin/retiros-pendientes`);
+    const data = await res.json();
+    if (!data || data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">Sin retiros pendientes.</td></tr>`;
+      return;
+    }
+    data.forEach(w => {
+      tbody.innerHTML += `
+        <tr class="border-b border-slate-800">
+          <td class="p-3">${new Date(w.created_at).toLocaleString()}</td>
+          <td class="p-3 font-mono">${w.usuario_id}</td>
+          <td class="p-3">${w.tipo}</td>
+          <td class="p-3">$${w.monto_usd}</td>
+          <td class="p-3">${w.datos_pago}</td>
+          <td class="p-3 text-center space-x-1">
+            <button onclick="processAdminWithdrawal(${w.id}, 'aprobar')" class="px-2.5 py-1 bg-emerald-600 text-white rounded text-xs font-bold transition">Aprobar</button>
+            <button onclick="processAdminWithdrawal(${w.id}, 'rechazar')" class="px-2.5 py-1 bg-red-600 text-white rounded text-xs font-bold transition">Rechazar</button>
+          </td>
+        </tr>`;
+    });
+  } catch (err) {
+    console.error('Error al cargar retiros:', err);
+  }
+}
+
+async function processAdminWithdrawal(wId, accion) {
+  let referencia = '';
+  if (accion === 'aprobar') {
+    referencia = prompt("Ingresa el número de referencia del Pago Móvil realizado al usuario:");
+    if (!referencia) return;
+  }
+
+  try {
+    const res = await fetch(`${API_URL}/api/procesar-retiro-admin`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ w_id: wId, accion: accion, referencia: referencia })
+    });
+    if (res.ok) {
+      loadPendingWithdrawals();
+    } else {
+      console.error('Error al procesar retiro.');
+    }
+  } catch (err) {
+    console.error('Error de conexión al procesar retiro:', err);
+  }
+}
+
+async function uploadStickerImagesBatch(e) {
+  e.preventDefault();
+  alert("La carga masiva de imágenes se gestiona directamente en el servidor seguro.");
+}
+
+async function renderFinancialMetrics() {
+  try {
+    const res = await fetch(`${API_URL}/api/admin/metricas`);
     const data = await res.json();
     
-    const previousStickersCount = STATE.userStickersCount;
+    const totalSalesBs = data.total_sales || 0;
+    const bcvRate = data.bcv_rate || 1.0;
+    const totalSalesUsd = bcvRate > 0 ? totalSalesBs / bcvRate : 0;
+    
+    const approvedCount = data.approved_count || 0;
+    const stickersSold = data.stickers_sold || 0;
+    const totalUsers = data.total_usuarios || 0;
+    const onlineUsers = data.usuarios_online || 0;
 
-    if (data && data.user) {
-      STATE.userStickersCount = data.user.cantidad_barajitas || 0;
-      STATE.userBalanceBs = data.user.saldo_bs || 0;
-      // Capturar los datos de pago precargados de Supabase
-      STATE.userBanco = data.user.banco || '';
-      STATE.userCedula = data.user.cedula || '';
-      STATE.userTelefono = data.user.telefono || '';
-    }
+    // Actualizar tarjetas de métricas en tiempo real
+    document.getElementById('metricTotalUsers').innerText = totalUsers;
+    document.getElementById('metricOnlineUsers').innerText = onlineUsers;
 
-    if (previousStickersCount !== STATE.userStickersCount && !STATE.isInitialLoad) {
-      renderAlbumPage();
-    }
+    document.getElementById('metricTotalSalesBs').innerText = `Bs. ${totalSalesBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    document.getElementById('metricTotalSalesUsd').innerText = `($${totalSalesUsd.toFixed(2)} USD)`;
 
-    if (data && data.transacciones) {
-      data.transacciones.forEach(tx => {
-        if (tx.estado === 'aprobado') {
-          if (!STATE.notifiedTransactions.has(tx.id)) {
-            STATE.notifiedTransactions.add(tx.id);
-            if (!STATE.isInitialLoad) {
-              showFloatingNotification(`¡Pago verificado con éxito! Se han acreditado ${tx.barajitas_qty} barajitas en tu álbum.`);
-              renderAlbumPage();
-            }
+    document.getElementById('metricPlatformProfitBs').innerText = `Bs. ${(totalSalesBs * 0.30).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    document.getElementById('metricPlatformProfitUsd').innerText = `($${(totalSalesUsd * 0.30).toFixed(2)} USD)`;
+
+    document.getElementById('metricUserNetValueBs').innerText = `Bs. ${(totalSalesBs * 0.70).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    document.getElementById('metricUserNetValueUsd').innerText = `($${(totalSalesUsd * 0.70).toFixed(2)} USD)`;
+
+    document.getElementById('metricCountApproved').innerText = approvedCount;
+    document.getElementById('metricTotalStickersSold').innerText = stickersSold;
+    document.getElementById('metricBcvReference').innerText = `Bs. ${bcvRate.toFixed(2)}`;
+
+    const ctx = document.getElementById('financialChart').getContext('2d');
+    if (window.myChart) window.myChart.destroy();
+    
+    window.myChart = new Chart(ctx, {
+      type: 'doughnut',
+      data: {
+        labels: ['Caja Plataforma (30%)', 'Fondo Neto Usuarios (70%)'],
+        datasets: [{
+          data: [totalSalesBs * 0.30, totalSalesBs * 0.70],
+          backgroundColor: ['#a855f7', '#10b981'],
+          borderWidth: 1,
+          borderColor: '#1e293b'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: {
+            position: 'bottom',
+            labels: { color: '#cbd5e1', font: { size: 11 } }
           }
         }
-      });
-    }
-
-    STATE.claimedMilestones = [];
-    let hasActiveOrPending = false;
-
-    if (data && data.retiros) {
-      data.retiros.sort((a, b) => new Date(a.created_at) - new Date(b.created_at));
-
-      data.retiros.forEach(r => {
-        if ((r.estado === 'aprobado' || r.estado === 'liquidado') && r.referencia) {
-          const trackingKey = `approved_ref_${r.id}_${r.referencia}`;
-          if (!STATE.notifiedWithdrawals.has(trackingKey)) {
-            STATE.notifiedWithdrawals.add(trackingKey);
-            if (!STATE.isInitialLoad) {
-              const refText = ` Referencia bancaria: <b>${r.referencia}</b>`;
-              if (r.tipo === 'liquidacion_total' || r.tipo === 'ciclo_completo' || r.milestone >= 2000) {
-                showFloatingNotification(`¡Liquidación total aprobada y pagada!${refText}`);
-                renderAlbumPage();
-              } else {
-                showFloatingNotification(`¡Tu solicitud de premio Hito #${r.milestone} fue aprobada!${refText}`);
-              }
-            }
-          }
-        }
-        if (r.estado === 'pendiente') {
-          hasActiveOrPending = true;
-        }
-      });
-
-      let ultimaLiquidacionIndex = -1;
-      data.retiros.forEach((r, idx) => {
-        if ((r.tipo === 'liquidacion_total' || r.milestone >= 2000 || r.tipo === 'ciclo_completo') && r.estado === 'aprobado') {
-          ultimaLiquidacionIndex = idx;
-        }
-      });
-
-      const retirosCicloActual = ultimaLiquidacionIndex >= 0 ? data.retiros.slice(ultimaLiquidacionIndex + 1) : data.retiros;
-
-      retirosCicloActual.forEach(r => {
-        if ((r.estado === 'aprobado' || r.estado === 'liquidado') && r.milestone > 0 && r.milestone < 2000) {
-          if (!STATE.claimedMilestones.includes(r.milestone)) {
-            STATE.claimedMilestones.push(r.milestone);
-          }
-        }
-      });
-    }
-      
-    STATE.isProcessingWithdrawal = hasActiveOrPending;
-    updateUIHeader();
-    STATE.isInitialLoad = false;
-  } catch (err) {
-    console.error("Error al cargar datos del usuario desde el backend:", err);
-  }
-}
-
-function updateUIHeader() {
-  const balanceUSD = STATE.bcvRate > 0 ? (STATE.userBalanceBs / STATE.bcvRate).toFixed(2) : '0.00';
-  document.getElementById('userBalanceBs').innerText = `Bs. ${STATE.userBalanceBs.toFixed(2)} ($${balanceUSD})`;
-  const progressPct = ((STATE.userStickersCount / STATE.totalStickers) * 100).toFixed(1);
-  document.getElementById('albumProgressText').innerText = `${STATE.userStickersCount} / ${STATE.totalStickers} (${progressPct}%)`;
-  document.getElementById('albumProgressBar').style.width = `${progressPct}%`;
-
-  const btnLiq = document.getElementById('btnHeaderTotalLiquidate');
-  const btnMilestone = document.getElementById('btnHeaderMilestone');
-
-  if (STATE.isProcessingWithdrawal) {
-    if(btnLiq) btnLiq.disabled = true;
-    if(btnMilestone) btnMilestone.disabled = true;
-    return;
-  }
-
-  const milestoneBsValue = 200 * STATE.bcvRate;
-  const hasAvailableMilestone = [500, 1000, 1500, 2000].some(m =>
-    STATE.userStickersCount >= m && !STATE.claimedMilestones.includes(m) && STATE.userBalanceBs >= milestoneBsValue
-  );
-  if(btnMilestone) btnMilestone.disabled = !hasAvailableMilestone;
-  if(btnLiq) btnLiq.disabled = STATE.userBalanceBs <= 0;
-}
-
-// ----------------------------------------------------
-// GESTIÓN DE PREMIOS CON DATOS PRECARGADOS DE SUPABASE
-// ----------------------------------------------------
-function openWithdrawModal() {
-  if (STATE.isProcessingWithdrawal) return alert('Tienes una solicitud de retiro activa.');
-  
-  if (!STATE.userBanco || !STATE.userTelefono || !STATE.userCedula) {
-    alert("⚠️ No tienes configurados tus datos de pago (Banco, Cédula y Teléfono) en tu perfil.");
-    return;
-  }
-
-  if (STATE.userStickersCount >= 2000 && !STATE.claimedMilestones.includes(2000)) {
-    const confirmarCiclo = confirm(
-      "🌟 ¡FELICIDADES Y GRACIAS POR COMPLETAR EL ÁLBUM! 🌟\n\n" +
-      "Has completado las 2000 barajitas (Ciclo Completo). Tu solicitud de pago se enviará automáticamente con tus datos registrados:\n" +
-      `🏦 Banco: ${STATE.userBanco}\n📱 Teléfono: ${STATE.userTelefono}\n🆔 Cédula: ${STATE.userCedula}\n\n¿Deseas proceder?`
-    );
-    if (confirmarCiclo) {
-      ejecutarSolicitudPremio(2000, 'ciclo_completo');
-    }
-    return;
-  }
-
-  const container = document.getElementById('milestoneOptions');
-  if(!container) return;
-  container.innerHTML = '';
-
-  [500, 1000, 1500, 2000].forEach(m => {
-    const unlocked = STATE.userStickersCount >= m;
-    const claimed = STATE.claimedMilestones.includes(m);
-    const btn = document.createElement('button');
-    btn.type = 'button';
-    btn.className = `p-3 rounded-xl border text-left transition ${claimed ? 'opacity-50 border-slate-700 bg-slate-900' : unlocked ? 'border-amber-500 bg-slate-900 text-white cursor-pointer hover:bg-amber-500/10' : 'opacity-40 border-slate-800 bg-slate-950 cursor-not-allowed'}`;
-    btn.innerHTML = `<span class="font-bold text-amber-300 block">${m === 2000 ? 'Ciclo Completo #2000' : 'Hito #' + m}</span><span class="text-xs text-slate-300">$200.00 USD ${claimed ? '(Reclamado)' : ''}</span>`;
-
-    if (unlocked && !claimed) {
-      btn.onclick = () => {
-        STATE.selectedMilestone = m;
-        document.getElementById('btnSendWithdraw').disabled = false;
-        document.querySelectorAll('#milestoneOptions button').forEach(b => b.classList.remove('ring-2', 'ring-amber-400'));
-        btn.classList.add('ring-2', 'ring-amber-400');
-      };
-    }
-    container.appendChild(btn);
-  });
-
-  // Mostrar datos precargados en el modal
-  const infoDatos = document.getElementById('infoDatosPrecargados');
-  if (infoDatos) {
-    infoDatos.innerHTML = `💳 <b>Datos de Pago:</b> Banco: ${STATE.userBanco} | Tel: ${STATE.userTelefono} | Cédula: ${STATE.userCedula}`;
-  }
-
-  document.getElementById('withdrawModal').classList.remove('hidden');
-}
-
-function closeWithdrawModal() { 
-  document.getElementById('withdrawModal').classList.add('hidden'); 
-}
-
-async function submitWithdrawalRequest() {
-  if (!STATE.selectedMilestone) return alert('Selecciona un hito primero.');
-  ejecutarSolicitudPremio(STATE.selectedMilestone, STATE.selectedMilestone === 2000 ? 'ciclo_completo' : 'hito_parcial');
-}
-
-async function ejecutarSolicitudPremio(milestoneVal, tipoRetiro) {
-  if (!STATE.userBanco || !STATE.userTelefono || !STATE.userCedula) {
-    return alert('Error: Faltan los datos de pago del usuario en el sistema.');
-  }
-
-  const bsVal = (200 * STATE.bcvRate).toFixed(2);
-
-  const res = await fetch(`${API_URL}/api/notificar-retiro`, {
-    method: 'POST', 
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ 
-      usuario_id: STATE.userId, 
-      tipo: tipoRetiro, 
-      milestone: milestoneVal, 
-      monto_bs: bsVal, 
-      monto_usd: 200.00, 
-      datos_pago: `${STATE.userBanco} | ${STATE.userTelefono} | ${STATE.userCedula}` 
-    })
-  });
-
-  if (res.ok) {
-    alert('¡Solicitud enviada con éxito con tus datos guardados! Queda pendiente de verificación.');
-    closeWithdrawModal();
-    loadUserDataFromDB();
-  } else {
-    alert('Error al enviar la solicitud.');
-  }
-}
-
-async function confirmTotalLiquidate() {
-  if (STATE.userBalanceBs <= 0) return alert('Sin saldo neto para liquidar.');
-  
-  if (!STATE.userBanco || !STATE.userTelefono || !STATE.userCedula) {
-    return alert('⚠️ No tienes tus datos de pago registrados en la base de datos.');
-  }
-
-  const aceptarLiquidacion = confirm(
-    "⚠️ ADVERTENCIA DE LIQUIDACIÓN TOTAL ⚠️\n\n" +
-    `Se procesará tu pago a los siguientes datos guardados:\n🏦 Banco: ${STATE.userBanco}\n📱 Teléfono: ${STATE.userTelefono}\n🆔 Cédula: ${STATE.userCedula}\n\n` +
-    "Al aceptar, el saldo será enviado y **el álbum se reiniciará por completo**.\n\n¿Estás seguro de que deseas aceptar y liquidar tu saldo?"
-  );
-  
-  if (!aceptarLiquidacion) return;
-
-  const bsVal = STATE.userBalanceBs;
-  const usdVal = STATE.bcvRate > 0 ? (bsVal / STATE.bcvRate).toFixed(2) : 0;
-
-  const res = await fetch(`${API_URL}/api/notificar-retiro`, {
-    method: 'POST', 
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ 
-      usuario_id: STATE.userId, 
-      tipo: 'liquidacion_total', 
-      milestone: 0, 
-      monto_bs: bsVal.toFixed(2), 
-      monto_usd: usdVal, 
-      datos_pago: `${STATE.userBanco} | ${STATE.userTelefono} | ${STATE.userCedula}` 
-    })
-  });
-
-  if (res.ok) {
-    alert('¡Liquidación total solicitada con éxito con tus datos guardados! Al aprobarse, tu progreso se reiniciará.');
-    loadUserDataFromDB();
-  } else {
-    alert('Error al solicitar liquidación.');
-  }
-}
-
-function setupLogoClickCounter() {
-  const logo = document.getElementById('appLogo');
-  if (logo) {
-    logo.addEventListener('click', () => {
-      STATE.logoClicks++;
-      clearTimeout(STATE.clickTimer);
-      if (STATE.logoClicks >= 10) {
-        STATE.logoClicks = 0;
-        verificarAccesoAdminOculto();
-      } else {
-        STATE.clickTimer = setTimeout(() => { STATE.logoClicks = 0; }, 3000);
       }
     });
+
+  } catch (err) {
+    console.error('Error cargando métricas analíticas:', err);
   }
 }
 
-async function verificarAccesoAdminOculto() {
+async function loadUserList() {
+  const tbody = document.getElementById('userListTable');
+  tbody.innerHTML = '';
   try {
-    const res = await fetch(`${API_URL}/api/verificar-admin`, {
+    const res = await fetch(`${API_URL}/api/admin/usuarios`);
+    const data = await res.json();
+    
+    if (!data || data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">No hay usuarios registrados.</td></tr>`;
+      return;
+    }
+
+    data.forEach(u => {
+      const fechaAceptacion = u.fecha_aceptacion ? new Date(u.fecha_aceptacion).toLocaleString() : 'No registrada';
+      const estaBloqueado = u.bloqueado === true;
+      
+      const estadoHtml = estaBloqueado 
+        ? `<span class="px-2 py-1 bg-red-900/50 text-red-300 border border-red-500/40 rounded text-xs font-bold">Bloqueado</span>
+           <button onclick="toggleUserStatus('${u.id}', false)" class="ml-2 px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs transition">Desbloquear</button>`
+        : `<span class="px-2 py-1 bg-emerald-900/50 text-emerald-300 border border-emerald-500/40 rounded text-xs font-bold">Activo</span>
+           <button onclick="toggleUserStatus('${u.id}', true)" class="ml-2 px-2 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-xs transition">Bloquear</button>`;
+
+      tbody.innerHTML += `
+        <tr class="border-b border-slate-800">
+          <td class="p-3 font-bold">${u.username}</td>
+          <td class="p-3">${u.gmail || '-'}</td>
+          <td class="p-3">${u.cantidad_barajitas || 0}</td>
+          <td class="p-3 text-emerald-400">Bs. ${u.saldo_bs || 0}</td>
+          <td class="p-3 text-xs text-purple-300 font-mono">📅 ${fechaAceptacion}</td>
+          <td class="p-3 text-center">${estadoHtml}</td>
+        </tr>`;
+    });
+  } catch (err) {
+    console.error('Error cargando usuarios:', err);
+  }
+}
+
+async function toggleUserStatus(userId, bloquear) {
+  const accionTexto = bloquear ? "bloquear" : "desbloquear";
+  if (!confirm(`¿Estás seguro de que deseas ${accionTexto} al usuario ${userId}?`)) return;
+
+  try {
+    const res = await fetch(`${API_URL}/api/admin/toggle-bloqueo`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usuario_id: STATE.userId })
+      body: JSON.stringify({ usuario_id: userId, bloquear: bloquear })
     });
-    const data = await res.json();
-
-    if (res.status === 200 && data.status === 'authorized') {
-      window.location.href = 'admin.html';
-    } 
-    else if (data.status === 'warning') {
-      showFloatingNotification(`⚠️ Advertencia de Seguridad (${data.intentos}/3): Intento de acceso no autorizado registrado.`);
-    } 
-    else if (res.status === 403 || data.status === 'blocked') {
-      showFloatingNotification("🚨 ¡Cuenta bloqueada permanentemente por intentos de acceso no autorizado!", "error");
-      setTimeout(() => {
-        logoutUser();
-      }, 3500);
-    } 
-    else {
-      showFloatingNotification("⚠️ Acceso denegado.", "error");
+    if (res.ok) {
+      loadUserList();
+    } else {
+      alert("Error al actualizar el estado del usuario.");
     }
   } catch (err) {
-    console.error("Error al verificar permisos:", err);
-    showFloatingNotification("Error de conexión al verificar permisos.", "error");
+    console.error('Error en toggleUserStatus:', err);
   }
 }
 
-function initUserPollingNotifications(usuarioId) {
-  if (!usuarioId) return;
-
-  setInterval(async () => {
-    if (!STATE.userId) return;
-    try {
-      await loadUserDataFromDB();
-    } catch (e) {}
-  }, 5000);
-}
-
-function triggerStickerAnimation(cardElement) {
-  cardElement.classList.add('rotate-360');
-  setTimeout(() => {
-    cardElement.classList.remove('rotate-360');
-  }, 600);
-}
-
-// ==========================================
-// VISOR DE BARAJITAS A PANTALLA COMPLETA (LIGHTBOX)
-// ==========================================
-function openStickerModal(imgSrc, titleText, index) {
-  const modal = document.getElementById('stickerModal');
-  const modalImg = document.getElementById('modalStickerImg');
-  const modalTitle = document.getElementById('modalStickerTitle');
-
-  if (!modal) return;
-
-  modalImg.src = imgSrc;
-  modalTitle.textContent = titleText;
-  currentModalIndex = index;
-
-  modal.classList.remove('hidden');
-  
-  if (typeof lucide !== 'undefined') {
-    lucide.createIcons();
+async function purgeAllData() {
+  if (!confirm("⚠️ ¿Deseas purgar todas las transacciones y retiros del sistema?")) return;
+  try {
+    await fetch(`${API_URL}/api/admin/purgar`, { method: 'POST' });
+    window.location.reload();
+  } catch (err) {
+    console.error('Error al purgar datos:', err);
   }
 }
 
-function closeStickerModal() {
-  const modal = document.getElementById('stickerModal');
-  if (modal) {
-    modal.classList.add('hidden');
-  }
-}
-
-function navigateStickerModal(direction) {
-  if (allPageStickers.length > 0) {
-    currentModalIndex += direction;
-    
-    if (currentModalIndex < 0) currentModalIndex = allPageStickers.length - 1;
-    if (currentModalIndex >= allPageStickers.length) currentModalIndex = 0;
-
-    const targetSticker = allPageStickers[currentModalIndex];
-    if (targetSticker) {
-      openStickerModal(targetSticker.image, targetSticker.title, currentModalIndex);
-    }
-  }
-}
-
-// ==========================================
-// DETECCIÓN DE GESTOS TÁCTILES (SWIPE EN MÓVIL)
-// ==========================================
-let touchStartX = 0;
-let touchEndX = 0;
-
-function setupSwipeGestures() {
-  const grid = document.getElementById('stickersGrid');
-  if (!grid) return;
-
-  grid.addEventListener('touchstart', (e) => {
-    touchStartX = e.changedTouches[0].screenX;
-  }, { passive: true });
-
-  grid.addEventListener('touchend', (e) => {
-    touchEndX = e.changedTouches[0].screenX;
-    handleSwipeGesture();
-  }, { passive: true });
-}
-
-function handleSwipeGesture() {
-  const swipeThreshold = 50;
-
-  if (touchStartX - touchEndX > swipeThreshold) {
-    changePage(1);
-  }
-  
-  if (touchEndX - touchStartX > swipeThreshold) {
-    changePage(-1);
-  }
+function exitAdmin() {
+  window.location.href = 'album.html';
 }
