@@ -124,24 +124,47 @@ function closeRecoveryModal() { document.getElementById('recoveryModal').classLi
 async function verifyRecoveryData() {
   const u = document.getElementById('recUsername').value.trim();
   const e = document.getElementById('recEmail').value.trim();
+  const c = document.getElementById('recCedula').value.trim();
   const t = document.getElementById('recTelefono').value.trim();
+  const errorMsg = document.getElementById('recErrorMsg');
+
+  if (errorMsg) errorMsg.innerText = '';
+
+  if (!u || !e || !c || !t) {
+    if (errorMsg) errorMsg.innerText = 'Por favor completa los 4 campos solicitados.';
+    return;
+  }
   
   try {
-    const res = await fetch(`${API_URL}/api/recovery`, {
+    const res = await fetch(`${API_URL}/api/solicitar-recuperacion`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ username: u, email: e, telefono: t })
+      body: JSON.stringify({ username: u, email: e, cedula: c, telefono: t })
     });
     const data = await res.json();
 
     if (res.ok && data.success) {
       document.getElementById('recoveryStep1').classList.add('hidden');
       document.getElementById('recoveryStep2').classList.remove('hidden');
+      
+      const box = document.getElementById('telegramChatBox');
+      box.innerHTML = `
+        <div class="bg-purple-900/60 p-4 rounded-xl text-purple-100 border border-purple-500/40 text-center space-y-2">
+          <div class="text-amber-400 font-bold text-sm">✅ ¡Solicitud enviada al Administrador!</div>
+          <p class="text-xs text-purple-200">
+            Tus datos han sido remitidos de forma segura al equipo de soporte. 
+            El administrador verificará tu identidad y se pondrá en contacto contigo para restablecer tu acceso.
+          </p>
+        </div>
+      `;
     } else {
-      alert('Datos no coinciden o el usuario no existe.');
+      if (errorMsg) {
+        errorMsg.innerText = data.message || 'No se pudo procesar la solicitud.';
+      }
     }
   } catch (err) {
     console.error('Error en recuperación:', err);
+    if (errorMsg) errorMsg.innerText = 'Error de conexión con el servidor.';
   }
 }
 
