@@ -245,48 +245,63 @@ async function renderFinancialMetrics() {
     const totalUsers = data.total_usuarios || 0;
     const onlineUsers = data.usuarios_online || 0;
 
-    // Actualizar tarjetas de métricas en tiempo real
-    document.getElementById('metricTotalUsers').innerText = totalUsers;
-    document.getElementById('metricOnlineUsers').innerText = onlineUsers;
+    // 🎯 Asignación estricta de elementos HTML
+    const elTotalUsers = document.getElementById('metricTotalUsers');
+    const elOnlineUsers = document.getElementById('metricOnlineUsers');
+    if (elTotalUsers) elTotalUsers.innerText = totalUsers;
+    if (elOnlineUsers) elOnlineUsers.innerText = onlineUsers;
 
-    document.getElementById('metricTotalSalesBs').innerText = `Bs. ${totalSalesBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    document.getElementById('metricTotalSalesUsd').innerText = `($${totalSalesUsd.toFixed(2)} USD)`;
+    const elSalesBs = document.getElementById('metricTotalSalesBs');
+    const elSalesUsd = document.getElementById('metricTotalSalesUsd');
+    if (elSalesBs) elSalesBs.innerText = `Bs. ${totalSalesBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (elSalesUsd) elSalesUsd.innerText = `($${totalSalesUsd.toFixed(2)} USD)`;
 
-    document.getElementById('metricPlatformProfitBs').innerText = `Bs. ${(totalSalesBs * 0.30).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    document.getElementById('metricPlatformProfitUsd').innerText = `($${(totalSalesUsd * 0.30).toFixed(2)} USD)`;
+    const elProfitBs = document.getElementById('metricPlatformProfitBs');
+    const elProfitUsd = document.getElementById('metricPlatformProfitUsd');
+    if (elProfitBs) elProfitBs.innerText = `Bs. ${(totalSalesBs * 0.30).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (elProfitUsd) elProfitUsd.innerText = `($${(totalSalesUsd * 0.30).toFixed(2)} USD)`;
 
-    document.getElementById('metricUserNetValueBs').innerText = `Bs. ${(totalSalesBs * 0.70).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-    document.getElementById('metricUserNetValueUsd').innerText = `($${(totalSalesUsd * 0.70).toFixed(2)} USD)`;
+    const elNetBs = document.getElementById('metricUserNetValueBs');
+    const elNetUsd = document.getElementById('metricUserNetValueUsd');
+    if (elNetBs) elNetBs.innerText = `Bs. ${(totalSalesBs * 0.70).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    if (elNetUsd) elNetUsd.innerText = `($${(totalSalesUsd * 0.70).toFixed(2)} USD)`;
 
-    document.getElementById('metricCountApproved').innerText = approvedCount;
-    document.getElementById('metricTotalStickersSold').innerText = stickersSold;
-    document.getElementById('metricBcvReference').innerText = `Bs. ${bcvRate.toFixed(2)}`;
+    const elCountApp = document.getElementById('metricCountApproved');
+    const elStickers = document.getElementById('metricTotalStickersSold');
+    const elBcv = document.getElementById('metricBcvReference');
+    if (elCountApp) elCountApp.innerText = approvedCount;
+    if (elStickers) elStickers.innerText = stickersSold;
+    if (elBcv) elBcv.innerText = `Bs. ${bcvRate.toFixed(2)}`;
 
-    const ctx = document.getElementById('financialChart').getContext('2d');
-    if (window.myChart) window.myChart.destroy();
-    
-    window.myChart = new Chart(ctx, {
-      type: 'doughnut',
-      data: {
-        labels: ['Caja Plataforma (30%)', 'Fondo Neto Usuarios (70%)'],
-        datasets: [{
-          data: [totalSalesBs * 0.30, totalSalesBs * 0.70],
-          backgroundColor: ['#a855f7', '#10b981'],
-          borderWidth: 1,
-          borderColor: '#1e293b'
-        }]
-      },
-      options: {
-        responsive: true,
-        maintainAspectRatio: false,
-        plugins: {
-          legend: {
-            position: 'bottom',
-            labels: { color: '#cbd5e1', font: { size: 11 } }
+    // Renderizado de Gráfica Doughnut
+    const chartCanvas = document.getElementById('financialChart');
+    if (chartCanvas) {
+      const ctx = chartCanvas.getContext('2d');
+      if (window.myChart) window.myChart.destroy();
+      
+      window.myChart = new Chart(ctx, {
+        type: 'doughnut',
+        data: {
+          labels: ['Caja Plataforma (30%)', 'Fondo Neto Usuarios (70%)'],
+          datasets: [{
+            data: [totalSalesBs * 0.30, totalSalesBs * 0.70],
+            backgroundColor: ['#a855f7', '#10b981'],
+            borderWidth: 1,
+            borderColor: '#1e293b'
+          }]
+        },
+        options: {
+          responsive: true,
+          maintainAspectRatio: false,
+          plugins: {
+            legend: {
+              position: 'bottom',
+              labels: { color: '#cbd5e1', font: { size: 11 } }
+            }
           }
         }
-      }
-    });
+      });
+    }
 
   } catch (err) {
     console.error('Error cargando métricas analíticas:', err);
