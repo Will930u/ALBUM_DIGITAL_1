@@ -176,3 +176,10 @@ function openTermsModal() {
 function closeTermsModal() {
   document.getElementById('termsModal').classList.add('hidden');
 }
+function openPrivacyModal() {
+  document.getElementById('privacyModal').classList.remove('hidden');
+}
+
+function closePrivacyModal() {
+  document.getElementById('privacyModal').classList.add('hidden');
+}
