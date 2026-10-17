@@ -147,7 +147,6 @@ def api_recovery():
         return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/api/usuario/info", methods=["POST"])
-@app.route("/api/usuario/info", methods=["POST"])
 def api_usuario_info():
     data = request.get_json(silent=True) or {}
     usuario_id = str(data.get("usuario_id", "")).strip()
@@ -694,15 +693,11 @@ def telegram_webhook():
                             "intentos_admin": 0
                         }).eq("id", target_user_id).execute()
 
-                    estado_texto = f"🔓 USUARIO <code>{target_user_id}</code> DESBLOQUEADO"
-                    nuevo_texto_tg = f"{texto_original}\n\n<b>ESTADO: {estado_texto}</b>"
-
-                    requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
-                        "chat_id": chat_id, "message_id": message_id, "text": nuevo_texto_tg, "parse_mode": "HTML"
-                    }, timeout=10)
-
+                    # Solo enviamos la notificación flotante en Telegram sin borrar los botones
                     requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery", json={
-                        "callback_query_id": query_id, "text": f"¡Usuario {target_user_id} desbloqueado!"
+                        "callback_query_id": query_id, 
+                        "text": f"🔓 ¡Usuario {target_user_id} desbloqueado con éxito!",
+                        "show_alert": True
                     }, timeout=5)
                     return jsonify({"status": "ok"}), 200
 
@@ -714,15 +709,11 @@ def telegram_webhook():
                             "bloqueado": True
                         }).eq("id", target_user_id).execute()
 
-                    estado_texto = f"🚨 USUARIO <code>{target_user_id}</code> BLOQUEADO Y EXPULSADO"
-                    nuevo_texto_tg = f"{texto_original}\n\n<b>ESTADO: {estado_texto}</b>"
-
-                    requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
-                        "chat_id": chat_id, "message_id": message_id, "text": nuevo_texto_tg, "parse_mode": "HTML"
-                    }, timeout=10)
-
+                    # Solo enviamos la alerta flotante manteniendo los botones intactos en el chat
                     requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery", json={
-                        "callback_query_id": query_id, "text": f"¡Usuario {target_user_id} bloqueado y expulsado con éxito!"
+                        "callback_query_id": query_id, 
+                        "text": f"🚨 ¡Usuario {target_user_id} BLOQUEADO Y EXPULSADO del panel!",
+                        "show_alert": True
                     }, timeout=5)
                     return jsonify({"status": "ok"}), 200
                 # Casos con 3 partes (Compras y Retiros)
