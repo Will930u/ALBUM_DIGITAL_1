@@ -35,7 +35,6 @@ async function checkAdminSessionSecurity(userId) {
     
     const data = await response.json();
     
-    // Si el servidor responde con 403 o indica bloqueo, expulsión inmediata
     if (response.status === 403 || data.status === 'blocked' || data.bloqueado === true) {
       forceLogoutAndExit("🚨 ¡Acceso revocado! Has sido expulsado del panel de administración.");
     }
@@ -43,10 +42,6 @@ async function checkAdminSessionSecurity(userId) {
     console.error("Error en verificación de seguridad en vivo:", e);
   }
 }
-
-// ==========================================
-// A PARTIR DE AQUÍ CONTINUAN TUS DEMÁS FUNCIONES (switchAdminTab, loadPendingPayments, etc.)
-// ==========================================
 
 function switchAdminTab(tab) {
   document.getElementById('adminContentPagos').classList.add('hidden');
@@ -247,6 +242,12 @@ async function renderFinancialMetrics() {
     
     const approvedCount = data.approved_count || 0;
     const stickersSold = data.stickers_sold || 0;
+    const totalUsers = data.total_usuarios || 0;
+    const onlineUsers = data.usuarios_online || 0;
+
+    // Actualizar tarjetas de métricas en tiempo real
+    document.getElementById('metricTotalUsers').innerText = totalUsers;
+    document.getElementById('metricOnlineUsers').innerText = onlineUsers;
 
     document.getElementById('metricTotalSalesBs').innerText = `Bs. ${totalSalesBs.toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     document.getElementById('metricTotalSalesUsd').innerText = `($${totalSalesUsd.toFixed(2)} USD)`;
@@ -298,18 +299,54 @@ async function loadUserList() {
   try {
     const res = await fetch(`${API_URL}/api/admin/usuarios`);
     const data = await res.json();
-    (data || []).forEach(u => {
+    
+    if (!data || data.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="6" class="p-4 text-center text-slate-500">No hay usuarios registrados.</td></tr>`;
+      return;
+    }
+
+    data.forEach(u => {
+      const fechaAceptacion = u.fecha_aceptacion ? new Date(u.fecha_aceptacion).toLocaleString() : 'No registrada';
+      const estaBloqueado = u.bloqueado === true;
+      
+      const estadoHtml = estaBloqueado 
+        ? `<span class="px-2 py-1 bg-red-900/50 text-red-300 border border-red-500/40 rounded text-xs font-bold">Bloqueado</span>
+           <button onclick="toggleUserStatus('${u.id}', false)" class="ml-2 px-2 py-1 bg-emerald-600 hover:bg-emerald-500 text-white rounded text-xs transition">Desbloquear</button>`
+        : `<span class="px-2 py-1 bg-emerald-900/50 text-emerald-300 border border-emerald-500/40 rounded text-xs font-bold">Activo</span>
+           <button onclick="toggleUserStatus('${u.id}', true)" class="ml-2 px-2 py-1 bg-red-600 hover:bg-red-500 text-white rounded text-xs transition">Bloquear</button>`;
+
       tbody.innerHTML += `
         <tr class="border-b border-slate-800">
           <td class="p-3 font-bold">${u.username}</td>
           <td class="p-3">${u.gmail || '-'}</td>
           <td class="p-3">${u.cantidad_barajitas || 0}</td>
           <td class="p-3 text-emerald-400">Bs. ${u.saldo_bs || 0}</td>
-          <td class="p-3 text-center">-</td>
+          <td class="p-3 text-xs text-purple-300 font-mono">📅 ${fechaAceptacion}</td>
+          <td class="p-3 text-center">${estadoHtml}</td>
         </tr>`;
     });
   } catch (err) {
     console.error('Error cargando usuarios:', err);
+  }
+}
+
+async function toggleUserStatus(userId, bloquear) {
+  const accionTexto = bloquear ? "bloquear" : "desbloquear";
+  if (!confirm(`¿Estás seguro de que deseas ${accionTexto} al usuario ${userId}?`)) return;
+
+  try {
+    const res = await fetch(`${API_URL}/api/admin/toggle-bloqueo`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario_id: userId, bloquear: bloquear })
+    });
+    if (res.ok) {
+      loadUserList();
+    } else {
+      alert("Error al actualizar el estado del usuario.");
+    }
+  } catch (err) {
+    console.error('Error en toggleUserStatus:', err);
   }
 }
 
