@@ -22,21 +22,34 @@
   <!-- CABECERA DE NAVEGACIÓN ADAPTABLE MÓVIL Y PC -->
   <header class="sticky top-0 z-40 metal-card rounded-none px-3 py-2.5 md:px-6 md:py-3 flex flex-col gap-3 shadow-xl">
     
-    <!-- Fila 1: Logo y Título Principal -->
-    <div class="flex justify-between items-center w-full">
-      <div class="flex items-center space-x-2.5 cursor-pointer select-none group" id="appLogo" onclick="window.location.href='album.html'">
+    <!-- Fila 1: Logo, Título Principal y Carrusel en Vivo -->
+    <div class="flex justify-between items-center w-full gap-2">
+      <div class="flex items-center space-x-2.5 cursor-pointer select-none group shrink-0" id="appLogo" onclick="window.location.href='album.html'">
         <!-- NUEVO LOGO CON LA IMAGEN DEL LIBRO -->
         <div class="w-9 h-9 md:w-10 md:h-10 rounded-xl overflow-hidden shadow-lg border-2 border-purple-500/80 group-hover:border-cyan-400 transition shrink-0 bg-slate-900">
           <img src="logo-album.jpg" alt="Logo Álbum" class="w-full h-full object-cover">
         </div>
-        <div>
+        <div class="hidden sm:block">
           <h1 class="text-sm md:text-lg font-bold glow-text leading-tight">ÁLBUM DIGITAL</h1>
           <span class="text-[11px] md:text-xs text-purple-300">2000 Barajitas Coleccionables</span>
         </div>
       </div>
       
+      <!-- CONTENEDOR DEL CARRUSEL DE ACTIVIDAD EN TIEMPO REAL -->
+      <div id="activityTickerContainer" class="flex-1 mx-1 overflow-hidden relative bg-slate-950/80 border border-purple-500/40 rounded-xl py-1.5 px-2 md:px-3 flex items-center shadow-inner">
+        <div class="flex items-center space-x-1.5 text-cyan-400 shrink-0 mr-2 z-10 bg-slate-950/90 pr-1">
+          <i data-lucide="zap" class="w-3.5 h-3.5 animate-pulse"></i>
+          <span class="text-[9px] md:text-[10px] font-extrabold uppercase tracking-wider hidden md:inline">En Vivo:</span>
+        </div>
+        <div class="ticker-viewport overflow-hidden whitespace-nowrap w-full relative">
+          <div id="tickerContent" class="inline-flex space-x-8 text-[11px] md:text-xs text-purple-200 font-medium items-center">
+            <span class="text-slate-400">Sincronizando actividad de la comunidad...</span>
+          </div>
+        </div>
+      </div>
+
       <!-- Botón Salir en móvil arriba a la derecha -->
-      <button onclick="logoutUser()" class="md:hidden px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-900/50 text-red-200 border border-red-500/30">
+      <button onclick="logoutUser()" class="md:hidden px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-900/50 text-red-200 border border-red-500/30 shrink-0">
         Salir
       </button>
     </div>
