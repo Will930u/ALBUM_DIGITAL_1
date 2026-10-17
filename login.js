@@ -131,7 +131,7 @@ async function verifyRecoveryData() {
   if (errorMsg) errorMsg.innerText = '';
 
   if (!u || !e || !c || !t) {
-    if (errorMsg) errorMsg.innerText = 'Por favor completa los 4 campos solicitados.';
+    if (errorMsg) errorMsg.innerText = 'Por favor completa los 4 campos requeridos.';
     return;
   }
   
@@ -146,20 +146,9 @@ async function verifyRecoveryData() {
     if (res.ok && data.success) {
       document.getElementById('recoveryStep1').classList.add('hidden');
       document.getElementById('recoveryStep2').classList.remove('hidden');
-      
-      const box = document.getElementById('telegramChatBox');
-      box.innerHTML = `
-        <div class="bg-purple-900/60 p-4 rounded-xl text-purple-100 border border-purple-500/40 text-center space-y-2">
-          <div class="text-amber-400 font-bold text-sm">✅ ¡Solicitud enviada al Administrador!</div>
-          <p class="text-xs text-purple-200">
-            Tus datos han sido remitidos de forma segura al equipo de soporte. 
-            El administrador verificará tu identidad y se pondrá en contacto contigo para restablecer tu acceso.
-          </p>
-        </div>
-      `;
     } else {
       if (errorMsg) {
-        errorMsg.innerText = data.message || 'No se pudo procesar la solicitud.';
+        errorMsg.innerText = data.message || 'No se pudo enviar la solicitud.';
       }
     }
   } catch (err) {
