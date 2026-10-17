@@ -1,10 +1,22 @@
 const API_URL = "https://album-digital-1.onrender.com";
 
-// 🛡️ FUNCIÓN GLOBAL DE EXPULSIÓN Y CIERRE DE SESIÓN
+// 🛡️ PANTALLA DE ÁREA RESTRINGIDA Y CIERRE DE SESIÓN
+function mostrarAreaRestringida(mensaje = "⛔ ACCESO DENEGADO: Área restringida exclusivamente para administradores.") {
+  document.body.innerHTML = `
+    <div style="background-color: #080314; color: #f8fafc; font-family: sans-serif; display: flex; flex-direction: column; align-items: center; justify-content: center; height: 100vh; margin: 0; text-align: center; padding: 20px;">
+      <div style="background: rgba(15, 23, 42, 0.9); border: 2px solid #ef4444; padding: 40px; border-radius: 20px; max-width: 500px; box-shadow: 0 10px 25px rgba(239, 68, 68, 0.3);">
+        <div style="font-size: 60px; margin-bottom: 20px;">⚠️</div>
+        <h1 style="color: #ef4444; font-size: 24px; margin-bottom: 15px; font-weight: bold;">ÁREA RESTRINGIDA</h1>
+        <p style="color: #cbd5e1; font-size: 14px; margin-bottom: 25px; line-height: 1.5;">${mensaje}</p>
+        <button onclick="window.location.href='index.html'" style="background: linear-gradient(to right, #991b1b, #7f1d1d); color: white; border: none; padding: 12px 24px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 14px; transition: opacity 0.2s;">Regresar al Inicio</button>
+      </div>
+    </div>
+  `;
+}
+
 function forceLogoutAndExit(mensaje = "Tu acceso ha sido revocado remotamente.") {
-  alert(mensaje);
   localStorage.removeItem('active_user_id');
-  window.location.href = 'index.html';
+  mostrarAreaRestringida(mensaje);
 }
 
 // 🛡️ VALIDACIÓN DE SEGURIDAD INICIAL Y MONITOREO ACTIVO
@@ -16,19 +28,23 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // 🔄 Monitoreo en vivo más agresivo (cada 3 segundos para expulsión casi instantánea)
+  // Verificar de inmediato al cargar la página
+  await checkAdminSessionSecurity(activeUserId);
+
+  // Monitoreo en vivo más agresivo (cada 3 segundos para expulsión instantánea)
   setInterval(async () => {
     await checkAdminSessionSecurity(activeUserId);
   }, 3000);
 
-  // 🔄 Actualizar las métricas del panel automáticamente cada 2 segundos
+  // Actualizar las métricas del panel automáticamente cada 2 segundos
   setInterval(() => {
     const metricTab = document.getElementById('adminContentMetricas');
     if (metricTab && !metricTab.classList.contains('hidden')) {
       renderFinancialMetrics();
     }
   }, 2000);
-}); // <-- Este es el ÚNICO cierre que debe cerrar el DOMContentLoaded de la línea 10
+});
+
 async function checkAdminSessionSecurity(userId) {
   try {
     const response = await fetch(`${API_URL}/api/verificar-admin`, {
@@ -40,7 +56,7 @@ async function checkAdminSessionSecurity(userId) {
     const data = await response.json();
     
     if (response.status === 403 || data.status === 'blocked' || data.bloqueado === true) {
-      forceLogoutAndExit("🚨 ¡Acceso revocado! Has sido expulsado del panel de administración.");
+      mostrarAreaRestringida("🚨 Acceso no autorizado. Has intentado ingresar a un área restringida y tu cuenta ha sido bloqueada.");
     }
   } catch (e) {
     console.error("Error en verificación de seguridad en vivo:", e);
@@ -100,7 +116,6 @@ async function loadPlatformConfigAdmin() {
       document.getElementById('cfgCedula').value = data.cedula || '';
       document.getElementById('cfgTitular').value = data.titular || '';
 
-      // 🔒 Control del cerrojo de seguridad remoto
       const estaBloqueado = data.pago_bloqueado === true;
       const btnGuardar = document.getElementById('btnGuardarConfig');
       const inputs = ['cfgBanco', 'cfgTelefono', 'cfgCedula', 'cfgTitular'];
@@ -153,30 +168,6 @@ async function savePlatformConfig(e) {
       alert('¡Datos de pago de la plataforma actualizados con éxito!');
     } else {
       alert(resultado.error || 'Error al guardar la configuración (Posiblemente bloqueada por seguridad).');
-    }
-  } catch (err) {
-    console.error('Error:', err);
-  }
-}
-
-async function savePlatformConfig(e) {
-  e.preventDefault();
-  const banco = document.getElementById('cfgBanco').value.trim();
-  const telefono = document.getElementById('cfgTelefono').value.trim();
-  const cedula = document.getElementById('cfgCedula').value.trim();
-  const titular = document.getElementById('cfgTitular').value.trim();
-
-  try {
-    const res = await fetch(`${API_URL}/api/admin/configuracion`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ banco, telefono, cedula, titular })
-    });
-
-    if (res.ok) {
-      alert('¡Datos de pago de la plataforma actualizados con éxito!');
-    } else {
-      alert('Error al guardar la configuración.');
     }
   } catch (err) {
     console.error('Error:', err);
@@ -303,7 +294,6 @@ async function renderFinancialMetrics() {
     const totalUsers = data.total_usuarios || 0;
     const onlineUsers = data.usuarios_online || 0;
 
-    // 🎯 Asignación estricta de elementos HTML
     const elTotalUsers = document.getElementById('metricTotalUsers');
     const elOnlineUsers = document.getElementById('metricOnlineUsers');
     if (elTotalUsers) elTotalUsers.innerText = totalUsers;
@@ -331,7 +321,6 @@ async function renderFinancialMetrics() {
     if (elStickers) elStickers.innerText = stickersSold;
     if (elBcv) elBcv.innerText = `Bs. ${bcvRate.toFixed(2)}`;
 
-    // Renderizado de Gráfica Doughnut
     const chartCanvas = document.getElementById('financialChart');
     if (chartCanvas) {
       const ctx = chartCanvas.getContext('2d');
