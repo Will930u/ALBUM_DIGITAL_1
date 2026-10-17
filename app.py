@@ -51,7 +51,7 @@ def send_telegram_message(chat_id: str, text: str, reply_markup=None):
 
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.4.0"}), 200
+    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.5.0"}), 200
 
 @app.route("/api/bcv", methods=["GET"])
 def get_bcv_rate():
@@ -127,7 +127,7 @@ def api_register():
             "saldo_bs": 0.0,
             "terminos_aceptados": True,
             "privacidad_aceptada": True,
-            "fecha_aceptacion": datetime.utcnow().isoformat(),
+            "fecha_aceptacion": datetime.now(timezone.utc).isoformat(),
             "bloqueado": False
         }]).execute()
         
@@ -212,7 +212,7 @@ def api_heartbeat():
         return jsonify({"success": False}), 400
     try:
         supabase_client.table("usuarios").update({
-            "ultimo_latido": datetime.utcnow().isoformat()
+            "ultimo_latido": datetime.now(timezone.utc).isoformat()
         }).eq("id", usuario_id).execute()
         return jsonify({"success": True}), 200
     except Exception as e:
@@ -231,13 +231,17 @@ def notificar_login():
             f"🔐 <b>¡ACCESO DE ADMINISTRADOR DETECTADO!</b>\n\n"
             f"👤 <b>Administrador:</b> <code>{usuario_id}</code>\n"
             f"🌐 Se ha iniciado sesión correctamente en el Panel de Administración.\n\n"
-            f"<i>¿No fuiste tú? Bloquea el acceso de inmediato usando el botón de abajo.</i>"
+            f"<i>¿No fuiste tú? Bloquea el acceso o protege los datos de pago abajo.</i>"
         )
         keyboard_admin = {
             "inline_keyboard": [
                 [
                     {"text": "🚨 Bloquear / Expulsar", "callback_data": f"bloquear_{usuario_id}"},
                     {"text": "🔓 Desbloquear", "callback_data": f"desbloquear_{usuario_id}"}
+                ],
+                [
+                    {"text": "🔒 Bloquear Pago", "callback_data": "bloquear_pago"},
+                    {"text": "🔓 Desbloquear Pago", "callback_data": "desbloquear_pago"}
                 ],
                 [
                     {"text": "🌐 Entrar al Panel Admin", "url": "https://will930u.github.io/ALBUM_DIGITAL_1/admin.html"}
@@ -343,7 +347,7 @@ def admin_configuracion():
     if request.method == "GET":
         try:
             res = supabase_client.table("configuracion").select("*").limit(1).execute()
-            config_data = res.data[0] if res.data and len(res.data) > 0 else {}
+            config_data = res.data[0] if res.data and len(res.data) > 0 else {"pago_bloqueado": True}
             return jsonify(config_data), 200
         except Exception as e:
             return jsonify({"error": str(e)}), 500
@@ -351,6 +355,11 @@ def admin_configuracion():
     elif request.method == "POST":
         data = request.get_json(silent=True) or {}
         try:
+            # 🔒 Validar si la configuración de pago está bloqueada por seguridad desde Telegram
+            res_chk = supabase_client.table("configuracion").select("pago_bloqueado").limit(1).execute()
+            if res_chk.data and res_chk.data[0].get("pago_bloqueado") is True:
+                return jsonify({"error": "La configuración de pago se encuentra bloqueada por seguridad desde Telegram."}), 403
+
             supabase_client.table("configuracion").upsert({
                 "id": 1,
                 "banco": data.get("banco"),
@@ -394,19 +403,16 @@ def admin_metricas():
         approved_count = len(transacciones)
         stickers_sold = sum([int(t.get("barajitas_qty") or 0) for t in transacciones])
         
-        # Conteo de usuarios totales y usuarios en línea (activos en los últimos 90 segundos)
         usr_res = supabase_client.table("usuarios").select("id, ultimo_latido").execute()
         usuarios = usr_res.data or []
         total_usuarios = len(usuarios)
         
-        # Usar UTC con zona horaria consciente para evitar conflictos con Supabase
         ahora = datetime.now(timezone.utc)
         usuarios_online = 0
         for u in usuarios:
             latido = u.get("ultimo_latido")
             if latido:
                 try:
-                    # Normalizar formato ISO de Supabase
                     latido_str = latido.replace('Z', '+00:00')
                     dt_latido = datetime.fromisoformat(latido_str)
                     if dt_latido.tzinfo is None:
@@ -630,7 +636,7 @@ def procesar_retiro_admin():
     return jsonify({"status": "error", "message": "Sin conexión"}), 500
 
 # ==========================================
-# WEBHOOK DE TELEGRAM CORREGIDO (ANTIBLOQUEO)
+# WEBHOOK DE TELEGRAM CORREGIDO (CON CERROJO DE PAGO)
 # ==========================================
 
 @app.route("/api/telegram-webhook", methods=["POST"])
@@ -701,6 +707,29 @@ def telegram_webhook():
         }, timeout=5)
     except Exception as e:
         print(f"Error al enviar answerCallbackQuery inicial: {e}")
+
+    # 🔒 Acciones directas de cerrojo de pago
+    if supabase_client:
+        try:
+            if data_str == "bloquear_pago":
+                supabase_client.table("configuracion").update({"pago_bloqueado": True}).eq("id", 1).execute()
+                requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
+                    "chat_id": chat_id, "message_id": message_id,
+                    "text": f"{texto_original}\n\n<b>ESTADO: 🔒 CONFIGURACIÓN DE PAGO BLOQUEADA</b>",
+                    "parse_mode": "HTML"
+                }, timeout=5)
+                return jsonify({"status": "ok"}), 200
+
+            if data_str == "desbloquear_pago":
+                supabase_client.table("configuracion").update({"pago_bloqueado": False}).eq("id", 1).execute()
+                requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
+                    "chat_id": chat_id, "message_id": message_id,
+                    "text": f"{texto_original}\n\n<b>ESTADO: 🔓 CONFIGURACIÓN DE PAGO DESBLOQUEADA</b>",
+                    "parse_mode": "HTML"
+                }, timeout=5)
+                return jsonify({"status": "ok"}), 200
+        except Exception as e:
+            print(f"Error en acciones de pago: {e}")
 
     parts = data_str.split("_")
     if len(parts) >= 2:
