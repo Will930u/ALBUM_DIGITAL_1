@@ -564,7 +564,7 @@ setInterval(async () => {
   const activeUserId = localStorage.getItem('active_user_id');
   if (activeUserId) {
     try {
-      await fetch('https://album-digital-1.com/api/heartbeat', {
+      await fetch('https://album-digital-1.onrender.com/api/heartbeat', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario_id: activeUserId })
@@ -573,4 +573,21 @@ setInterval(async () => {
       console.error("Error al enviar latido:", e);
     }
   }
-}, 30000);
+}, 10000);
+// 💓 PULSO DE CONEXIÓN EN TIEMPO REAL (HEARTBEAT)
+function enviarLatidoActivo() {
+  const activeUserId = localStorage.getItem('active_user_id');
+  if (activeUserId) {
+    fetch('https://album-digital-1.onrender.com/api/heartbeat', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario_id: activeUserId })
+    }).catch(err => console.error("Error enviando latido:", err));
+  }
+}
+
+// Enviar el primer latido al cargar y luego cada 20 segundos
+document.addEventListener('DOMContentLoaded', () => {
+  enviarLatidoActivo();
+  setInterval(enviarLatidoActivo, 10000);
+});
