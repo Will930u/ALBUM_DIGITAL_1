@@ -64,42 +64,69 @@
         <div><label class="block text-[10px] text-purple-200">Cédula:</label><input type="text" id="regCedula" required placeholder="V-********" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white text-xs"></div>
         <div><label class="block text-[10px] text-purple-200">Teléfono:</label><input type="text" id="regTelefono" required placeholder="0412..." class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white text-xs"></div>
       </div>
+
+      <!-- Casilla obligatoria de Términos y Condiciones -->
+      <div class="flex items-center space-x-2 pt-1">
+        <input type="checkbox" id="regTerms" required class="rounded border-purple-500/40 bg-slate-900 text-purple-600 focus:ring-0">
+        <label for="regTerms" class="text-[11px] text-purple-200">
+          Acepto los <button type="button" onclick="openTermsModal()" class="text-amber-400 underline font-semibold hover:text-amber-300">Términos y Condiciones</button>
+        </label>
+      </div>
+
       <button type="submit" class="metal-button w-full py-3 rounded-xl font-bold text-white text-sm mt-2">REGISTRARSE</button>
       <button type="button" onclick="switchAuthMode('login')" class="w-full text-center text-xs text-purple-300 hover:underline pt-2">¿Ya tienes cuenta? Inicia sesión</button>
     </form>
   </main>
 
- <!-- Modal de Recuperación -->
-<div id="recoveryModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-  <div class="metal-card max-w-lg w-full p-6 space-y-4 border border-amber-500/50">
-    <div class="flex justify-between items-center border-b border-amber-500/30 pb-3">
-      <h3 class="text-lg font-bold text-amber-400">Recuperación de Contraseña (Soporte Telegram)</h3>
-      <button onclick="closeRecoveryModal()" class="text-slate-400 font-bold hover:text-white">✕</button>
-    </div>
-    
-    <!-- Paso 1: Formulario con los 4 datos obligatorios -->
-    <div id="recoveryStep1" class="space-y-3 text-xs">
-      <p class="text-purple-200">Para verificar tu identidad, ingresa los 4 datos con los que te registraste:</p>
-      <input type="text" id="recUsername" placeholder="Tu Usuario" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2.5 text-white">
-      <input type="email" id="recEmail" placeholder="Tu Correo Electrónico (Gmail)" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2.5 text-white">
-      <input type="text" id="recCedula" placeholder="Tu Cédula de Identidad" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2.5 text-white">
-      <input type="text" id="recTelefono" placeholder="Tu Teléfono de Pago Móvil" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2.5 text-white">
-      <p id="recErrorMsg" class="text-red-400 text-[11px] font-medium min-h-[14px]"></p>
-      <button onclick="verifyRecoveryData()" class="w-full py-2.5 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-500 transition">Verificar Datos</button>
-    </div>
-
-    <!-- Paso 2: Mensaje de éxito limpio (Sin chat falso) -->
-    <div id="recoveryStep2" class="hidden space-y-4 text-center">
-      <div class="bg-purple-950/60 p-4 rounded-xl border border-purple-500/40 space-y-2">
-        <div class="text-amber-400 font-bold text-sm">✅ ¡Solicitud Enviada con Éxito!</div>
-        <p class="text-xs text-purple-200 leading-relaxed">
-          Tus datos han sido remitidos a nuestro sistema. El administrador validará tu identidad y se pondrá en contacto contigo para ayudarte a recuperar tu cuenta.
-        </p>
+  <!-- Modal de Recuperación -->
+  <div id="recoveryModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="metal-card max-w-lg w-full p-6 space-y-4 border border-amber-500/50">
+      <div class="flex justify-between items-center border-b border-amber-500/30 pb-3">
+        <h3 class="text-lg font-bold text-amber-400">Recuperación de Contraseña (Soporte Telegram)</h3>
+        <button onclick="closeRecoveryModal()" class="text-slate-400 font-bold hover:text-white">✕</button>
       </div>
-      <button onclick="closeRecoveryModal()" class="w-full py-2.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-700 transition">Entendido, Cerrar</button>
+      
+      <!-- Paso 1: Formulario con los 4 datos obligatorios -->
+      <div id="recoveryStep1" class="space-y-3 text-xs">
+        <p class="text-purple-200">Para verificar tu identidad, ingresa los 4 datos con los que te registraste:</p>
+        <input type="text" id="recUsername" placeholder="Tu Usuario" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2.5 text-white">
+        <input type="email" id="recEmail" placeholder="Tu Correo Electrónico (Gmail)" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2.5 text-white">
+        <input type="text" id="recCedula" placeholder="Tu Cédula de Identidad" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2.5 text-white">
+        <input type="text" id="recTelefono" placeholder="Tu Teléfono de Pago Móvil" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2.5 text-white">
+        <p id="recErrorMsg" class="text-red-400 text-[11px] font-medium min-h-[14px]"></p>
+        <button onclick="verifyRecoveryData()" class="w-full py-2.5 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-500 transition">Verificar Datos</button>
+      </div>
+
+      <!-- Paso 2: Mensaje de éxito limpio -->
+      <div id="recoveryStep2" class="hidden space-y-4 text-center">
+        <div class="bg-purple-950/60 p-4 rounded-xl border border-purple-500/40 space-y-2">
+          <div class="text-amber-400 font-bold text-sm">✅ ¡Solicitud Enviada con Éxito!</div>
+          <p class="text-xs text-purple-200 leading-relaxed">
+            Tus datos han sido remitidos a nuestro sistema. El administrador validará tu identidad y se pondrá en contacto contigo para ayudarte a recuperar tu cuenta.
+          </p>
+        </div>
+        <button onclick="closeRecoveryModal()" class="w-full py-2.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-700 transition">Entendido, Cerrar</button>
+      </div>
     </div>
   </div>
-</div>
+
+  <!-- Modal de Términos y Condiciones -->
+  <div id="termsModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="metal-card max-w-lg w-full p-6 space-y-4 border border-purple-500/50">
+      <div class="flex justify-between items-center border-b border-purple-500/30 pb-3">
+        <h3 class="text-base font-bold text-amber-400">Términos y Condiciones de Uso</h3>
+        <button onclick="closeTermsModal()" class="text-slate-400 font-bold hover:text-white">✕</button>
+      </div>
+      <div class="space-y-3 text-xs text-purple-100 max-h-80 overflow-y-auto pr-2 leading-relaxed">
+        <p><b>1. Aceptación del Servicio:</b> Al registrarte en la plataforma Álbum Digital, aceptas cumplir con los presentes términos y condiciones de uso.</p>
+        <p><b>2. Registro y Veracidad:</b> El usuario garantiza que los datos suministrados (Usuario, Gmail, Cédula, Teléfono y Banco) son reales y de su titularidad exclusiva para el procesamiento de premios y retiros.</p>
+        <p><b>3. Seguridad de Cuenta:</b> La clave de acceso es personal e intransferible. La recuperación de contraseña requiere la validación exacta de los 4 datos de registro ante el administrador.</p>
+        <p><b>4. Políticas de Pagos y Precios:</b> Toda transacción o liquidación de saldo se procesa según la tasa oficial publicada en el sistema y queda sujeta a verificación previa de los soportes de pago.</p>
+        <p><b>5. Conducta del Usuario:</b> Cualquier intento de vulnerar áreas administrativas o alterar el funcionamiento del sistema resultará en el bloqueo permanente de la cuenta y la anulación del saldo disponible.</p>
+      </div>
+      <button onclick="closeTermsModal()" class="w-full py-2.5 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-500 transition text-xs">Entendido y Acepto</button>
+    </div>
+  </div>
 
   <script src="login.js"></script>
 </body>
