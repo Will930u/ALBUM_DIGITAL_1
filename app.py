@@ -6,6 +6,7 @@ import re
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from supabase import create_client, Client
+from datetime import datetime
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -115,7 +116,7 @@ def api_register():
         if existing_user.data and len(existing_user.data) > 0:
             return jsonify({"error": "El nombre de usuario ya está registrado. Por favor elige otro."}), 400
 
-        # Si no existe, procedemos a registrarlo
+        # Si no existe, procedemos a registrarlo con la trazabilidad legal de aceptación
         supabase_client.table("usuarios").insert([{
             "id": user_id,
             "username": username,
@@ -125,8 +126,12 @@ def api_register():
             "cedula": cedula,
             "telefono": telefono,
             "cantidad_barajitas": 0,
-            "saldo_bs": 0.0
+            "saldo_bs": 0.0,
+            "terminos_aceptados": True,
+            "privacidad_aceptada": True,
+            "fecha_aceptacion": datetime.utcnow().isoformat()
         }]).execute()
+        
         return jsonify({"success": True}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
