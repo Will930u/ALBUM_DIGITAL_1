@@ -711,23 +711,45 @@ def telegram_webhook():
     # 🔒 Acciones directas de cerrojo de pago
     if supabase_client:
         try:
+            # Definición del teclado que DEBE PERMANECER SIEMPRE VISIBLE
+            keyboard_admin = {
+                "inline_keyboard": [
+                    [
+                        {"text": "🚨 Bloquear / Expulsar", "callback_data": f"bloquear_{ADMIN_USER_ID}"},
+                        {"text": "🔓 Desbloquear", "callback_data": f"desbloquear_{ADMIN_USER_ID}"}
+                    ],
+                    [
+                        {"text": "🔒 Bloquear Pago", "callback_data": "bloquear_pago"},
+                        {"text": "🔓 Desbloquear Pago", "callback_data": "desbloquear_pago"}
+                    ],
+                    [
+                        {"text": "🌐 Entrar al Panel Admin", "url": "https://will930u.github.io/ALBUM_DIGITAL_1/admin.html"}
+                    ]
+                ]
+            }
+
             if data_str == "bloquear_pago":
                 supabase_client.table("configuracion").update({"pago_bloqueado": True}).eq("id", 1).execute()
                 requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
-                    "chat_id": chat_id, "message_id": message_id,
-                    "text": f"{texto_original}\n\n<b>ESTADO: 🔒 CONFIGURACIÓN DE PAGO BLOQUEADA</b>",
-                    "parse_mode": "HTML"
+                    "chat_id": chat_id,
+                    "message_id": message_id,
+                    "text": f"{texto_original.split('ESTADO:')[0].strip()}\n\n<b>ESTADO: 🔒 CONFIGURACIÓN DE PAGO BLOQUEADA</b>",
+                    "parse_mode": "HTML",
+                    "reply_markup": keyboard_admin # 👈 Mantener la botonera visible
                 }, timeout=5)
                 return jsonify({"status": "ok"}), 200
 
             if data_str == "desbloquear_pago":
                 supabase_client.table("configuracion").update({"pago_bloqueado": False}).eq("id", 1).execute()
                 requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
-                    "chat_id": chat_id, "message_id": message_id,
-                    "text": f"{texto_original}\n\n<b>ESTADO: 🔓 CONFIGURACIÓN DE PAGO DESBLOQUEADA</b>",
-                    "parse_mode": "HTML"
+                    "chat_id": chat_id,
+                    "message_id": message_id,
+                    "text": f"{texto_original.split('ESTADO:')[0].strip()}\n\n<b>ESTADO: 🔓 CONFIGURACIÓN DE PAGO DESBLOQUEADA</b>",
+                    "parse_mode": "HTML",
+                    "reply_markup": keyboard_admin # 👈 Mantener la botonera visible
                 }, timeout=5)
                 return jsonify({"status": "ok"}), 200
+
         except Exception as e:
             print(f"Error en acciones de pago: {e}")
 
