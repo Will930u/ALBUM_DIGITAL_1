@@ -5,6 +5,9 @@ document.addEventListener('DOMContentLoaded', () => {
 });
 
 function switchAuthMode(mode) {
+  // Limpiar errores visuales al cambiar de modo
+  limpiarErrorRegistro();
+  
   if (mode === 'register') {
     document.getElementById('loginForm').classList.add('hidden');
     document.getElementById('registerForm').classList.remove('hidden');
@@ -16,8 +19,35 @@ function switchAuthMode(mode) {
   }
 }
 
+// Función auxiliar para mostrar errores debajo del input de usuario en el registro
+function mostrarErrorRegistro(mensaje) {
+  let errorDiv = document.getElementById('regErrorMsg');
+  if (!errorDiv) {
+    // Si no existe el elemento en el HTML, lo creamos dinámicamente debajo del input de usuario
+    const userInput = document.getElementById('regUsername');
+    if (userInput && userInput.parentNode) {
+      errorDiv = document.createElement('p');
+      errorDiv.id = 'regErrorMsg';
+      errorDiv.className = 'text-red-400 text-xs mt-1 font-medium transition-all';
+      userInput.parentNode.appendChild(errorDiv);
+    }
+  }
+  if (errorDiv) {
+    errorDiv.innerText = mensaje;
+  }
+}
+
+function limpiarErrorRegistro() {
+  const errorDiv = document.getElementById('regErrorMsg');
+  if (errorDiv) {
+    errorDiv.innerText = '';
+  }
+}
+
 async function handleRegister(e) {
   e.preventDefault();
+  limpiarErrorRegistro();
+
   try {
     const username = document.getElementById('regUsername').value.trim();
     const email = document.getElementById('regEmail').value.trim();
@@ -34,7 +64,8 @@ async function handleRegister(e) {
 
     const data = await res.json();
     if (!res.ok) {
-      alert('Error en registro: ' + (data.error || 'No se pudo completar'));
+      // 🔴 AQUÍ MOSTRAMOS EL ERROR VISUALMENTE EN LA INTERFAZ EN LUGAR DE UN ALERT
+      mostrarErrorRegistro(data.error || 'No se pudo completar el registro.');
       return;
     }
 
@@ -42,6 +73,7 @@ async function handleRegister(e) {
     switchAuthMode('login');
   } catch (err) {
     console.error('Error de red en registro:', err);
+    mostrarErrorRegistro('Error de conexión con el servidor.');
   }
 }
 
