@@ -1,6 +1,13 @@
 const API_URL = "https://album-digital-1.onrender.com";
 
-// 🛡️ VALIDACIÓN DE SEGURIDAD EXCLUSIVA CONECTADA AL BACKEND Y SUPABASE
+// 🛡️ FUNCIÓN GLOBAL DE EXPULSIÓN Y CIERRE DE SESIÓN
+function forceLogoutAndExit(mensaje = "Tu acceso ha sido revocado remotamente.") {
+  alert(mensaje);
+  localStorage.removeItem('active_user_id');
+  window.location.href = 'index.html';
+}
+
+// 🛡️ VALIDACIÓN DE SEGURIDAD INICIAL Y MONITOREO ACTIVO
 document.addEventListener('DOMContentLoaded', async () => {
   const activeUserId = localStorage.getItem('active_user_id');
   
@@ -9,63 +16,37 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
+  // Verificación inicial al cargar
+  await checkAdminSessionSecurity(activeUserId);
+
+  // 🔄 Monitoreo en vivo más agresivo (cada 3 segundos para expulsión casi instantánea)
+  setInterval(async () => {
+    await checkAdminSessionSecurity(activeUserId);
+  }, 3000);
+});
+
+async function checkAdminSessionSecurity(userId) {
   try {
     const response = await fetch(`${API_URL}/api/verificar-admin`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usuario_id: activeUserId })
+      body: JSON.stringify({ usuario_id: userId })
     });
     
     const data = await response.json();
     
-    if (response.status === 200 && data.status === 'authorized') {
-      if (typeof switchAdminTab === 'function') {
-        switchAdminTab('pagos');
-      }
-      return;
+    // Si el servidor responde con 403 o indica bloqueo, expulsión inmediata
+    if (response.status === 403 || data.status === 'blocked' || data.bloqueado === true) {
+      forceLogoutAndExit("🚨 ¡Acceso revocado! Has sido expulsado del panel de administración.");
     }
-
-    if (data.status === 'warning') {
-      document.body.innerHTML = `
-        <div style="background-color: #020617; color: #ffffff; min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: sans-serif;">
-          <div style="text-align: center; padding: 2rem; background: #090d16; border: 1px solid #1e293b; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
-            <h2 style="font-size: 1.25rem; font-weight: bold; color: #fbbf24; margin-bottom: 0.5rem;">⚠️ Advertencia de Seguridad (${data.intentos}/3)</h2>
-            <p style="font-size: 0.875rem; color: #94a3b8;">Intento de acceso no autorizado registrado. Redirigiendo a tu álbum...</p>
-          </div>
-        </div>
-      `;
-
-      setTimeout(() => {
-        window.location.href = 'album.html';
-      }, 2500);
-      return;
-    }
-
-    if (response.status === 403 || data.status === 'blocked') {
-      document.body.innerHTML = `
-        <div style="background-color: #020617; color: #ffffff; min-height: 100vh; display: flex; align-items: center; justify-content: center; font-family: sans-serif;">
-          <div style="text-align: center; padding: 2rem; background: #090d16; border: 1px solid #1e293b; border-radius: 1rem; box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.5);">
-            <h2 style="font-size: 1.25rem; font-weight: bold; color: #f87171; margin-bottom: 0.5rem;">🚨 ¡Cuenta Bloqueada Permanentemente!</h2>
-            <p style="font-size: 0.875rem; color: #94a3b8;">Alcanzaste el límite de intentos no autorizados. Cerrando sesión...</p>
-          </div>
-        </div>
-      `;
-
-      setTimeout(() => {
-        localStorage.removeItem('active_user_id');
-        window.location.href = 'index.html';
-      }, 3000);
-      return;
-    }
-
   } catch (e) {
-    console.error("Error en validación de admin:", e);
-    window.location.href = 'album.html';
-    return;
+    console.error("Error en verificación de seguridad en vivo:", e);
   }
+}
 
-  window.location.href = 'album.html';
-});
+// ==========================================
+// A PARTIR DE AQUÍ CONTINUAN TUS DEMÁS FUNCIONES (switchAdminTab, loadPendingPayments, etc.)
+// ==========================================
 
 function switchAdminTab(tab) {
   document.getElementById('adminContentPagos').classList.add('hidden');
