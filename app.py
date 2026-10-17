@@ -110,6 +110,12 @@ def api_register():
         return jsonify({"error": "Error de base de datos"}), 500
 
     try:
+        # 🔍 Validación previa para asegurar que el usuario sea único
+        existing_user = supabase_client.table("usuarios").select("id").eq("id", user_id).execute()
+        if existing_user.data and len(existing_user.data) > 0:
+            return jsonify({"error": "El nombre de usuario ya está registrado. Por favor elige otro."}), 400
+
+        # Si no existe, procedemos a registrarlo
         supabase_client.table("usuarios").insert([{
             "id": user_id,
             "username": username,
