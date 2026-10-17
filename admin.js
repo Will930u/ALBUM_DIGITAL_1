@@ -8,7 +8,7 @@ function mostrarAreaRestringida(mensaje = "⛔ ACCESO DENEGADO: Área restringid
         <div style="font-size: 60px; margin-bottom: 20px;">⚠️</div>
         <h1 style="color: #ef4444; font-size: 24px; margin-bottom: 15px; font-weight: bold;">ÁREA RESTRINGIDA</h1>
         <p style="color: #cbd5e1; font-size: 14px; margin-bottom: 25px; line-height: 1.5;">${mensaje}</p>
-        <button onclick="window.location.href='index.html'" style="background: linear-gradient(to right, #991b1b, #7f1d1d); color: white; border: none; padding: 12px 24px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 14px; transition: opacity 0.2s;">Regresar al Inicio</button>
+        <button onclick="window.location.href='album.html'" style="background: linear-gradient(to right, #991b1b, #7f1d1d); color: white; border: none; padding: 12px 24px; border-radius: 10px; font-weight: bold; cursor: pointer; font-size: 14px; transition: opacity 0.2s;">Regresar al Álbum</button>
       </div>
     </div>
   `;
@@ -19,7 +19,7 @@ function forceLogoutAndExit(mensaje = "Tu acceso ha sido revocado remotamente.")
   mostrarAreaRestringida(mensaje);
 }
 
-// 🛡️ VALIDACIÓN DE SEGURIDAD INICIAL Y MONITOREO ACTIVO
+// 🛡️ VALIDACIÓN DE SEGURIDAD INICIAL (UNA SOLA EJECUCIÓN POR VISITA)
 document.addEventListener('DOMContentLoaded', async () => {
   const activeUserId = localStorage.getItem('active_user_id');
   
@@ -28,21 +28,8 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // Verificar de inmediato al cargar la página
+  // Verificar de inmediato una sola vez al cargar la página
   await checkAdminSessionSecurity(activeUserId);
-
-  // Monitoreo en vivo más agresivo (cada 3 segundos para expulsión instantánea)
-  setInterval(async () => {
-    await checkAdminSessionSecurity(activeUserId);
-  }, 3000);
-
-  // Actualizar las métricas del panel automáticamente cada 2 segundos
-  setInterval(() => {
-    const metricTab = document.getElementById('adminContentMetricas');
-    if (metricTab && !metricTab.classList.contains('hidden')) {
-      renderFinancialMetrics();
-    }
-  }, 2000);
 });
 
 async function checkAdminSessionSecurity(userId) {
@@ -55,9 +42,34 @@ async function checkAdminSessionSecurity(userId) {
     
     const data = await response.json();
     
+    // Si la cuenta ya está bloqueada o superó los 3 intentos
     if (response.status === 403 || data.status === 'blocked' || data.bloqueado === true) {
-      mostrarAreaRestringida("🚨 Acceso no autorizado. Has intentado ingresar a un área restringida y tu cuenta ha sido bloqueada.");
+      mostrarAreaRestringida("🚨 ACCESO BLOQUEADO: Has intentado ingresar repetidamente a un área restringida. Tu cuenta ha sido bloqueada permanentemente.");
+      localStorage.removeItem('active_user_id');
+      return;
     }
+
+    // Si es un intento no autorizado (1/3 o 2/3)
+    if (data.status === 'warning') {
+      mostrarAreaRestringida(`⚠️ ÁREA RESTRINGIDA: No tienes permisos de administrador. Intento registrado (${data.intentos}/3).`);
+      return;
+    }
+
+    // Si el servidor responde unauthorized
+    if (data.status === 'unauthorized' || response.status === 403) {
+      mostrarAreaRestringida("⛔ ÁREA RESTRINGIDA: Acceso no permitido.");
+      return;
+    }
+
+    // ✅ SI LLEGA AQUÍ, ES EL ADMINISTRADOR AUTORIZADO: CARGA EL PANEL CON NORMALIDAD
+    // Actualizar las métricas del panel automáticamente cada 2 segundos
+    setInterval(() => {
+      const metricTab = document.getElementById('adminContentMetricas');
+      if (metricTab && !metricTab.classList.contains('hidden')) {
+        renderFinancialMetrics();
+      }
+    }, 2000);
+
   } catch (e) {
     console.error("Error en verificación de seguridad en vivo:", e);
   }
