@@ -559,3 +559,18 @@ function handleSwipeGesture() {
     changePage(-1);
   }
 }
+// 💓 ENVÍO SILENCIOSO DE LATIDO CADA 30 SEGUNDOS
+setInterval(async () => {
+  const activeUserId = localStorage.getItem('active_user_id');
+  if (activeUserId) {
+    try {
+      await fetch('https://album-digital-1.onrender.com/api/heartbeat', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuario_id: activeUserId })
+      });
+    } catch (e) {
+      console.error("Error al enviar latido:", e);
+    }
+  }
+}, 30000);
