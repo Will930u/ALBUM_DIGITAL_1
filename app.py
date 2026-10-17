@@ -6,7 +6,7 @@ import re
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from supabase import create_client, Client
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -399,18 +399,23 @@ def admin_metricas():
         usuarios = usr_res.data or []
         total_usuarios = len(usuarios)
         
-        ahora = datetime.utcnow()
+        # Usar UTC con zona horaria consciente para evitar conflictos con Supabase
+        ahora = datetime.now(timezone.utc)
         usuarios_online = 0
         for u in usuarios:
             latido = u.get("ultimo_latido")
             if latido:
                 try:
-                    # Limpiar formato de fecha de Supabase
-                    dt_latido = datetime.fromisoformat(latido.replace('Z', ''))
+                    # Normalizar formato ISO de Supabase
+                    latido_str = latido.replace('Z', '+00:00')
+                    dt_latido = datetime.fromisoformat(latido_str)
+                    if dt_latido.tzinfo is None:
+                        dt_latido = dt_latido.replace(tzinfo=timezone.utc)
+                        
                     if (ahora - dt_latido) <= timedelta(seconds=90):
                         usuarios_online += 1
-                except:
-                    pass
+                except Exception as e:
+                    print(f"Error procesando latido para usuario {u.get('id')}: {e}")
 
         bcv_rate = 1.0
         try:
@@ -430,6 +435,7 @@ def admin_metricas():
             "usuarios_online": usuarios_online
         }), 200
     except Exception as e:
+        print(f"Error en admin_metricas: {e}")
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/admin/usuarios", methods=["GET"])
