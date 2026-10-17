@@ -75,7 +75,7 @@ def registrar_conexion(usuario_id, evento_tipo):
 
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.7.0"}), 200
+    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.8.0"}), 200
 
 @app.route("/api/bcv", methods=["GET"])
 def get_bcv_rate():
@@ -87,6 +87,27 @@ def get_bcv_rate():
         return jsonify({"status": "error", "message": "No se pudo obtener la tasa BCV"}), 502
     except Exception as e:
         return jsonify({"status": "error", "details": str(e)}), 500
+
+# ==========================================
+# ENDPOINT PARA EL CARRUSEL / FEED PÚBLICO
+# ==========================================
+@app.route("/api/feed-actividad", methods=["GET"])
+def api_feed_actividad():
+    if not supabase_client:
+        return jsonify({"status": "error", "message": "BD no disponible"}), 500
+    try:
+        # Consultamos las transacciones que ya estén aprobadas por el admin
+        res = supabase_client.table("transacciones") \
+            .select("id, usuario_id, barajitas_qty, monto_bs, created_at, fecha_aprobacion") \
+            .eq("estado", "aprobado") \
+            .order("fecha_aprobacion", desc=True) \
+            .limit(30) \
+            .execute()
+        
+        return jsonify({"status": "success", "actividades": res.data or []}), 200
+    except Exception as e:
+        print(f"Error en /api/feed-actividad: {e}")
+        return jsonify({"status": "error", "message": str(e)}), 500
 
 # ==========================================
 # ENDPOINTS DE AUTENTICACIÓN Y USUARIO
@@ -607,7 +628,13 @@ def procesar_compra_admin():
             
             tx = tx_res.data[0]
             nuevo_estado = "aprobado" if accion == "aprobar" else "rechazado"
-            supabase_client.table("transacciones").update({"estado": nuevo_estado}).eq("id", tx_id).execute()
+            
+            # Actualizamos estado y guardamos fecha/hora exacta de aprobación para el feed
+            update_payload = {"estado": nuevo_estado}
+            if accion == "aprobar":
+                update_payload["fecha_aprobacion"] = datetime.now(timezone.utc).isoformat()
+
+            supabase_client.table("transacciones").update(update_payload).eq("id", tx_id).execute()
 
             if accion == "aprobar":
                 usr_res = supabase_client.table("usuarios").select("*").eq("id", tx["usuario_id"]).execute()
@@ -874,7 +901,12 @@ def telegram_webhook():
                         if tx_res.data:
                             tx = tx_res.data[0]
                             nuevo_estado = "aprobado" if accion == "aprobar" else "rechazado"
-                            supabase_client.table("transacciones").update({"estado": nuevo_estado}).eq("id", item_id).execute()
+                            
+                            update_payload = {"estado": nuevo_estado}
+                            if accion == "aprobar":
+                                update_payload["fecha_aprobacion"] = datetime.now(timezone.utc).isoformat()
+
+                            supabase_client.table("transacciones").update(update_payload).eq("id", item_id).execute()
 
                             if accion == "aprobar":
                                 usr_res = supabase_client.table("usuarios").select("*").eq("id", tx["usuario_id"]).execute()
@@ -888,7 +920,7 @@ def telegram_webhook():
                                         "saldo_bs": (usr.get("saldo_bs") or 0.0) + (monto_bs_total * 0.70)
                                     }).eq("id", tx["usuario_id"]).execute()
 
-                    elif tipo_action == "retiro":
+                    elif tipo_accion == "retiro":
                         w_res = supabase_client.table("retiros").select("*").eq("id", item_id).execute()
                         if w_res.data:
                             w = w_res.data[0]
