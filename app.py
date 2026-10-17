@@ -181,17 +181,30 @@ def notificar_login():
 
     if usuario_id.upper() == ADMIN_USER_ID.upper():
         mensaje = (
-            f"🟢 <b>¡INICIO DE SESIÓN DE ADMIN!</b>\n\n"
+            f"🔐 <b>¡ACCESO DE ADMINISTRADOR DETECTADO!</b>\n\n"
             f"👤 <b>Administrador:</b> <code>{usuario_id}</code>\n"
-            f"📱 Ha ingresado exitosamente a la plataforma."
+            f"🌐 Se ha iniciado sesión correctamente en el Panel de Administración.\n\n"
+            f"<i>¿No fuiste tú? Bloquea el acceso de inmediato usando el botón de abajo.</i>"
         )
+        keyboard_admin = {
+            "inline_keyboard": [
+                [
+                    {"text": "🚨 Bloquear / Expulsar", "callback_data": f"bloquear_{usuario_id}"},
+                    {"text": "🔓 Desbloquear", "callback_data": f"desbloquear_{usuario_id}"}
+                ],
+                [
+                    {"text": "🌐 Entrar al Panel Admin", "url": "https://album-digital-1.onrender.com/admin.html"}
+                ]
+            ]
+        }
+        send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje, reply_markup=keyboard_admin)
     else:
         mensaje = (
             f"👤 <b>Nuevo Inicio de Sesión</b>\n\n"
             f"ID de Usuario: <code>{usuario_id}</code>"
         )
+        send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje)
 
-    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje)
     return jsonify({"status": "success"}), 200
 
 
@@ -232,27 +245,8 @@ def verificar_admin():
         except Exception as e:
             print(f"Error consultando estado de bloqueo: {e}")
 
-    # Si es el administrador autorizado y NO está bloqueado
+    # Si es el administrador autorizado y NO está bloqueado (Silencioso para evitar spam cada 3s)
     if usuario_id.upper() == ADMIN_USER_ID.upper():
-        # Verificamos si ya se envió la notificación o enviamos la alerta de acceso al ingresar por primera vez
-        alerta_admin_msg = (
-            f"🔐 <b>¡ACCESO DE ADMINISTRADOR DETECTADO!</b>\n\n"
-            f"👤 <b>Usuario:</b> <code>{usuario_id}</code>\n"
-            f"🌐 Se ha iniciado sesión correctamente en el Panel de Administración.\n\n"
-            f"<i>¿No fuiste tú? Bloquea el acceso de inmediato usando el botón de abajo.</i>"
-        )
-        keyboard_admin = {
-            "inline_keyboard": [
-                [
-                    {"text": "🚨 Bloquear / Expulsar", "callback_data": f"bloquear_{usuario_id}"},
-                    {"text": "🔓 Desbloquear", "callback_data": f"desbloquear_{usuario_id}"}
-                ],
-                [
-                    {"text": "🌐 Entrar al Panel Admin", "url": "https://album-digital-1.onrender.com/admin.html"}
-                ]
-            ]
-        }
-        send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, alerta_admin_msg, reply_markup=keyboard_admin)
         return jsonify({"status": "authorized"}), 200
 
     if supabase_client:
