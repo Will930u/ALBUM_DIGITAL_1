@@ -69,6 +69,7 @@ async function handleRegister(e) {
       return;
     }
 
+    // 🔒 Si el registro devuelve token automáticamente, opcionalmente podemos guardarlo o pedir login
     alert('¡Registro exitoso! Inicia sesión ahora.');
     switchAuthMode('login');
   } catch (err) {
@@ -101,8 +102,9 @@ async function handleLogin(e) {
       return;
     }
 
-    // 1. Guardamos la sesión en el navegador
+    // 1. Guardamos la sesión y el token seguro en el navegador
     localStorage.setItem('active_user_id', data.user_id);
+    localStorage.setItem('session_token', data.session_token); // 🛡️ Token cifrado de seguridad
 
     // 2. 🟢 ENVIAMOS LA NOTIFICACIÓN A TELEGRAM AUTOMÁTICAMENTE
     await fetch(`${API_URL}/api/notificar-login`, {
