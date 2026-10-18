@@ -50,7 +50,6 @@ def send_telegram_message(chat_id: str, text: str, reply_markup=None):
     thread.start()
     return True
 
-# 🌐 Función para extraer IP y User-Agent
 def obtener_datos_cliente(req):
     ip = req.headers.get("X-Forwarded-For", req.remote_addr)
     if ip and "," in ip:
@@ -58,7 +57,6 @@ def obtener_datos_cliente(req):
     user_agent = req.headers.get("User-Agent", "Desconocido")
     return ip, user_agent
 
-# 📝 Función auxiliar para registrar cada evento en la tabla `conexiones`
 def registrar_conexion(usuario_id, evento_tipo):
     if not supabase_client:
         return
@@ -74,7 +72,6 @@ def registrar_conexion(usuario_id, evento_tipo):
     except Exception as e:
         print(f"Error al registrar conexión en BD: {e}")
 
-# 🔒 Función auxiliar para validar tokens de sesión en rutas protegidas
 def validar_token_sesion(usuario_id, token_enviado):
     if not usuario_id or not token_enviado or not supabase_client:
         return False
@@ -89,7 +86,6 @@ def validar_token_sesion(usuario_id, token_enviado):
         print(f"Error al validar token de sesión: {e}")
     return False
 
-# --- 🎁 FUNCIÓN DE REFERIDOS: Sumar al padrino cuando el invitado hace su primera compra ---
 def verificar_y_sumar_referido(usuario_comprador_id):
     if not supabase_client:
         return
@@ -102,7 +98,6 @@ def verificar_y_sumar_referido(usuario_comprador_id):
         padrino_id = comprador.get("referido_por")
         ya_conto = comprador.get("primera_compra_referido_hecha", False)
         
-        # Si tiene padrino y es su primera compra registrada para referidos
         if padrino_id and not ya_conto:
             supabase_client.table("usuarios").update({"primera_compra_referido_hecha": True}).eq("id", usuario_comprador_id).execute()
             
@@ -120,10 +115,9 @@ def verificar_y_sumar_referido(usuario_comprador_id):
                     
                 nuevos_referidos = referidos_mes + 1
                 
-                # Meta de 10 referidos con compra y máximo 1 bono al mes
                 if nuevos_referidos >= 10 and bonos_mes < 1:
                     saldo_actual_bs = float(padrino.get("saldo_bs") or 0.0)
-                    nuevo_saldo_bs = saldo_actual_bs + 180.0 # Equivalente a los $5 del bono en Bs
+                    nuevo_saldo_bs = saldo_actual_bs + 180.0
                     
                     supabase_client.table("usuarios").update({
                         "saldo_bs": nuevo_saldo_bs,
@@ -141,7 +135,7 @@ def verificar_y_sumar_referido(usuario_comprador_id):
 
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "4.1.0"}), 200
+    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "4.2.0"}), 200
 
 @app.route("/api/bcv", methods=["GET"])
 def get_bcv_rate():
@@ -322,7 +316,7 @@ def obtener_link_referido():
         user = res.data[0]
         barajitas_compradas = int(user.get("cantidad_barajitas", 0) or 0)
         
-        # CANDADO DE 100 BARAJITAS (Ajustado proporcionalmente a 1000)
+        # CANDADO DE 100 BARAJITAS (Ajustado exactamente al nuevo álbum de 1000)
         if barajitas_compradas < 100:
             return jsonify({
                 "success": False, 
@@ -820,7 +814,6 @@ def procesar_compra_admin():
                         "saldo_bs": nuevo_saldo
                     }).eq("id", tx["usuario_id"]).execute()
 
-                    # 🎁 EVALUAR Y SUMAR REFERIDO AL APROBAR SU PRIMERA COMPRA
                     verificar_y_sumar_referido(tx["usuario_id"])
 
             return jsonify({"status": "success"}), 200
@@ -1098,7 +1091,6 @@ def telegram_webhook():
                                         "saldo_bs": (usr.get("saldo_bs") or 0.0) + (monto_bs_total * 0.70)
                                     }).eq("id", tx["usuario_id"]).execute()
 
-                                    # 🎁 EVALUAR Y SUMAR REFERIDO AL APROBAR DESDE TELEGRAM
                                     verificar_y_sumar_referido(tx["usuario_id"])
 
                     elif tipo_accion == "retiro":
