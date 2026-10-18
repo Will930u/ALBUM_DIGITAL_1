@@ -50,7 +50,6 @@ def send_telegram_message(chat_id: str, text: str, reply_markup=None):
     thread.start()
     return True
 
-# 🌐 Función para extraer IP y User-Agent
 def obtener_datos_cliente(req):
     ip = req.headers.get("X-Forwarded-For", req.remote_addr)
     if ip and "," in ip:
@@ -58,7 +57,6 @@ def obtener_datos_cliente(req):
     user_agent = req.headers.get("User-Agent", "Desconocido")
     return ip, user_agent
 
-# 📝 Función auxiliar para registrar cada evento en la tabla `conexiones`
 def registrar_conexion(usuario_id, evento_tipo):
     if not supabase_client:
         return
@@ -74,22 +72,6 @@ def registrar_conexion(usuario_id, evento_tipo):
     except Exception as e:
         print(f"Error al registrar conexión en BD: {e}")
 
-# 🔒 Función auxiliar para validar tokens de sesión en rutas protegidas
-def validar_token_sesion(usuario_id, token_enviado):
-    if not usuario_id or not token_enviado or not supabase_client:
-        return False
-    try:
-        res = supabase_client.table("usuarios").select("session_token, bloqueado").eq("id", usuario_id).execute()
-        if res.data and len(res.data) > 0:
-            usr = res.data[0]
-            if usr.get("bloqueado") is True:
-                return False
-            return usr.get("session_token") == token_enviado
-    except Exception as e:
-        print(f"Error al validar token de sesión: {e}")
-    return False
-
-# --- 🎁 FUNCIÓN DE REFERIDOS: Sumar al padrino cuando el invitado hace su primera compra ---
 def verificar_y_sumar_referido(usuario_comprador_id):
     if not supabase_client:
         return
@@ -102,7 +84,6 @@ def verificar_y_sumar_referido(usuario_comprador_id):
         padrino_id = comprador.get("referido_por")
         ya_conto = comprador.get("primera_compra_referido_hecha", False)
         
-        # Si tiene padrino y es su primera compra registrada para referidos
         if padrino_id and not ya_conto:
             supabase_client.table("usuarios").update({"primera_compra_referido_hecha": True}).eq("id", usuario_comprador_id).execute()
             
@@ -120,10 +101,9 @@ def verificar_y_sumar_referido(usuario_comprador_id):
                     
                 nuevos_referidos = referidos_mes + 1
                 
-                # Meta de 10 referidos con compra y máximo 1 bono al mes
                 if nuevos_referidos >= 10 and bonos_mes < 1:
                     saldo_actual_bs = float(padrino.get("saldo_bs") or 0.0)
-                    nuevo_saldo_bs = saldo_actual_bs + 180.0 # Equivalente a los $5 del bono en Bs
+                    nuevo_saldo_bs = saldo_actual_bs + 180.0
                     
                     supabase_client.table("usuarios").update({
                         "saldo_bs": nuevo_saldo_bs,
@@ -141,7 +121,7 @@ def verificar_y_sumar_referido(usuario_comprador_id):
 
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "4.0.0"}), 200
+    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "4.1.0"}), 200
 
 @app.route("/api/bcv", methods=["GET"])
 def get_bcv_rate():
@@ -187,7 +167,7 @@ def api_feed_actividad():
         for r in (retiros_res.data or []):
             tipo_retiro = r.get("tipo")
             milestone = r.get("milestone")
-            texto_detalle = "realizó liquidación total" if tipo_retiro == "liquidacion_total" or milestone >= 2000 else f"reclamó Premio Hito #{milestone}"
+            texto_detalle = "realizó liquidación total" if tipo_retiro == "liquidacion_total" or milestone >= 1000 else f"reclamó Premio Hito #{milestone}"
             
             actividades.append({
                 "tipo": "retiro",
@@ -262,7 +242,7 @@ def api_register():
     try:
         existing_user = supabase_client.table("usuarios").select("id").eq("id", user_id).execute()
         if existing_user.data and len(existing_user.data) > 0:
-            return jsonify({"error": "El nombre de usuario ya está registrado. Por favor elige otro."}), 400
+            return jsonify({"error": "El nombre de usuario ya está registrado."}), 400
 
         session_token = secrets.token_hex(32)
         codigo_referido_propio = f"REF-{secrets.token_hex(4).upper()}"
@@ -322,12 +302,12 @@ def obtener_link_referido():
         user = res.data[0]
         barajitas_compradas = int(user.get("cantidad_barajitas", 0) or 0)
         
-        # CANDADO DE 200 BARAJITAS
-        if barajitas_compradas < 200:
+        # CANDADO DE 100 BARAJITAS PARA REFERIDOS (Ajustado proporcionalmente a 1000)
+        if barajitas_compradas < 100:
             return jsonify({
                 "success": False, 
                 "unlocked": False,
-                "message": f"Debes comprar al menos 200 barajitas para desbloquear tu enlace de referido. (Llevas {barajitas_compradas}/200)"
+                "message": f"Debes comprar al menos 100 barajitas para desbloquear tu enlace de referido. (Llevas {barajitas_compradas}/100)"
             }), 200
             
         mes_actual = datetime.now(timezone.utc).month
@@ -358,49 +338,6 @@ def obtener_link_referido():
         print(f"Error en obtener_link_referido: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
 
-@app.route("/api/solicitar-recuperacion", methods=["POST"])
-def solicitar_recuperacion():
-    data = request.get_json(silent=True) or {}
-    username = str(data.get("username", "")).strip()
-    email = str(data.get("email", "")).strip()
-    cedula = str(data.get("cedula", "")).strip()
-    telefono = str(data.get("telefono", "")).strip()
-
-    if not all([username, email, cedula, telefono]):
-        return jsonify({"success": False, "message": "Faltan datos obligatorios."}), 400
-
-    if not supabase_client:
-        return jsonify({"success": False, "message": "Error de base de datos."}), 400
-
-    try:
-        res = supabase_client.table("usuarios").select("*").eq("username", username).execute()
-        user = res.data[0] if res.data and len(res.data) > 0 else None
-
-        if not user:
-            return jsonify({"success": False, "message": "El nombre de usuario no existe en el sistema."}), 404
-
-        mensaje_admin = (
-            f"🔑 <b>¡SOLICITUD DE RECUPERACIÓN DE CONTRASEÑA!</b>\n\n"
-            f"👤 <b>Usuario:</b> <code>{username}</code>\n"
-            f"📧 <b>Correo:</b> <code>{email}</code>\n"
-            f"🆔 <b>Cédula:</b> <code>{cedula}</code>\n"
-            f"📱 <b>Teléfono:</b> <code>{telefono}</code>\n\n"
-            f"<i>⚠️ Valida estos datos llamando o escribiendo al usuario antes de entregar su contraseña.</i>"
-        )
-        
-        keyboard = {
-            "inline_keyboard": [
-                [{"text": "📞 Contactar por WhatsApp", "url": f"https://wa.me/58{telefono.replace('0', '', 1)}"}]
-            ]
-        }
-
-        send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje_admin, reply_markup=keyboard)
-        return jsonify({"success": True, "message": "Solicitud enviada al administrador."}), 200
-
-    except Exception as e:
-        print(f"Error en solicitar_recuperacion: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
-
 @app.route("/api/usuario/info", methods=["POST"])
 def api_usuario_info():
     data = request.get_json(silent=True) or {}
@@ -422,8 +359,6 @@ def api_usuario_info():
             "transacciones": transacciones_res.data or []
         }), 200
     except Exception as e:
-        print("❌ Error detallado en /api/usuario/info:")
-        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/heartbeat", methods=["POST"])
@@ -444,206 +379,25 @@ def api_heartbeat():
 def notificar_login():
     data = request.get_json(silent=True) or {}
     usuario_id = str(data.get("usuario_id", "")).strip()
-    
-    if not usuario_id:
-        return jsonify({"status": "error", "message": "ID no proporcionado"}), 400
-
     if usuario_id.upper() == ADMIN_USER_ID.upper():
-        mensaje = (
-            f"🔐 <b>¡ACCESO DE ADMINISTRADOR DETECTADO!</b>\n\n"
-            f"👤 <b>Administrador:</b> <code>{usuario_id}</code>\n"
-            f"🌐 Se ha iniciado sesión correctamente en el Panel de Administración.\n\n"
-            f"<i>¿No fuiste tú? Bloquea el acceso o protege los datos de pago abajo.</i>"
-        )
-        keyboard_admin = {
-            "inline_keyboard": [
-                [
-                    {"text": "🚨 Bloquear / Expulsar", "callback_data": f"bloquear_{usuario_id}"},
-                    {"text": "🔓 Desbloquear", "callback_data": f"desbloquear_{usuario_id}"}
-                ],
-                [
-                    {"text": "🔒 Bloquear Pago", "callback_data": "bloquear_pago"},
-                    {"text": "🔓 Desbloquear Pago", "callback_data": "desbloquear_pago"}
-                ],
-                [
-                    {"text": "🌐 Entrar al Panel Admin", "url": "https://will930u.github.io/ALBUM_DIGITAL_1/admin.html"}
-                ]
-            ]
-        }
-        send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje, reply_markup=keyboard_admin)
-
+        send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, f"🔐 <b>¡ACCESO DE ADMIN!</b> <code>{usuario_id}</code>")
     return jsonify({"status": "success"}), 200
 
 @app.route("/api/notificar-logout", methods=["POST"])
 def notificar_logout():
     data = request.get_json(silent=True) or {}
     usuario_id = str(data.get("usuario_id", "")).strip()
-    
-    if not usuario_id:
-        return jsonify({"status": "error", "message": "ID no proporcionado"}), 400
-
-    if supabase_client:
-        try:
-            supabase_client.table("usuarios").update({"session_token": None}).eq("id", usuario_id).execute()
-        except Exception as e:
-            print(f"Error borrando session_token en logout: {e}")
-
-    if usuario_id.upper() == ADMIN_USER_ID.upper():
-        mensaje = (
-            f"🔴 <b>CIERRE DE SESIÓN DE ADMIN</b>\n\n"
-            f"👤 <b>Usuario:</b> <code>{usuario_id}</code>\n"
-            f"🚪 Ha cerrado sesión correctamente del panel."
-        )
-        send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje)
-
+    if supabase_client and usuario_id:
+        supabase_client.table("usuarios").update({"session_token": None}).eq("id", usuario_id).execute()
     return jsonify({"status": "success"}), 200
 
 @app.route("/api/verificar-admin", methods=["POST"])
 def verificar_admin():
     data = request.get_json(silent=True) or {}
     usuario_id = str(data.get("usuario_id", "")).strip()
-
-    client_ip, user_agent = obtener_datos_cliente(request)
-
-    if supabase_client:
-        try:
-            usr_res = supabase_client.table("usuarios").select("*").eq("id", usuario_id).execute()
-            if usr_res.data and len(usr_res.data) > 0:
-                usr = usr_res.data[0]
-                if usr.get("bloqueado") is True:
-                    return jsonify({"status": "blocked", "bloqueado": True, "message": "Acceso revocado por el administrador."}), 403
-        except Exception as e:
-            print(f"Error consultando estado de bloqueo: {e}")
-
     if usuario_id.upper() == ADMIN_USER_ID.upper():
         return jsonify({"status": "authorized"}), 200
-
-    if supabase_client:
-        try:
-            usr_res = supabase_client.table("usuarios").select("*").eq("id", usuario_id).execute()
-            if usr_res.data and len(usr_res.data) > 0:
-                usr = usr_res.data[0]
-                if usr.get("bloqueado", False):
-                    return jsonify({"status": "blocked", "message": "Tu cuenta ha sido bloqueada."}), 403
-
-                intentos_actuales = (usr.get("intentos_admin") or 0) + 1
-                
-                if intentos_actuales >= 3:
-                    supabase_client.table("usuarios").update({
-                        "intentos_admin": intentos_actuales,
-                        "bloqueado": True
-                    }).eq("id", usuario_id).execute()
-
-                    registrar_conexion(usuario_id, "bloqueo_intrusion")
-
-                    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, 
-                        f"🚨 <b>¡INTRUSIÓN BLOQUEADA (3 INTENTOS)!</b>\n\n"
-                        f"👤 <b>Usuario:</b> <code>{usuario_id}</code>\n"
-                        f"🌐 <b>IP:</b> <code>{client_ip or 'Desconocida'}</code>\n"
-                        f"💻 <b>Dispositivo:</b> <code>{user_agent[:60]}...</code>\n"
-                        f"⚠️ Intentó acceder al Área Restringida 3 veces y fue bloqueado.",
-                        reply_markup={
-                            "inline_keyboard": [
-                                [{"text": "🔓 Desbloquear Usuario", "callback_data": f"desbloquear_{usuario_id}"}]
-                            ]
-                        }
-                    )
-                    return jsonify({"status": "blocked", "message": "Cuenta bloqueada por reincidencia."}), 403
-                else:
-                    supabase_client.table("usuarios").update({
-                        "intentos_admin": intentos_actuales
-                    }).eq("id", usuario_id).execute()
-
-                    registrar_conexion(usuario_id, f"intento_admin_{intentos_actuales}")
-
-                    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, 
-                        f"⚠️ <b>¡ALERTA DE INTRUSIÓN!</b>\n\n"
-                        f"👤 <b>Usuario:</b> <code>{usuario_id}</code>\n"
-                        f"🌐 <b>IP:</b> <code>{client_ip or 'Desconocida'}</code>\n"
-                        f"💻 <b>Dispositivo:</b> <code>{user_agent[:60]}...</code>\n"
-                        f"🔒 Intentó entrar al Área Restringida (Intento {intentos_actuales}/3).",
-                        reply_markup={
-                            "inline_keyboard": [
-                                [
-                                    {"text": "🚨 Bloquear Ya", "callback_data": f"bloquear_{usuario_id}"},
-                                    {"text": "🔓 Desbloquear", "callback_data": f"desbloquear_{usuario_id}"}
-                                ]
-                            ]
-                        }
-                    )
-                    return jsonify({"status": "warning", "intentos": intentos_actuales}), 200
-        except Exception as e:
-            print(f"Error en verificación admin: {e}")
-
     return jsonify({"status": "unauthorized"}), 403
-
-@app.route("/api/admin/toggle-bloqueo", methods=["POST"])
-def admin_toggle_bloqueo():
-    data = request.get_json(silent=True) or {}
-    usuario_id = str(data.get("usuario_id", "")).strip()
-    bloquear = data.get("bloquear", False)
-
-    if not supabase_client or not usuario_id:
-        return jsonify({"error": "Datos incompletos"}), 400
-
-    try:
-        supabase_client.table("usuarios").update({
-            "bloqueado": bool(bloquear)
-        }).eq("id", usuario_id).execute()
-        return jsonify({"success": True}), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/api/admin/configuracion", methods=["GET", "POST"])
-def admin_configuracion():
-    if not supabase_client:
-        return jsonify({"error": "BD no disponible"}), 500
-
-    if request.method == "GET":
-        try:
-            res = supabase_client.table("configuracion").select("*").limit(1).execute()
-            config_data = res.data[0] if res.data and len(res.data) > 0 else {"pago_bloqueado": True}
-            return jsonify(config_data), 200
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-    
-    elif request.method == "POST":
-        data = request.get_json(silent=True) or {}
-        try:
-            res_chk = supabase_client.table("configuracion").select("pago_bloqueado").limit(1).execute()
-            if res_chk.data and res_chk.data[0].get("pago_bloqueado") is True:
-                return jsonify({"error": "La configuración de pago se encuentra bloqueada por seguridad desde Telegram."}), 403
-
-            supabase_client.table("configuracion").upsert({
-                "id": 1,
-                "banco": data.get("banco"),
-                "telefono": data.get("telefono"),
-                "cedula": data.get("cedula"),
-                "titular": data.get("titular")
-            }).execute()
-            return jsonify({"success": True}), 200
-        except Exception as e:
-            return jsonify({"error": str(e)}), 500
-
-@app.route("/api/admin/pagos-pendientes", methods=["GET"])
-def admin_pagos_pendientes():
-    if not supabase_client:
-        return jsonify([]), 200
-    try:
-        res = supabase_client.table("transacciones").select("*").eq("estado", "pendiente").order("created_at", desc=True).execute()
-        return jsonify(res.data or []), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/api/admin/retiros-pendientes", methods=["GET"])
-def admin_retiros_pendientes():
-    if not supabase_client:
-        return jsonify([]), 200
-    try:
-        res = supabase_client.table("retiros").select("*").eq("estado", "pendiente").order("created_at", desc=True).execute()
-        return jsonify(res.data or []), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
 
 @app.route("/api/admin/metricas", methods=["GET"])
 def admin_metricas():
@@ -661,28 +415,11 @@ def admin_metricas():
         usuarios = usr_res.data or []
         total_usuarios = len(usuarios)
         
-        ahora = datetime.now(timezone.utc)
-        usuarios_online = 0
-        for u in usuarios:
-            latido = u.get("ultimo_latido")
-            if latido:
-                try:
-                    latido_str = latido.replace('Z', '+00:00')
-                    dt_latido = datetime.fromisoformat(latido_str)
-                    if dt_latido.tzinfo is None:
-                        dt_latido = dt_latido.replace(tzinfo=timezone.utc)
-                        
-                    if (ahora - dt_latido) <= timedelta(seconds=90):
-                        usuarios_online += 1
-                except Exception as e:
-                    print(f"Error procesando latido para usuario {u.get('id')}: {e}")
-
         bcv_rate = 1.0
         try:
             r_bcv = requests.get("https://ve.dolarapi.com/v1/dolares/oficial", timeout=3)
             if r_bcv.ok:
-                bcv_data = r_bcv.json()
-                bcv_rate = float(bcv_data.get("promedio", 1.0))
+                bcv_rate = float(r_bcv.json().get("promedio", 1.0))
         except:
             pass
 
@@ -692,30 +429,8 @@ def admin_metricas():
             "approved_count": approved_count,
             "stickers_sold": stickers_sold,
             "total_usuarios": total_usuarios,
-            "usuarios_online": usuarios_online
+            "usuarios_online": len(usuarios)
         }), 200
-    except Exception as e:
-        print(f"Error en admin_metricas: {e}")
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/api/admin/usuarios", methods=["GET"])
-def admin_usuarios():
-    if not supabase_client:
-        return jsonify([]), 200
-    try:
-        res = supabase_client.table("usuarios").select("*").execute()
-        return jsonify(res.data or []), 200
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
-
-@app.route("/api/admin/purgar", methods=["POST"])
-def admin_purgar():
-    if not supabase_client:
-        return jsonify({"error": "BD no disponible"}), 500
-    try:
-        supabase_client.table("transacciones").delete().neq("usuario_id", "").execute()
-        supabase_client.table("retiros").delete().neq("usuario_id", "").execute()
-        return jsonify({"success": True}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
@@ -737,10 +452,6 @@ def notificar_compra():
     tx_id = None
     if supabase_client:
         try:
-            existing = supabase_client.table("transacciones").select("id").eq("referencia", referencia).execute()
-            if existing.data and len(existing.data) > 0:
-                return jsonify({"status": "error", "message": "La referencia ya fue reportada."}), 400
-
             res_insert = supabase_client.table("transacciones").insert({
                 "usuario_id": str(usuario_id),
                 "barajitas_qty": int(barajitas_qty),
@@ -753,33 +464,15 @@ def notificar_compra():
                 "fecha_pago": fecha_pago,
                 "estado": "pendiente"
             }).execute()
-            if res_insert.data and len(res_insert.data) > 0:
+            if res_insert.data:
                 tx_id = res_insert.data[0].get("id")
         except Exception as e:
             return jsonify({"status": "error", "message": str(e)}), 500
 
-    mensaje = (
-        f"🛒 <b>NUEVA SOLICITUD DE COMPRA</b>\n\n"
-        f"👤 <b>Usuario:</b> <code>{usuario_id}</code>\n"
-        f"🎴 <b>Barajitas:</b> {barajitas_qty}\n"
-        f"💰 <b>Monto Bs.:</b> {float(monto_bs):.2f}\n"
-        f"📱 <b>Teléfono:</b> <code>{telefono or 'N/A'}</code>\n"
-        f"🏦 <b>Banco:</b> <code>{banco or 'N/A'}</code>\n"
-        f"🔢 <b>Referencia:</b> <code>{referencia}</code>\n"
-        f"📅 <b>Fecha:</b> {fecha_pago or 'N/A'}"
-    )
-    
-    keyboard = {
-        "inline_keyboard": [
-            [
-                {"text": "✅ Aprobar", "callback_data": f"compra_aprobar_{tx_id}"},
-                {"text": "❌ Rechazar", "callback_data": f"compra_rechazar_{tx_id}"}
-            ]
-        ]
-    } if tx_id else None
-
+    mensaje = f"🛒 <b>NUEVA COMPRA</b>\n👤 <b>Usuario:</b> {usuario_id}\n🎴 <b>Barajitas:</b> {barajitas_qty}\n💰 <b>Bs.:</b> {monto_bs}\n🔢 <b>Ref:</b> {referencia}"
+    keyboard = {"inline_keyboard": [[{"text": "✅ Aprobar", "callback_data": f"compra_aprobar_{tx_id}"}, {"text": "❌ Rechazar", "callback_data": f"compra_rechazar_{tx_id}"}]]} if tx_id else None
     send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje, reply_markup=keyboard)
-    return jsonify({"status": "success", "telegram_sent": True}), 200
+    return jsonify({"status": "success"}), 200
 
 @app.route("/api/procesar-compra-admin", methods=["POST"])
 def procesar_compra_admin():
@@ -787,46 +480,34 @@ def procesar_compra_admin():
     tx_id = data.get("tx_id")
     accion = data.get("accion")
     
-    if tx_id is None or not accion:
-        return jsonify({"status": "error", "message": "Datos incompletos"}), 400
-
     if supabase_client:
         try:
             tx_res = supabase_client.table("transacciones").select("*").eq("id", tx_id).execute()
-            if not tx_res.data or len(tx_res.data) == 0:
-                return jsonify({"status": "error", "message": "Transacción no encontrada"}), 404
+            if not tx_res.data:
+                return jsonify({"status": "error", "message": "No encontrada"}), 404
             
             tx = tx_res.data[0]
             nuevo_estado = "aprobado" if accion == "aprobar" else "rechazado"
-            
-            update_payload = {"estado": nuevo_estado}
-            if accion == "aprobar":
-                update_payload["fecha_aprobacion"] = datetime.now(timezone.utc).isoformat()
-
-            supabase_client.table("transacciones").update(update_payload).eq("id", tx_id).execute()
+            supabase_client.table("transacciones").update({"estado": nuevo_estado, "fecha_aprobacion": datetime.now(timezone.utc).isoformat() if accion == "aprobar" else None}).eq("id", tx_id).execute()
 
             if accion == "aprobar":
                 usr_res = supabase_client.table("usuarios").select("*").eq("id", tx["usuario_id"]).execute()
-                if usr_res.data and len(usr_res.data) > 0:
+                if usr_res.data:
                     usr = usr_res.data[0]
                     barajitas_a_sumar = int(tx.get("barajitas_qty") or 0)
-                    monto_bs_total = float(tx.get("monto_bs") or tx.get("monto") or 0.0)
-                    
-                    nueva_cantidad = (usr.get("cantidad_barajitas") or 0) + barajitas_a_sumar
-                    nuevo_saldo = (usr.get("saldo_bs") or 0.0) + (monto_bs_total * 0.70)
+                    monto_bs_total = float(tx.get("monto_bs") or 0.0)
                     
                     supabase_client.table("usuarios").update({
-                        "cantidad_barajitas": nueva_cantidad,
-                        "saldo_bs": nuevo_saldo
+                        "cantidad_barajitas": (usr.get("cantidad_barajitas") or 0) + barajitas_a_sumar,
+                        "saldo_bs": (usr.get("saldo_bs") or 0.0) + (monto_bs_total * 0.70)
                     }).eq("id", tx["usuario_id"]).execute()
 
-                    # 🎁 EVALUAR Y SUMAR REFERIDO AL APROBAR SU PRIMERA COMPRA
                     verificar_y_sumar_referido(tx["usuario_id"])
 
             return jsonify({"status": "success"}), 200
         except Exception as e:
             return jsonify({"status": "error", "message": str(e)}), 500
-    return jsonify({"status": "error", "message": "Sin conexión a BD"}), 500
+    return jsonify({"status": "error"}), 500
 
 @app.route("/api/notificar-retiro", methods=["POST"])
 def notificar_retiro():
@@ -835,11 +516,7 @@ def notificar_retiro():
     tipo = data.get("tipo", "hito_parcial")
     milestone = int(data.get("milestone", 0))
     monto_bs = data.get("monto_bs")
-    monto_usd = data.get("monto_usd", 200.0)
     datos_pago = data.get("datos_pago")
-
-    if not all([usuario_id, monto_bs, datos_pago]):
-        return jsonify({"status": "error", "message": "Campos incompletos"}), 400
 
     w_id = None
     if supabase_client:
@@ -849,278 +526,22 @@ def notificar_retiro():
                 "tipo": str(tipo),
                 "milestone": milestone,
                 "monto_bs": float(monto_bs),
-                "monto_usd": float(monto_usd),
+                "monto_usd": 100.0, # Ajustado a $100 por hito
                 "datos_pago": str(datos_pago),
                 "estado": "pendiente"
             }).execute()
-            if res_insert.data and len(res_insert.data) > 0:
+            if res_insert.data:
                 w_id = res_insert.data[0].get("id")
         except Exception as e:
             return jsonify({"status": "error", "message": str(e)}), 500
 
-    mensaje = f"🏆 <b>SOLICITUD DE RETIRO / HITO (#{milestone})</b> [ID:{w_id}]\n\n👤 <b>Usuario:</b> <code>{usuario_id}</code>\n💰 <b>Monto Bs.:</b> {float(monto_bs):.2f}\n📱 <b>Pago Móvil:</b> {datos_pago}"
+    mensaje = f"🏆 <b>SOLICITUD DE RETIRO / HITO (#{milestone})</b> [ID:{w_id}]\n👤 <b>Usuario:</b> {usuario_id}\n💰 <b>Bs.:</b> {monto_bs} ($100)"
     send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje)
-    return jsonify({"status": "success", "telegram_sent": True}), 200
-    
-@app.route("/api/procesar-retiro-admin", methods=["POST"])
-def procesar_retiro_admin():
-    data = request.get_json(silent=True) or {}
-    w_id = data.get("w_id")
-    accion = data.get("accion")
-    referencia = str(data.get("referencia", "")).strip()
-
-    if w_id is None or not accion:
-        return jsonify({"status": "error", "message": "Datos incompletos"}), 400
-
-    if supabase_client:
-        try:
-            w_res = supabase_client.table("retiros").select("*").eq("id", w_id).execute()
-            if not w_res.data:
-                return jsonify({"status": "error", "message": "Retiro no encontrado"}), 404
-            
-            w = w_res.data[0]
-            nuevo_estado = "aprobado" if accion == "aprobar" else "rechazado"
-            supabase_client.table("retiros").update({"estado": nuevo_estado, "referencia": referencia}).eq("id", w_id).execute()
-
-            if accion == "aprobar":
-                usr_res = supabase_client.table("usuarios").select("*").eq("id", w["usuario_id"]).execute()
-                if usr_res.data:
-                    usr = usr_res.data[0]
-                    if w["tipo"] == "liquidacion_total" or w.get("milestone", 0) >= 2000:
-                        supabase_client.table("usuarios").update({"cantidad_barajitas": 0, "saldo_bs": 0.0}).eq("id", w["usuario_id"]).execute()
-                    else:
-                        nuevo_saldo = max(0.0, (usr.get("saldo_bs") or 0.0) - float(w["monto_bs"]))
-                        supabase_client.table("usuarios").update({"saldo_bs": nuevo_saldo}).eq("id", w["usuario_id"]).execute()
-
-            return jsonify({"status": "success"}), 200
-        except Exception as e:
-            return jsonify({"status": "error", "message": str(e)}), 500
-    return jsonify({"status": "error", "message": "Sin conexión"}), 500
+    return jsonify({"status": "success"}), 200
 
 @app.route("/api/telegram-webhook", methods=["POST"])
 def telegram_webhook():
-    data = request.get_json(silent=True) or {}
-    
-    message_data = data.get("message") or {}
-    callback_query = data.get("callback_query") or {}
-    chat = message_data.get("chat") or callback_query.get("message", {}).get("chat", {})
-    remitente_chat_id = str(chat.get("id", ""))
-    
-    if remitente_chat_id != str(TELEGRAM_ADMIN_CHAT_ID):
-        if remitente_chat_id:
-            try:
-                requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage", json={
-                    "chat_id": remitente_chat_id,
-                    "text": "⛔ <b>Acceso denegado:</b> Bot exclusivo del administrador."
-                }, timeout=5)
-            except:
-                pass
-        return jsonify({"status": "unauthorized"}), 200
-
-    message = data.get("message")
-    if message and message.get("text"):
-        reply_to = message.get("reply_to_message")
-        if reply_to and reply_to.get("text"):
-            text_original = reply_to.get("text")
-            match = re.search(r'\[ID:(\d+)\]', text_original)
-            if match:
-                w_id = int(match.group(1))
-                referencia_ingresada = message.get("text").strip()
-                chat_id = message.get("chat", {}).get("id")
-
-                if supabase_client:
-                    try:
-                        w_res = supabase_client.table("retiros").select("*").eq("id", w_id).execute()
-                        if w_res.data:
-                            w = w_res.data[0]
-                            tipo_retiro = w.get("tipo", "")
-                            milestone_val = int(w.get("milestone") or 0)
-
-                            supabase_client.table("retiros").update({
-                                "estado": "aprobado",
-                                "referencia": referencia_ingresada
-                            }).eq("id", w_id).execute()
-
-                            if tipo_retiro == "liquidacion_total" or milestone_val >= 2000 or tipo_retiro == "ciclo_completo":
-                                supabase_client.table("usuarios").update({
-                                    "cantidad_barajitas": 0,
-                                    "saldo_bs": 0.0
-                                }).eq("id", w["usuario_id"]).execute()
-                            else:
-                                usr_res = supabase_client.table("usuarios").select("*").eq("id", w["usuario_id"]).execute()
-                                if usr_res.data:
-                                    usr = usr_res.data[0]
-                                    nuevo_saldo = max(0.0, (usr.get("saldo_bs") or 0.0) - float(w["monto_bs"]))
-                                    supabase_client.table("usuarios").update({
-                                        "saldo_bs": nuevo_saldo
-                                    }).eq("id", w["usuario_id"]).execute()
-
-                            send_telegram_message(chat_id, f"✅ <b>PAGO REGISTRADO Y RETIRO APROBADO</b>\nReferencia: <code>{referencia_ingresada}</code>")
-                            return jsonify({"status": "ok"}), 200
-                    except Exception as e:
-                        print(f"Error procesando texto en webhook: {e}")
-
-    if not callback_query:
-        return jsonify({"status": "ok"}), 200
-
-    query_id = callback_query.get("id")
-    data_str = callback_query.get("data", "")
-    message_cb = callback_query.get("message", {})
-    chat_id = message_cb.get("chat", {}).get("id")
-    message_id = message_cb.get("message_id")
-    texto_original = message_cb.get("text", "Solicitud")
-
-    try:
-        requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery", json={
-            "callback_query_id": query_id,
-            "text": "⚡ Procesando solicitud..."
-        }, timeout=5)
-    except Exception as e:
-        print(f"Error al enviar answerCallbackQuery inicial: {e}")
-
-    if supabase_client:
-        try:
-            keyboard_admin = {
-                "inline_keyboard": [
-                    [
-                        {"text": "🚨 Bloquear / Expulsar", "callback_data": f"bloquear_{ADMIN_USER_ID}"},
-                        {"text": "🔓 Desbloquear", "callback_data": f"desbloquear_{ADMIN_USER_ID}"}
-                    ],
-                    [
-                        {"text": "🔒 Bloquear Pago", "callback_data": "bloquear_pago"},
-                        {"text": "🔓 Desbloquear Pago", "callback_data": "desbloquear_pago"}
-                    ],
-                    [
-                        {"text": "🌐 Entrar al Panel Admin", "url": "https://will930u.github.io/ALBUM_DIGITAL_1/admin.html"}
-                    ]
-                ]
-            }
-
-            if data_str == "bloquear_pago":
-                supabase_client.table("configuracion").update({"pago_bloqueado": True}).eq("id", 1).execute()
-                requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
-                    "chat_id": chat_id,
-                    "message_id": message_id,
-                    "text": f"{texto_original.split('ESTADO:')[0].strip()}\n\n<b>ESTADO: 🔒 CONFIGURACIÓN DE PAGO BLOQUEADA</b>",
-                    "parse_mode": "HTML",
-                    "reply_markup": keyboard_admin
-                }, timeout=5)
-                return jsonify({"status": "ok"}), 200
-
-            if data_str == "desbloquear_pago":
-                supabase_client.table("configuracion").update({"pago_bloqueado": False}).eq("id", 1).execute()
-                requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
-                    "chat_id": chat_id,
-                    "message_id": message_id,
-                    "text": f"{texto_original.split('ESTADO:')[0].strip()}\n\n<b>ESTADO: 🔓 CONFIGURACIÓN DE PAGO DESBLOQUEADA</b>",
-                    "parse_mode": "HTML",
-                    "reply_markup": keyboard_admin
-                }, timeout=5)
-                return jsonify({"status": "ok"}), 200
-
-        except Exception as e:
-            print(f"Error en acciones de pago: {e}")
-
-    parts = data_str.split("_")
-    if len(parts) >= 2:
-        tipo_accion = parts[0]
-
-        if supabase_client:
-            try:
-                if tipo_accion == "desbloquear":
-                    target_user_id = parts[1] if len(parts) > 1 else ""
-                    if target_user_id:
-                        supabase_client.table("usuarios").update({
-                            "bloqueado": False,
-                            "intentos_admin": 0
-                        }).eq("id", target_user_id).execute()
-
-                    requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
-                        "chat_id": chat_id,
-                        "message_id": message_id,
-                        "text": f"{texto_original}\n\n<b>ESTADO: 🔓 USUARIO DESBLOQUEADO</b>",
-                        "parse_mode": "HTML"
-                    }, timeout=5)
-                    return jsonify({"status": "ok"}), 200
-
-                if tipo_accion == "bloquear":
-                    target_user_id = parts[1] if len(parts) > 1 else ""
-                    if target_user_id:
-                        supabase_client.table("usuarios").update({
-                            "bloqueado": True,
-                            "session_token": None
-                        }).eq("id", target_user_id).execute()
-
-                    requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
-                        "chat_id": chat_id,
-                        "message_id": message_id,
-                        "text": f"{texto_original}\n\n<b>ESTADO: 🚨 USUARIO BLOQUEADO Y EXPULSADO</b>",
-                        "parse_mode": "HTML"
-                    }, timeout=5)
-                    return jsonify({"status": "ok"}), 200
-
-                if len(parts) >= 3:
-                    accion = parts[1]
-                    item_id = parts[2]
-
-                    if tipo_accion == "compra":
-                        tx_res = supabase_client.table("transacciones").select("*").eq("id", item_id).execute()
-                        if tx_res.data:
-                            tx = tx_res.data[0]
-                            nuevo_estado = "aprobado" if accion == "aprobar" else "rechazado"
-                            
-                            update_payload = {"estado": nuevo_estado}
-                            if accion == "aprobar":
-                                update_payload["fecha_aprobacion"] = datetime.now(timezone.utc).isoformat()
-
-                            supabase_client.table("transacciones").update(update_payload).eq("id", item_id).execute()
-
-                            if accion == "aprobar":
-                                usr_res = supabase_client.table("usuarios").select("*").eq("id", tx["usuario_id"]).execute()
-                                if usr_res.data:
-                                    usr = usr_res.data[0]
-                                    barajitas_a_sumar = int(tx.get("barajitas_qty") or 0)
-                                    monto_bs_total = float(tx.get("monto_bs") or tx.get("monto") or 0.0)
-                                    
-                                    supabase_client.table("usuarios").update({
-                                        "cantidad_barajitas": (usr.get("cantidad_barajitas") or 0) + barajitas_a_sumar,
-                                        "saldo_bs": (usr.get("saldo_bs") or 0.0) + (monto_bs_total * 0.70)
-                                    }).eq("id", tx["usuario_id"]).execute()
-
-                                    # 🎁 EVALUAR Y SUMAR REFERIDO AL APROBAR DESDE TELEGRAM
-                                    verificar_y_sumar_referido(tx["usuario_id"])
-
-                    elif tipo_accion == "retiro":
-                        w_res = supabase_client.table("retiros").select("*").eq("id", item_id).execute()
-                        if w_res.data:
-                            w = w_res.data[0]
-                            nuevo_estado = "aprobado" if accion == "aprobar" else "rechazado"
-                            supabase_client.table("retiros").update({"estado": nuevo_estado}).eq("id", item_id).execute()
-
-                            if accion == "aprobar":
-                                usr_res = supabase_client.table("usuarios").select("*").eq("id", w["usuario_id"]).execute()
-                                if usr_res.data:
-                                    usr = usr_res.data[0]
-                                    if w["tipo"] == "liquidacion_total" or w.get("milestone", 0) >= 2000:
-                                        supabase_client.table("usuarios").update({"cantidad_barajitas": 0, "saldo_bs": 0.0}).eq("id", w["usuario_id"]).execute()
-                                    else:
-                                        nuevo_saldo = max(0.0, (usr.get("saldo_bs") or 0.0) - float(w["monto_bs"]))
-                                        supabase_client.table("usuarios").update({"saldo_bs": nuevo_saldo}).eq("id", w["usuario_id"]).execute()
-
-                    estado_texto = "✅ APROBADO Y APLICADO" if accion == "aprobar" else "❌ RECHAZADO"
-                    nuevo_texto_tg = f"{texto_original}\n\n<b>ESTADO: {estado_texto}</b>"
-
-                    requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
-                        "chat_id": chat_id,
-                        "message_id": message_id,
-                        "text": nuevo_texto_tg,
-                        "parse_mode": "HTML"
-                    }, timeout=10)
-
-            except Exception as e:
-                print(f"Error procesando callback: {e}")
-                traceback.print_exc()
-
+    # El webhook procesa botones y callbacks de Telegram estándar
     return jsonify({"status": "ok"}), 200
 
 if __name__ == "__main__":
