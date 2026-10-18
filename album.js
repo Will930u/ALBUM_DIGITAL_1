@@ -62,10 +62,14 @@ async function logoutUser() {
 // ----------------------------------------------------
 // CARRUSEL / TICKER DE ACTIVIDAD EN TIEMPO REAL
 // ----------------------------------------------------
+let feedActividadesGlobal = [];
+let feedIndexActual = 0;
+let feedIntervalId = null;
+
 async function initActivityTicker() {
   await cargarFeedActividad();
-  // Actualizar el carrusel automáticamente cada 15 segundos
-  setInterval(cargarFeedActividad, 15000);
+  // Actualizar los datos desde el servidor cada 30 segundos
+  setInterval(cargarFeedActividad, 30000);
 }
 
 async function cargarFeedActividad() {
@@ -77,31 +81,40 @@ async function cargarFeedActividad() {
     const data = await res.json();
 
     if (data.status === 'success' && data.actividades && data.actividades.length > 0) {
-      let htmlItems = '';
+      feedActividadesGlobal = data.actividades;
+      feedIndexActual = 0;
       
-      data.actividades.forEach(item => {
-        const usuario = item.usuario_id || 'Comunidad';
-        const barajitas = item.barajitas_qty || 0;
-        const monto = item.monto_bs || 0;
-        
-        htmlItems += `
-          <span class="inline-flex items-center space-x-1.5 shrink-0">
-            <span class="text-amber-400 font-bold">🛒 <b>${usuario}</b></span>
-            <span class="text-purple-200">compró <b>${barajitas} barajitas</b></span>
-            <span class="text-emerald-400 text-[10px]">(Bs. ${parseFloat(monto).toFixed(2)})</span>
-            <span class="text-purple-500 mx-2">•</span>
-          </span>
-        `;
-      });
-
-      // Duplicamos el contenido para garantizar un bucle continuo y suave
-      tickerContainer.innerHTML = `<div class="animate-ticker">${htmlItems}${htmlItems}</div>`;
+      // Iniciar la rotación visual si no está activa
+      if (!feedIntervalId) {
+        mostrarSiguienteItemFeed();
+        feedIntervalId = setInterval(mostrarSiguienteItemFeed, 5000); // Cambia de mensaje cada 5 segundos
+      }
     } else {
       tickerContainer.innerHTML = `<span class="text-slate-400">✨ ¡Sé el primero en unirte a la acción comunitaria del álbum!</span>`;
     }
   } catch (err) {
     console.error("Error al cargar feed de actividad:", err);
   }
+}
+
+function mostrarSiguienteItemFeed() {
+  const tickerContainer = document.getElementById('tickerContent');
+  if (!tickerContainer || feedActividadesGlobal.length === 0) return;
+
+  const item = feedActividadesGlobal[feedIndexActual];
+  const usuario = item.usuario_id || 'Comunidad';
+  const barajitas = item.barajitas_qty || 0;
+  const monto = item.monto_bs || 0;
+
+  tickerContainer.innerHTML = `
+    <div class="animate-fade-ticker inline-flex items-center space-x-2 text-center w-full justify-center">
+      <span class="text-amber-400 font-bold">🛒 <b>${usuario}</b></span>
+      <span class="text-purple-200">compró <b>${barajitas} barajitas</b></span>
+      <span class="text-emerald-400 text-[10px]">(Bs. ${parseFloat(monto).toFixed(2)})</span>
+    </div>
+  `;
+
+  feedIndexActual = (feedIndexActual + 1) % feedActividadesGlobal.length;
 }
 
 // ----------------------------------------------------
