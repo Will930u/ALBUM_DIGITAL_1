@@ -89,9 +89,59 @@ def validar_token_sesion(usuario_id, token_enviado):
         print(f"Error al validar token de sesión: {e}")
     return False
 
+# --- 🎁 FUNCIÓN DE REFERIDOS: Sumar al padrino cuando el invitado hace su primera compra ---
+def verificar_y_sumar_referido(usuario_comprador_id):
+    if not supabase_client:
+        return
+    try:
+        res_comprador = supabase_client.table("usuarios").select("referido_por, primera_compra_referido_hecha").eq("id", usuario_comprador_id).execute()
+        if not res_comprador.data:
+            return
+            
+        comprador = res_comprador.data[0]
+        padrino_id = comprador.get("referido_por")
+        ya_conto = comprador.get("primera_compra_referido_hecha", False)
+        
+        # Si tiene padrino y es su primera compra registrada para referidos
+        if padrino_id and not ya_conto:
+            supabase_client.table("usuarios").update({"primera_compra_referido_hecha": True}).eq("id", usuario_comprador_id).execute()
+            
+            res_padrino = supabase_client.table("usuarios").select("*").eq("id", padrino_id).execute()
+            if res_padrino.data:
+                padrino = res_padrino.data[0]
+                mes_actual = datetime.now(timezone.utc).month
+                
+                referidos_mes = padrino.get("referidos_activos_mes", 0) or 0
+                bonos_mes = padrino.get("bonos_referidos_mes", 0) or 0
+                
+                if padrino.get("ultimo_mes_bono") != mes_actual:
+                    referidos_mes = 0
+                    bonos_mes = 0
+                    
+                nuevos_referidos = referidos_mes + 1
+                
+                # Meta de 10 referidos con compra y máximo 1 bono al mes
+                if nuevos_referidos >= 10 and bonos_mes < 1:
+                    saldo_actual_bs = float(padrino.get("saldo_bs") or 0.0)
+                    nuevo_saldo_bs = saldo_actual_bs + 180.0 # Equivalente a los $5 del bono en Bs
+                    
+                    supabase_client.table("usuarios").update({
+                        "saldo_bs": nuevo_saldo_bs,
+                        "referidos_activos_mes": 0,
+                        "bonos_referidos_mes": bonos_mes + 1,
+                        "ultimo_mes_bono": mes_actual
+                    }).eq("id", padrino_id).execute()
+                else:
+                    supabase_client.table("usuarios").update({
+                        "referidos_activos_mes": nuevos_referidos,
+                        "ultimo_mes_bono": mes_actual
+                    }).eq("id", padrino_id).execute()
+    except Exception as e:
+        print(f"Error al procesar referido en compra: {e}")
+
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.9.0"}), 200
+    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "4.0.0"}), 200
 
 @app.route("/api/bcv", methods=["GET"])
 def get_bcv_rate():
@@ -104,9 +154,6 @@ def get_bcv_rate():
     except Exception as e:
         return jsonify({"status": "error", "details": str(e)}), 500
 
-# ==========================================
-# ENDPOINT PARA EL CARRUSEL / FEED PÚBLICO
-# ==========================================
 @app.route("/api/feed-actividad", methods=["GET"])
 def api_feed_actividad():
     if not supabase_client:
@@ -156,10 +203,6 @@ def api_feed_actividad():
     except Exception as e:
         print(f"Error en /api/feed-actividad: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
-
-# ==========================================
-# ENDPOINTS DE AUTENTICACIÓN Y USUARIO
-# ==========================================
 
 @app.route("/api/login", methods=["POST"])
 def api_login():
@@ -222,11 +265,8 @@ def api_register():
             return jsonify({"error": "El nombre de usuario ya está registrado. Por favor elige otro."}), 400
 
         session_token = secrets.token_hex(32)
-        
-        # Generar código de referido único para este nuevo usuario
         codigo_referido_propio = f"REF-{secrets.token_hex(4).upper()}"
 
-        # Verificar si usó un código de referido válido
         padrino_id = None
         if codigo_ref_recibido:
             res_padre = supabase_client.table("usuarios").select("id").eq("codigo_referido", codigo_ref_recibido).execute()
@@ -249,48 +289,13 @@ def api_register():
             "referidos_activos_mes": 0,
             "bonos_referidos_mes": 0,
             "ultimo_mes_bono": datetime.now(timezone.utc).month,
+            "primera_compra_referido_hecha": False,
             "terminos_aceptados": True,
             "privacidad_aceptada": True,
             "fecha_aceptacion": datetime.now(timezone.utc).isoformat(),
             "bloqueado": False
         }]).execute()
         
-        # Si tiene padrino, incrementar su contador de referidos de forma segura
-        if padrino_id:
-            try:
-                res_pad = supabase_client.table("usuarios").select("referidos_activos_mes, bonos_referidos_mes, ultimo_mes_bono, saldo").eq("id", padrino_id).execute()
-                if res_pad.data:
-                    pad = res_pad.data[0]
-                    mes_actual = datetime.now(timezone.utc).month
-                    ref_mes = pad.get("referidos_activos_mes", 0) or 0
-                    bonos_mes = pad.get("bonos_referidos_mes", 0) or 0
-                    
-                    if pad.get("ultimo_mes_bono") != mes_actual:
-                        ref_mes = 0
-                        bonos_mes = 0
-
-                    nuevos_refs = ref_mes + 1
-                    
-                    # Lógica de recompensa: 10 referidos = $5 de bono (máximo 1 vez al mes)
-                    if nuevos_refs >= 10 and bonos_mes < 1:
-                        saldo_actual = float(pad.get("saldo") or pad.get("saldo_bs") or 0.0) # Ajustable según tu moneda base
-                        # Nota: Aquí acreditamos saldo. Como tu saldo principal es saldo_bs, sumamos el equivalente o guardamos bono
-                        nuevo_saldo_bs = float(pad.get("saldo_bs") or 0.0) + (5.0 * 36.0) # O el equivalente según tasa si manejas USD directo, adaptado a tu esquema
-                        
-                        supabase_client.table("usuarios").update({
-                            "saldo_bs": (pad.get("saldo_bs") or 0.0) + 180.0, # Ejemplo 5$ a tasa estimada o ajuste directo
-                            "referidos_activos_mes": 0,
-                            "bonos_referidos_mes": bonos_mes + 1,
-                            "ultimo_mes_bono": mes_actual
-                        }).eq("id", padrino_id).execute()
-                    else:
-                        supabase_client.table("usuarios").update({
-                            "referidos_activos_mes": nuevos_refs,
-                            "ultimo_mes_bono": mes_actual
-                        }).eq("id", padrino_id).execute()
-            except Exception as e:
-                print(f"Error procesando referido en registro: {e}")
-
         registrar_conexion(user_id, "registro")
 
         return jsonify({
@@ -301,9 +306,6 @@ def api_register():
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
-# ==========================================
-# ENDPOINT: SISTEMA DE REFERIDOS (OBTENER LINK)
-# ==========================================
 @app.route("/api/referidos/obtener-link", methods=["POST"])
 def obtener_link_referido():
     data = request.get_json(silent=True) or {}
@@ -328,7 +330,6 @@ def obtener_link_referido():
                 "message": f"Debes comprar al menos 200 barajitas para desbloquear tu enlace de referido. (Llevas {barajitas_compradas}/200)"
             }), 200
             
-        # Control mensual (1 intento / bono máximo al mes)
         mes_actual = datetime.now(timezone.utc).month
         if user.get("ultimo_mes_bono") != mes_actual:
             supabase_client.table("usuarios").update({
@@ -496,10 +497,6 @@ def notificar_logout():
         send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje)
 
     return jsonify({"status": "success"}), 200
-
-# ==========================================
-# ENDPOINTS DEL PANEL ADMINISTRADOR Y VERIFICACIÓN
-# ==========================================
 
 @app.route("/api/verificar-admin", methods=["POST"])
 def verificar_admin():
@@ -823,6 +820,9 @@ def procesar_compra_admin():
                         "saldo_bs": nuevo_saldo
                     }).eq("id", tx["usuario_id"]).execute()
 
+                    # 🎁 EVALUAR Y SUMAR REFERIDO AL APROBAR SU PRIMERA COMPRA
+                    verificar_y_sumar_referido(tx["usuario_id"])
+
             return jsonify({"status": "success"}), 200
         except Exception as e:
             return jsonify({"status": "error", "message": str(e)}), 500
@@ -896,10 +896,6 @@ def procesar_retiro_admin():
         except Exception as e:
             return jsonify({"status": "error", "message": str(e)}), 500
     return jsonify({"status": "error", "message": "Sin conexión"}), 500
-
-# ==========================================
-# WEBHOOK DE TELEGRAM
-# ==========================================
 
 @app.route("/api/telegram-webhook", methods=["POST"])
 def telegram_webhook():
@@ -1090,6 +1086,9 @@ def telegram_webhook():
                                         "cantidad_barajitas": (usr.get("cantidad_barajitas") or 0) + barajitas_a_sumar,
                                         "saldo_bs": (usr.get("saldo_bs") or 0.0) + (monto_bs_total * 0.70)
                                     }).eq("id", tx["usuario_id"]).execute()
+
+                                    # 🎁 EVALUAR Y SUMAR REFERIDO AL APROBAR DESDE TELEGRAM
+                                    verificar_y_sumar_referido(tx["usuario_id"])
 
                     elif tipo_accion == "retiro":
                         w_res = supabase_client.table("retiros").select("*").eq("id", item_id).execute()
