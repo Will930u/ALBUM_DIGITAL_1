@@ -526,7 +526,7 @@ def notificar_retiro():
                 "tipo": str(tipo),
                 "milestone": milestone,
                 "monto_bs": float(monto_bs),
-                "monto_usd": 100.0, # Ajustado a $100 por hito
+                "monto_usd": 100.0 if milestone > 0 else float(data.get("monto_usd", 0)),
                 "datos_pago": str(datos_pago),
                 "estado": "pendiente"
             }).execute()
@@ -535,8 +535,17 @@ def notificar_retiro():
         except Exception as e:
             return jsonify({"status": "error", "message": str(e)}), 500
 
-    mensaje = f"🏆 <b>SOLICITUD DE RETIRO / HITO (#{milestone})</b> [ID:{w_id}]\n👤 <b>Usuario:</b> {usuario_id}\n💰 <b>Bs.:</b> {monto_bs} ($100)"
-    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje)
+    tipo_texto = "LIQUIDACIÓN TOTAL" if tipo == "liquidacion_total" else f"Premio Hito (#{milestone})"
+    mensaje = f"🏆 <b>SOLICITUD DE {tipo_texto}</b> [ID:{w_id}]\n👤 <b>Usuario:</b> {usuario_id}\n💰 <b>Bs.:</b> {monto_bs}\n🏦 <b>Datos:</b> {datos_pago}"
+    
+    keyboard = {
+        "inline_keyboard": [[
+            {"text": "✅ Aprobar Retiro", "callback_data": f"retiro_aprobar_{w_id}"},
+            {"text": "❌ Rechazar Retiro", "callback_data": f"retiro_rechazar_{w_id}"}
+        ]]
+    } if w_id else None
+
+    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje, reply_markup=keyboard)
     return jsonify({"status": "success"}), 200
 
 @app.route("/api/telegram-webhook", methods=["POST"])
