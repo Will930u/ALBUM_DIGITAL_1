@@ -12,20 +12,17 @@
 </head>
 <body class="flex flex-col min-h-screen relative overflow-x-hidden bg-[#080314] text-slate-100">
 
-  <!-- ==========================================
-       VIDEO DE HUMO GENERAL DE FONDO
-       ========================================== -->
- <video autoplay muted loop playsinline class="bg-smoke-video">
-  <source src="smoke.mp4" type="video/mp4">
-</video>
+  <!-- VIDEO DE HUMO GENERAL DE FONDO -->
+  <video autoplay muted loop playsinline class="bg-smoke-video">
+    <source src="smoke.mp4" type="video/mp4">
+  </video>
 
-  <!-- CABECERA DE NAVEGACIÓN ADAPTABLE MÓVIL Y PC -->
+  <!-- CABECERA DE NAVEGACIÓN -->
   <header class="sticky top-0 z-40 metal-card rounded-none px-3 py-2.5 md:px-6 md:py-3 flex flex-col gap-3 shadow-xl">
     
     <!-- Fila 1: Logo, Título Principal y Carrusel en Vivo -->
     <div class="flex justify-between items-center w-full gap-2">
       <div class="flex items-center space-x-2.5 cursor-pointer select-none group shrink-0" id="appLogo" onclick="window.location.href='album.html'">
-        <!-- NUEVO LOGO CON LA IMAGEN DEL LIBRO -->
         <div class="w-9 h-9 md:w-10 md:h-10 rounded-xl overflow-hidden shadow-lg border-2 border-purple-500/80 group-hover:border-cyan-400 transition shrink-0 bg-slate-900">
           <img src="logo-album.jpg" alt="Logo Álbum" class="w-full h-full object-cover">
         </div>
@@ -35,7 +32,7 @@
         </div>
       </div>
       
-     <!-- CENTRO: CONTENEDOR DEL CARRUSEL MÁS PEQUEÑO Y CENTRADO -->
+      <!-- CENTRO: CARRUSEL -->
       <div id="activityTickerContainer" class="w-full max-w-xs sm:max-w-sm mx-auto overflow-hidden relative bg-slate-950/90 border border-purple-500/50 rounded-xl py-1 px-2.5 flex items-center justify-center shadow-inner">
         <div class="flex items-center space-x-1 text-cyan-400 shrink-0 mr-1.5 z-10 bg-slate-950/90 pr-1">
           <i data-lucide="zap" class="w-3 h-3 animate-pulse"></i>
@@ -48,16 +45,17 @@
         </div>
       </div>
 
-      <!-- Botón Sistema de Referidos -->
-<button onclick="openReferralModal()" class="px-2.5 py-1.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold text-[11px] md:text-xs flex items-center space-x-1 shadow-lg transition hover:opacity-90">
-  <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
-  <span>Referidos ($5)</span>
-</button>
-      
-      <!-- Botón Salir en móvil arriba a la derecha -->
-      <button onclick="logoutUser()" class="md:hidden px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-900/50 text-red-200 border border-red-500/30 shrink-0">
-        Salir
-      </button>
+      <!-- BOTÓN REFERIDOS ($5) Y SALIR EN MÓVIL -->
+      <div class="flex items-center gap-1.5">
+        <button onclick="openReferralModal()" class="px-2.5 py-1.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold text-[11px] md:text-xs flex items-center space-x-1 shadow-lg transition hover:opacity-90">
+          <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+          <span>Referidos ($5)</span>
+        </button>
+
+        <button onclick="logoutUser()" class="md:hidden px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-900/50 text-red-200 border border-red-500/30 shrink-0">
+          Salir
+        </button>
+      </div>
     </div>
     
     <!-- Fila 2: Controles Financieros y Acciones -->
@@ -89,7 +87,7 @@
 
   </header>
 
-  <!-- BARRA DE NAVEGACIÓN INFERIOR FLOTANTE PARA MÓVILES -->
+  <!-- BARRA DE NAVEGACIÓN INFERIOR PARA MÓVILES -->
   <div class="md:hidden fixed bottom-3 left-3 right-3 z-50 bg-slate-950/90 backdrop-blur-md border border-purple-500/40 rounded-2xl p-2 flex justify-around items-center shadow-2xl">
     <a href="album.html" class="flex flex-col items-center text-purple-300 text-[10px] font-semibold py-1 px-4 rounded-xl bg-purple-600/30 border border-purple-500/40">
       <i data-lucide="book-open" class="w-4 h-4 mb-0.5"></i>
@@ -101,10 +99,9 @@
     </a>
   </div>
 
-  <!-- CONTENIDO PRINCIPAL DEL ÁLBUM -->
+  <!-- CONTENIDO PRINCIPAL -->
   <main class="flex-grow flex flex-col items-center justify-start p-3 md:p-4 w-full max-w-6xl mx-auto space-y-4 pb-20 md:pb-6 relative z-20">
     
-    <!-- Barra de Paginación y Progreso -->
     <div class="metal-card p-3 md:p-4 w-full flex flex-col sm:flex-row justify-between items-center gap-3">
       <div class="flex items-center justify-between w-full sm:w-auto space-x-3">
         <button onclick="changePage(-1)" class="p-2 rounded-lg bg-slate-800 border border-purple-500/30 text-white hover:bg-slate-700 transition"><i data-lucide="chevron-left" class="w-5 h-5"></i></button>
@@ -123,43 +120,20 @@
       </div>
     </div>
 
-    <!-- Cuadrícula Estricta de 5 Columnas -->
     <div id="stickersGrid" class="w-full"></div>
 
   </main>
 
-  <!-- MODAL DE PREMIOS DE HITO / CICLO (SIN INPUTS MANUALES) -->
+  <!-- MODAL DE PREMIOS HITO -->
   <div id="withdrawModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
     <div class="metal-card max-w-lg w-full p-5 md:p-6 space-y-4 border border-amber-500/50 relative z-20">
       <div class="flex justify-between items-center border-b border-amber-500/30 pb-3">
         <h3 class="text-lg md:text-xl font-bold text-amber-400">Premios de Hito / Ciclo ($200)</h3>
         <button onclick="closeWithdrawModal()" class="text-slate-400 font-bold hover:text-white p-1">✕</button>
       </div>
-
-      <!-- ========================================== -->
-<!-- MODAL DEL SISTEMA DE REFERIDOS             -->
-<!-- ========================================== -->
-<div id="referralModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
-  <div class="metal-card max-w-lg w-full p-5 md:p-6 space-y-4 border border-purple-500/50 relative z-20">
-    <div class="flex justify-between items-center border-b border-purple-500/30 pb-3">
-      <h3 class="text-lg md:text-xl font-bold text-purple-300">🎁 Sistema de Referidos</h3>
-      <button onclick="closeReferralModal()" class="text-slate-400 font-bold hover:text-white p-1">✕</button>
-    </div>
-    
-    <div id="referralModalBody" class="space-y-3 text-xs md:text-sm text-purple-200 leading-relaxed">
-      <!-- Aquí se cargará dinámicamente si está bloqueado (menos de 200 barajitas) o desbloqueado -->
-      <p class="text-center text-slate-400">Cargando información de referidos...</p>
-    </div>
-
-    <button type="button" onclick="closeReferralModal()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-sm transition border border-purple-500/30">Cerrar</button>
-  </div>
-</div>
-
-      
       
       <div id="milestoneOptions" class="grid grid-cols-2 gap-2 text-xs"></div>
       
-      <!-- Información de datos de pago precargados -->
       <div id="infoDatosPrecargados" class="p-3 rounded-xl bg-purple-950/60 border border-purple-500/40 text-xs text-purple-200 leading-relaxed">
         Cargando tus datos de pago guardados...
       </div>
@@ -168,7 +142,23 @@
     </div>
   </div>
 
-  <!-- VISOR DE BARAJITAS A PANTALLA COMPLETA (LIGHTBOX) -->
+  <!-- MODAL DE REFERIDOS -->
+  <div id="referralModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="metal-card max-w-lg w-full p-5 md:p-6 space-y-4 border border-purple-500/50 relative z-20">
+      <div class="flex justify-between items-center border-b border-purple-500/30 pb-3">
+        <h3 class="text-lg md:text-xl font-bold text-purple-300">🎁 Sistema de Referidos</h3>
+        <button onclick="closeReferralModal()" class="text-slate-400 font-bold hover:text-white p-1 text-base">✕</button>
+      </div>
+      
+      <div id="referralModalBody" class="space-y-3 text-xs md:text-sm text-purple-200 leading-relaxed">
+        <p class="text-center text-slate-400">Cargando información de referidos...</p>
+      </div>
+
+      <button type="button" onclick="closeReferralModal()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-sm transition border border-purple-500/30">Cerrar</button>
+    </div>
+  </div>
+
+  <!-- VISOR LIGHTBOX -->
   <div id="stickerModal" class="hidden fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-2 md:p-6">
     <button onclick="closeStickerModal()" class="absolute top-4 right-4 z-50 bg-red-600/80 hover:bg-red-600 text-white p-3 rounded-full shadow-lg transition flex items-center justify-center">
       <i data-lucide="x" class="w-6 h-6"></i>
