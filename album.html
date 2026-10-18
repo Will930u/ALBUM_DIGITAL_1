@@ -35,14 +35,14 @@
         </div>
       </div>
       
-      <!-- CONTENEDOR DEL CARRUSEL DE ACTIVIDAD EN TIEMPO REAL -->
-      <div id="activityTickerContainer" class="flex-1 mx-1 overflow-hidden relative bg-slate-950/80 border border-purple-500/40 rounded-xl py-1.5 px-2 md:px-3 flex items-center shadow-inner">
-        <div class="flex items-center space-x-1.5 text-cyan-400 shrink-0 mr-2 z-10 bg-slate-950/90 pr-1">
+      <!-- CONTENEDOR DEL CARRUSEL DE ACTIVIDAD EN TIEMPO REAL (CENTRADO) -->
+      <div id="activityTickerContainer" class="flex-1 mx-1 overflow-hidden relative bg-slate-950/80 border border-purple-500/40 rounded-xl py-1.5 px-2 md:px-3 flex items-center justify-center shadow-inner">
+        <div class="flex items-center space-x-1.5 text-cyan-400 shrink-0 mr-2 z-10 bg-slate-950/90 pr-1 hidden sm:flex">
           <i data-lucide="zap" class="w-3.5 h-3.5 animate-pulse"></i>
-          <span class="text-[9px] md:text-[10px] font-extrabold uppercase tracking-wider hidden md:inline">En Vivo:</span>
+          <span class="text-[9px] md:text-[10px] font-extrabold uppercase tracking-wider">En Vivo:</span>
         </div>
-        <div class="ticker-viewport overflow-hidden whitespace-nowrap w-full relative">
-          <div id="tickerContent" class="inline-flex space-x-8 text-[11px] md:text-xs text-purple-200 font-medium items-center">
+        <div class="ticker-viewport overflow-hidden w-full relative text-center">
+          <div id="tickerContent" class="text-[11px] md:text-xs text-purple-200 font-medium items-center justify-center w-full">
             <span class="text-slate-400">Sincronizando actividad de la comunidad...</span>
           </div>
         </div>
