@@ -1,19 +1,27 @@
 const API_URL = "https://album-digital-1.onrender.com";
 
 const STATE = {
-  currentPage: 1, totalPages: 40, stickersPerPage: 25, totalStickers: 1000,
-  bcvRate: 36.5, userId: localStorage.getItem('active_user_id') || null,
-  userStickersCount: 0, userBalanceBs: 0, 
-  // Datos de pago precargados desde la tabla de usuarios de Supabase
-  userBanco: '', userCedula: '', userTelefono: '',
-  claimedMilestones: [], selectedMilestone: null,
-  isProcessingWithdrawal: false, logoClicks: 0, clickTimer: null,
+  currentPage: 1, 
+  totalPages: 40, 
+  stickersPerPage: 25, 
+  totalStickers: 1000,
+  bcvRate: 36.5, 
+  userId: localStorage.getItem('active_user_id') || null,
+  userStickersCount: 0, 
+  userBalanceBs: 0, 
+  userBanco: '', 
+  userCedula: '', 
+  userTelefono: '',
+  claimedMilestones: [], 
+  selectedMilestone: null,
+  isProcessingWithdrawal: false, 
+  logoClicks: 0, 
+  clickTimer: null,
   notifiedTransactions: new Set(),
   notifiedWithdrawals: new Set(),
   isInitialLoad: true
 };
 
-// Variables globales para el visor de pantalla completa (Lightbox)
 let currentModalIndex = 0;
 let allPageStickers = [];
 
@@ -26,7 +34,6 @@ window.addEventListener('DOMContentLoaded', () => {
   
   if (refCode) {
     sessionStorage.setItem('codigo_referido_invitacion', refCode);
-    console.log("🔗 Invitado por código de referido:", refCode);
   }
 });
 
@@ -36,17 +43,16 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
   try {
-    lucide.createIcons();
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
     setupLogoClickCounter();
     await fetchBcvRate();
     await loadUserDataFromDB();
     renderAlbumPage();
     setupSwipeGestures();
     
-    // Iniciar el carrusel de actividad en tiempo real
     initActivityTicker();
-    
-    // Iniciar verificación periódica en tiempo real (cada 5 segundos)
     initUserPollingNotifications(STATE.userId);
   } catch (err) {
     console.error("Error al inicializar el álbum:", err);
@@ -163,7 +169,9 @@ function showFloatingNotification(message, type = 'success') {
   `;
 
   container.appendChild(notif);
-  lucide.createIcons();
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
 
   setTimeout(() => {
     notif.classList.remove('translate-y-[-20px]', 'opacity-0');
@@ -189,7 +197,7 @@ function renderAlbumPage() {
 
     for (let i = startIndex; i <= endIndex; i++) {
       const isUnlocked = i <= STATE.userStickersCount;
-      const isMilestone = (i % 250 === 0); // Hitos ajustados cada 250 barajitas (250, 500, 750, 1000)
+      const isMilestone = (i % 250 === 0); // Hitos cada 250 barajitas (250, 500, 750, 1000)
       const slot = document.createElement('div');
       slot.className = `metal-slot sticker-card aspect-[2.5/3.5] w-full rounded-xl flex flex-col items-center justify-center p-2 relative overflow-hidden cursor-pointer ${isUnlocked ? 'filled' : ''} ${isMilestone ? 'milestone-slot' : ''}`;
       
@@ -218,7 +226,9 @@ function renderAlbumPage() {
       }
       grid.appendChild(slot);
     }
-    lucide.createIcons();
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
     grid.style.opacity = '1';
   }, 150);
 }
@@ -227,7 +237,8 @@ function changePage(delta) {
   const p = STATE.currentPage + delta;
   if (p >= 1 && p <= STATE.totalPages) {
     STATE.currentPage = p;
-    document.getElementById('currentPageNum').innerText = p;
+    const pageNumElem = document.getElementById('currentPageNum');
+    if (pageNumElem) pageNumElem.innerText = p;
     renderAlbumPage();
   }
 }
@@ -343,10 +354,14 @@ async function loadUserDataFromDB() {
 
 function updateUIHeader() {
   const balanceUSD = STATE.bcvRate > 0 ? (STATE.userBalanceBs / STATE.bcvRate).toFixed(2) : '0.00';
-  document.getElementById('userBalanceBs').innerText = `Bs. ${STATE.userBalanceBs.toFixed(2)} ($${balanceUSD})`;
+  const balanceBsElem = document.getElementById('userBalanceBs');
+  const progressTextElem = document.getElementById('albumProgressText');
+  const progressBarElem = document.getElementById('albumProgressBar');
+
+  if (balanceBsElem) balanceBsElem.innerText = `Bs. ${STATE.userBalanceBs.toFixed(2)} ($${balanceUSD})`;
   const progressPct = ((STATE.userStickersCount / STATE.totalStickers) * 100).toFixed(1);
-  document.getElementById('albumProgressText').innerText = `${STATE.userStickersCount} / ${STATE.totalStickers} (${progressPct}%)`;
-  document.getElementById('albumProgressBar').style.width = `${progressPct}%`;
+  if (progressTextElem) progressTextElem.innerText = `${STATE.userStickersCount} / ${STATE.totalStickers} (${progressPct}%)`;
+  if (progressBarElem) progressBarElem.style.width = `${progressPct}%`;
 
   const btnLiq = document.getElementById('btnHeaderTotalLiquidate');
   const btnMilestone = document.getElementById('btnHeaderMilestone');
@@ -357,7 +372,7 @@ function updateUIHeader() {
     return;
   }
 
-  const milestoneBsValue = 100 * STATE.bcvRate; // Premio ajustado a $100 USD
+  const milestoneBsValue = 100 * STATE.bcvRate; // Ajustado a $100 USD
   const hasAvailableMilestone = [250, 500, 750, 1000].some(m =>
     STATE.userStickersCount >= m && !STATE.claimedMilestones.includes(m) && STATE.userBalanceBs >= milestoneBsValue
   );
@@ -490,7 +505,8 @@ function openWithdrawModal() {
     if (unlocked && !claimed) {
       btn.onclick = () => {
         STATE.selectedMilestone = m;
-        document.getElementById('btnSendWithdraw').disabled = false;
+        const sendBtn = document.getElementById('btnSendWithdraw');
+        if (sendBtn) sendBtn.disabled = false;
         document.querySelectorAll('#milestoneOptions button').forEach(b => b.classList.remove('ring-2', 'ring-amber-400'));
         btn.classList.add('ring-2', 'ring-amber-400');
       };
@@ -503,11 +519,13 @@ function openWithdrawModal() {
     infoDatos.innerHTML = `💳 <b>Datos de Pago:</b> Banco: ${STATE.userBanco} | Tel: ${STATE.userTelefono} | Cédula: ${STATE.userCedula}`;
   }
 
-  document.getElementById('withdrawModal').classList.remove('hidden');
+  const withdrawModal = document.getElementById('withdrawModal');
+  if (withdrawModal) withdrawModal.classList.remove('hidden');
 }
 
 function closeWithdrawModal() { 
-  document.getElementById('withdrawModal').classList.add('hidden'); 
+  const withdrawModal = document.getElementById('withdrawModal');
+  if (withdrawModal) withdrawModal.classList.add('hidden'); 
 }
 
 async function submitWithdrawalRequest() {
@@ -657,8 +675,8 @@ function openStickerModal(imgSrc, titleText, index) {
 
   if (!modal) return;
 
-  modalImg.src = imgSrc;
-  modalTitle.textContent = titleText;
+  if (modalImg) modalImg.src = imgSrc;
+  if (modalTitle) modalTitle.textContent = titleText;
   currentModalIndex = index;
 
   modal.classList.remove('hidden');
