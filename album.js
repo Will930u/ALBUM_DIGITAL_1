@@ -103,13 +103,18 @@ function mostrarSiguienteItemFeed() {
 
   const item = feedActividadesGlobal[feedIndexActual];
   const usuario = item.usuario_id || 'Comunidad';
-  const barajitas = item.barajitas_qty || 0;
+  const detalle = item.detalle || 'actividad en el álbum';
   const monto = item.monto_bs || 0;
+  const esRetiro = item.tipo === 'retiro';
+
+  // Icono y color dinámico según el tipo de evento
+  const icono = esRetiro ? '🏆' : '🛒';
+  const colorClase = esRetiro ? 'text-amber-300 font-bold' : 'text-amber-400 font-bold';
 
   tickerContainer.innerHTML = `
-    <div class="animate-fade-ticker inline-flex items-center space-x-2 text-center w-full justify-center">
-      <span class="text-amber-400 font-bold">🛒 <b>${usuario}</b></span>
-      <span class="text-purple-200">compró <b>${barajitas} barajitas</b></span>
+    <div class="animate-fade-ticker flex items-center justify-center space-x-1.5 text-center w-full">
+      <span class="${colorClase}">${icono} <b>${usuario}</b></span>
+      <span class="text-purple-200">${detalle}</span>
       <span class="text-emerald-400 text-[10px]">(Bs. ${parseFloat(monto).toFixed(2)})</span>
     </div>
   `;
