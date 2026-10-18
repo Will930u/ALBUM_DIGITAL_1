@@ -657,3 +657,105 @@ document.addEventListener('DOMContentLoaded', () => {
   enviarLatidoActivo();
   setInterval(enviarLatidoActivo, 10000);
 });
+
+// ==========================================
+// CAPTURA DEL PARÁMETRO ?REF= AL CARGAR LA PÁGINA
+// ==========================================
+window.addEventListener('DOMContentLoaded', () => {
+    const urlParams = new URLSearchParams(window.location.search);
+    const refCode = urlParams.get('ref');
+    
+    if (refCode) {
+        sessionStorage.setItem('codigo_referido_invitacion', refCode);
+        console.log("🔗 Invitado por código de referido:", refCode);
+    }
+});
+
+// ==========================================
+// FUNCIONES DEL MODAL DE REFERIDOS
+// ==========================================
+async function openReferralModal() {
+  const modal = document.getElementById('referralModal');
+  const bodyContainer = document.getElementById('referralModalBody');
+  if (!modal || !bodyContainer) return;
+
+  modal.classList.remove('hidden');
+  bodyContainer.innerHTML = `<p class="text-center text-purple-300 animate-pulse">Verificando estado de tu cuenta...</p>`;
+
+  try {
+    const response = await fetch(`${API_URL}/api/referidos/obtener-link`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario_id: STATE.userId })
+    });
+
+    const data = await response.json();
+
+    if (data.success && data.unlocked) {
+      // Desbloqueado: Muestra el link y el progreso
+      bodyContainer.innerHTML = `
+        <div class="space-y-3">
+          <p class="text-slate-300 text-xs">Comparte tu enlace único. Por cada 10 amigos que se registren y compren su primera barajita, ganarás <b>$5.00</b> de saldo.</p>
+          
+          <div class="space-y-1">
+            <label class="text-[11px] font-bold text-purple-300">Tu Enlace Personal:</label>
+            <div class="flex gap-2">
+              <input type="text" id="inputLinkRef" value="${data.link}" readonly class="w-full bg-slate-950 border border-purple-500/40 rounded-xl px-3 py-2 text-xs text-slate-200 select-all outline-none">
+              <button onclick="copiarEnlaceReferido()" class="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-xs transition shrink-0 flex items-center gap-1">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar
+              </button>
+            </div>
+          </div>
+
+          <div class="p-3 rounded-xl bg-purple-950/50 border border-purple-500/30 space-y-1.5">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-400">📊 Referidos activos este mes:</span>
+              <span class="font-bold text-cyan-400">${data.referidos_mes} / 10</span>
+            </div>
+            <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-purple-500/20">
+              <div class="bg-cyan-500 h-full transition-all duration-500" style="width: ${(data.referidos_mes / 10) * 100}%"></div>
+            </div>
+            <p class="text-[10px] text-slate-400 pt-1">💰 Bonos cobrados este mes: <strong class="text-emerald-400">${data.bonos_cobrados_mes} / 1</strong> (Límite mensual)</p>
+          </div>
+        </div>
+      `;
+    } else {
+      // Bloqueado: No cumple las 200 barajitas
+      bodyContainer.innerHTML = `
+        <div class="text-center space-y-3 py-2">
+          <div class="w-12 h-12 mx-auto rounded-full bg-purple-900/50 border border-purple-500/40 flex items-center justify-center text-purple-400">
+            <i data-lucide="lock" class="w-6 h-6"></i>
+          </div>
+          <h4 class="font-bold text-base text-purple-300">Candado de Referidos</h4>
+          <p class="text-xs text-slate-300 leading-relaxed">${data.message || 'Debes comprar al menos 200 barajitas para desbloquear tu enlace de referido.'}</p>
+        </div>
+      `;
+    }
+
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  } catch (err) {
+    console.error("Error al obtener link de referido:", err);
+    bodyContainer.innerHTML = `<p class="text-center text-red-400 text-xs">Error de conexión al cargar el sistema de referidos.</p>`;
+  }
+}
+
+function closeReferralModal() {
+  const modal = document.getElementById('referralModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function copiarEnlaceReferido() {
+  const input = document.getElementById('inputLinkRef');
+  if (input) {
+    input.select();
+    input.setSelectionRange(0, 99999); // Para móviles
+    navigator.clipboard.writeText(input.value).then(() => {
+      showFloatingNotification("¡Enlace de referido copiado al portapapeles!");
+    }).catch(() => {
+      document.execCommand('copy');
+      showFloatingNotification("¡Enlace copiado!");
+    });
+  }
+}
