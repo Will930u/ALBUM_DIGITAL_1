@@ -1,7 +1,7 @@
 const API_URL = "https://album-digital-1.onrender.com";
 
 const STATE = {
-  currentPage: 1, totalPages: 80, stickersPerPage: 25, totalStickers: 2000,
+  currentPage: 1, totalPages: 40, stickersPerPage: 25, totalStickers: 1000,
   bcvRate: 36.5, userId: localStorage.getItem('active_user_id') || null,
   userStickersCount: 0, userBalanceBs: 0, 
   // Datos de pago precargados desde la tabla de usuarios de Supabase
@@ -16,6 +16,19 @@ const STATE = {
 // Variables globales para el visor de pantalla completa (Lightbox)
 let currentModalIndex = 0;
 let allPageStickers = [];
+
+// ==========================================
+// CAPTURA DEL PARÁMETRO ?REF= AL CARGAR LA PÁGINA
+// ==========================================
+window.addEventListener('DOMContentLoaded', () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const refCode = urlParams.get('ref');
+  
+  if (refCode) {
+    sessionStorage.setItem('codigo_referido_invitacion', refCode);
+    console.log("🔗 Invitado por código de referido:", refCode);
+  }
+});
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (!STATE.userId) {
@@ -68,7 +81,6 @@ let feedIntervalId = null;
 
 async function initActivityTicker() {
   await cargarFeedActividad();
-  // Actualizar los datos desde el servidor cada 30 segundos
   setInterval(cargarFeedActividad, 30000);
 }
 
@@ -84,10 +96,9 @@ async function cargarFeedActividad() {
       feedActividadesGlobal = data.actividades;
       feedIndexActual = 0;
       
-      // Iniciar la rotación visual si no está activa
       if (!feedIntervalId) {
         mostrarSiguienteItemFeed();
-        feedIntervalId = setInterval(mostrarSiguienteItemFeed, 5000); // Cambia de mensaje cada 5 segundos
+        feedIntervalId = setInterval(mostrarSiguienteItemFeed, 5000);
       }
     } else {
       tickerContainer.innerHTML = `<span class="text-slate-400">✨ ¡Sé el primero en unirte a la acción comunitaria del álbum!</span>`;
@@ -107,7 +118,6 @@ function mostrarSiguienteItemFeed() {
   const monto = item.monto_bs || 0;
   const esRetiro = item.tipo === 'retiro';
 
-  // Icono y color dinámico según el tipo de evento
   const icono = esRetiro ? '🏆' : '🛒';
   const colorClase = esRetiro ? 'text-amber-300 font-bold' : 'text-amber-400 font-bold';
 
@@ -179,7 +189,7 @@ function renderAlbumPage() {
 
     for (let i = startIndex; i <= endIndex; i++) {
       const isUnlocked = i <= STATE.userStickersCount;
-      const isMilestone = (i % 500 === 0);
+      const isMilestone = (i % 250 === 0); // Hitos ajustados cada 250 barajitas (250, 500, 750, 1000)
       const slot = document.createElement('div');
       slot.className = `metal-slot sticker-card aspect-[2.5/3.5] w-full rounded-xl flex flex-col items-center justify-center p-2 relative overflow-hidden cursor-pointer ${isUnlocked ? 'filled' : ''} ${isMilestone ? 'milestone-slot' : ''}`;
       
@@ -255,7 +265,6 @@ async function loadUserDataFromDB() {
     if (data && data.user) {
       STATE.userStickersCount = data.user.cantidad_barajitas || 0;
       STATE.userBalanceBs = data.user.saldo_bs || 0;
-      // Capturar los datos de pago precargados de Supabase
       STATE.userBanco = data.user.banco || '';
       STATE.userCedula = data.user.cedula || '';
       STATE.userTelefono = data.user.telefono || '';
@@ -292,7 +301,7 @@ async function loadUserDataFromDB() {
             STATE.notifiedWithdrawals.add(trackingKey);
             if (!STATE.isInitialLoad) {
               const refText = ` Referencia bancaria: <b>${r.referencia}</b>`;
-              if (r.tipo === 'liquidacion_total' || r.tipo === 'ciclo_completo' || r.milestone >= 2000) {
+              if (r.tipo === 'liquidacion_total' || r.tipo === 'ciclo_completo' || r.milestone >= 1000) {
                 showFloatingNotification(`¡Liquidación total aprobada y pagada!${refText}`);
                 renderAlbumPage();
               } else {
@@ -308,7 +317,7 @@ async function loadUserDataFromDB() {
 
       let ultimaLiquidacionIndex = -1;
       data.retiros.forEach((r, idx) => {
-        if ((r.tipo === 'liquidacion_total' || r.milestone >= 2000 || r.tipo === 'ciclo_completo') && r.estado === 'aprobado') {
+        if ((r.tipo === 'liquidacion_total' || r.milestone >= 1000 || r.tipo === 'ciclo_completo') && r.estado === 'aprobado') {
           ultimaLiquidacionIndex = idx;
         }
       });
@@ -316,7 +325,7 @@ async function loadUserDataFromDB() {
       const retirosCicloActual = ultimaLiquidacionIndex >= 0 ? data.retiros.slice(ultimaLiquidacionIndex + 1) : data.retiros;
 
       retirosCicloActual.forEach(r => {
-        if ((r.estado === 'aprobado' || r.estado === 'liquidado') && r.milestone > 0 && r.milestone < 2000) {
+        if ((r.estado === 'aprobado' || r.estado === 'liquidado') && r.milestone > 0 && r.milestone < 1000) {
           if (!STATE.claimedMilestones.includes(r.milestone)) {
             STATE.claimedMilestones.push(r.milestone);
           }
@@ -348,12 +357,99 @@ function updateUIHeader() {
     return;
   }
 
-  const milestoneBsValue = 200 * STATE.bcvRate;
-  const hasAvailableMilestone = [500, 1000, 1500, 2000].some(m =>
+  const milestoneBsValue = 100 * STATE.bcvRate; // Premio ajustado a $100 USD
+  const hasAvailableMilestone = [250, 500, 750, 1000].some(m =>
     STATE.userStickersCount >= m && !STATE.claimedMilestones.includes(m) && STATE.userBalanceBs >= milestoneBsValue
   );
   if(btnMilestone) btnMilestone.disabled = !hasAvailableMilestone;
   if(btnLiq) btnLiq.disabled = STATE.userBalanceBs <= 0;
+}
+
+// ==========================================
+// FUNCIONES DEL MODAL DE REFERIDOS
+// ==========================================
+async function openReferralModal() {
+  const modal = document.getElementById('referralModal');
+  const bodyContainer = document.getElementById('referralModalBody');
+  if (!modal || !bodyContainer) return;
+
+  modal.classList.remove('hidden');
+  bodyContainer.innerHTML = `<p class="text-center text-purple-300 animate-pulse">Verificando estado de tu cuenta...</p>`;
+
+  try {
+    const response = await fetch(`${API_URL}/api/referidos/obtener-link`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario_id: STATE.userId })
+    });
+
+    const data = await response.json();
+
+    if (data.success && data.unlocked) {
+      bodyContainer.innerHTML = `
+        <div class="space-y-3">
+          <p class="text-slate-300 text-xs">Comparte tu enlace único. Por cada 10 amigos que se registren y compren su primera barajita, ganarás <b>$5.00</b> de saldo.</p>
+          
+          <div class="space-y-1">
+            <label class="text-[11px] font-bold text-purple-300">Tu Enlace Personal:</label>
+            <div class="flex gap-2">
+              <input type="text" id="inputLinkRef" value="${data.link}" readonly class="w-full bg-slate-950 border border-purple-500/40 rounded-xl px-3 py-2 text-xs text-slate-200 select-all outline-none">
+              <button onclick="copiarEnlaceReferido()" class="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-xs transition shrink-0 flex items-center gap-1">
+                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar
+              </button>
+            </div>
+          </div>
+
+          <div class="p-3 rounded-xl bg-purple-950/50 border border-purple-500/30 space-y-1.5">
+            <div class="flex justify-between text-xs">
+              <span class="text-slate-400">📊 Referidos activos este mes:</span>
+              <span class="font-bold text-cyan-400">${data.referidos_mes} / 10</span>
+            </div>
+            <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-purple-500/20">
+              <div class="bg-cyan-500 h-full transition-all duration-500" style="width: ${(data.referidos_mes / 10) * 100}%"></div>
+            </div>
+            <p class="text-[10px] text-slate-400 pt-1">💰 Bonos cobrados este mes: <strong class="text-emerald-400">${data.bonos_cobrados_mes} / 1</strong> (Límite mensual)</p>
+          </div>
+        </div>
+      `;
+    } else {
+      bodyContainer.innerHTML = `
+        <div class="text-center space-y-3 py-2">
+          <div class="w-12 h-12 mx-auto rounded-full bg-purple-900/50 border border-purple-500/40 flex items-center justify-center text-purple-400">
+            <i data-lucide="lock" class="w-6 h-6"></i>
+          </div>
+          <h4 class="font-bold text-base text-purple-300">Candado de Referidos</h4>
+          <p class="text-xs text-slate-300 leading-relaxed">${data.message || 'Debes comprar al menos 100 barajitas para desbloquear tu enlace de referido.'}</p>
+        </div>
+      `;
+    }
+
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  } catch (err) {
+    console.error("Error al obtener link de referido:", err);
+    bodyContainer.innerHTML = `<p class="text-center text-red-400 text-xs">Error de conexión al cargar el sistema de referidos.</p>`;
+  }
+}
+
+function closeReferralModal() {
+  const modal = document.getElementById('referralModal');
+  if (modal) modal.classList.add('hidden');
+}
+
+function copiarEnlaceReferido() {
+  const input = document.getElementById('inputLinkRef');
+  if (input) {
+    input.select();
+    input.setSelectionRange(0, 99999);
+    navigator.clipboard.writeText(input.value).then(() => {
+      showFloatingNotification("¡Enlace de referido copiado al portapapeles!");
+    }).catch(() => {
+      document.execCommand('copy');
+      showFloatingNotification("¡Enlace copiado!");
+    });
+  }
 }
 
 // ----------------------------------------------------
@@ -367,14 +463,14 @@ function openWithdrawModal() {
     return;
   }
 
-  if (STATE.userStickersCount >= 2000 && !STATE.claimedMilestones.includes(2000)) {
+  if (STATE.userStickersCount >= 1000 && !STATE.claimedMilestones.includes(1000)) {
     const confirmarCiclo = confirm(
       "🌟 ¡FELICIDADES Y GRACIAS POR COMPLETAR EL ÁLBUM! 🌟\n\n" +
-      "Has completado las 2000 barajitas (Ciclo Completo). Tu solicitud de pago se enviará automáticamente con tus datos registrados:\n" +
+      "Has completado las 1000 barajitas (Ciclo Completo). Tu solicitud de pago se enviará automáticamente con tus datos registrados:\n" +
       `🏦 Banco: ${STATE.userBanco}\n📱 Teléfono: ${STATE.userTelefono}\n🆔 Cédula: ${STATE.userCedula}\n\n¿Deseas proceder?`
     );
     if (confirmarCiclo) {
-      ejecutarSolicitudPremio(2000, 'ciclo_completo');
+      ejecutarSolicitudPremio(1000, 'ciclo_completo');
     }
     return;
   }
@@ -383,13 +479,13 @@ function openWithdrawModal() {
   if(!container) return;
   container.innerHTML = '';
 
-  [500, 1000, 1500, 2000].forEach(m => {
+  [250, 500, 750, 1000].forEach(m => {
     const unlocked = STATE.userStickersCount >= m;
     const claimed = STATE.claimedMilestones.includes(m);
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = `p-3 rounded-xl border text-left transition ${claimed ? 'opacity-50 border-slate-700 bg-slate-900' : unlocked ? 'border-amber-500 bg-slate-900 text-white cursor-pointer hover:bg-amber-500/10' : 'opacity-40 border-slate-800 bg-slate-950 cursor-not-allowed'}`;
-    btn.innerHTML = `<span class="font-bold text-amber-300 block">${m === 2000 ? 'Ciclo Completo #2000' : 'Hito #' + m}</span><span class="text-xs text-slate-300">$200.00 USD ${claimed ? '(Reclamado)' : ''}</span>`;
+    btn.innerHTML = `<span class="font-bold text-amber-300 block">${m === 1000 ? 'Ciclo Completo #1000' : 'Hito #' + m}</span><span class="text-xs text-slate-300">$100.00 USD ${claimed ? '(Reclamado)' : ''}</span>`;
 
     if (unlocked && !claimed) {
       btn.onclick = () => {
@@ -402,7 +498,6 @@ function openWithdrawModal() {
     container.appendChild(btn);
   });
 
-  // Mostrar datos precargados en el modal
   const infoDatos = document.getElementById('infoDatosPrecargados');
   if (infoDatos) {
     infoDatos.innerHTML = `💳 <b>Datos de Pago:</b> Banco: ${STATE.userBanco} | Tel: ${STATE.userTelefono} | Cédula: ${STATE.userCedula}`;
@@ -417,7 +512,7 @@ function closeWithdrawModal() {
 
 async function submitWithdrawalRequest() {
   if (!STATE.selectedMilestone) return alert('Selecciona un hito primero.');
-  ejecutarSolicitudPremio(STATE.selectedMilestone, STATE.selectedMilestone === 2000 ? 'ciclo_completo' : 'hito_parcial');
+  ejecutarSolicitudPremio(STATE.selectedMilestone, STATE.selectedMilestone === 1000 ? 'ciclo_completo' : 'hito_parcial');
 }
 
 async function ejecutarSolicitudPremio(milestoneVal, tipoRetiro) {
@@ -425,7 +520,7 @@ async function ejecutarSolicitudPremio(milestoneVal, tipoRetiro) {
     return alert('Error: Faltan los datos de pago del usuario en el sistema.');
   }
 
-  const bsVal = (200 * STATE.bcvRate).toFixed(2);
+  const bsVal = (100 * STATE.bcvRate).toFixed(2); // Premio de $100 USD
 
   const res = await fetch(`${API_URL}/api/notificar-retiro`, {
     method: 'POST', 
@@ -435,7 +530,7 @@ async function ejecutarSolicitudPremio(milestoneVal, tipoRetiro) {
       tipo: tipoRetiro, 
       milestone: milestoneVal, 
       monto_bs: bsVal, 
-      monto_usd: 200.00, 
+      monto_usd: 100.00, 
       datos_pago: `${STATE.userBanco} | ${STATE.userTelefono} | ${STATE.userCedula}` 
     })
   });
@@ -625,12 +720,13 @@ function handleSwipeGesture() {
     changePage(-1);
   }
 }
+
 // 💓 ENVÍO SILENCIOSO DE LATIDO CADA 30 SEGUNDOS
 setInterval(async () => {
   const activeUserId = localStorage.getItem('active_user_id');
   if (activeUserId) {
     try {
-      await fetch('https://album-digital-1.onrender.com/api/heartbeat', {
+      await fetch(`${API_URL}/api/heartbeat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario_id: activeUserId })
@@ -640,11 +736,11 @@ setInterval(async () => {
     }
   }
 }, 10000);
-// 💓 PULSO DE CONEXIÓN EN TIEMPO REAL (HEARTBEAT)
+
 function enviarLatidoActivo() {
   const activeUserId = localStorage.getItem('active_user_id');
   if (activeUserId) {
-    fetch('https://album-digital-1.onrender.com/api/heartbeat', {
+    fetch(`${API_URL}/api/heartbeat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ usuario_id: activeUserId })
@@ -652,110 +748,7 @@ function enviarLatidoActivo() {
   }
 }
 
-// Enviar el primer latido al cargar y luego cada 20 segundos
 document.addEventListener('DOMContentLoaded', () => {
   enviarLatidoActivo();
   setInterval(enviarLatidoActivo, 10000);
 });
-
-// ==========================================
-// CAPTURA DEL PARÁMETRO ?REF= AL CARGAR LA PÁGINA
-// ==========================================
-window.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const refCode = urlParams.get('ref');
-    
-    if (refCode) {
-        sessionStorage.setItem('codigo_referido_invitacion', refCode);
-        console.log("🔗 Invitado por código de referido:", refCode);
-    }
-});
-
-// ==========================================
-// FUNCIONES DEL MODAL DE REFERIDOS
-// ==========================================
-async function openReferralModal() {
-  const modal = document.getElementById('referralModal');
-  const bodyContainer = document.getElementById('referralModalBody');
-  if (!modal || !bodyContainer) return;
-
-  modal.classList.remove('hidden');
-  bodyContainer.innerHTML = `<p class="text-center text-purple-300 animate-pulse">Verificando estado de tu cuenta...</p>`;
-
-  try {
-    const response = await fetch(`${API_URL}/api/referidos/obtener-link`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usuario_id: STATE.userId })
-    });
-
-    const data = await response.json();
-
-    if (data.success && data.unlocked) {
-      // Desbloqueado: Muestra el link y el progreso
-      bodyContainer.innerHTML = `
-        <div class="space-y-3">
-          <p class="text-slate-300 text-xs">Comparte tu enlace único. Por cada 10 amigos que se registren y compren su primera barajita, ganarás <b>$5.00</b> de saldo.</p>
-          
-          <div class="space-y-1">
-            <label class="text-[11px] font-bold text-purple-300">Tu Enlace Personal:</label>
-            <div class="flex gap-2">
-              <input type="text" id="inputLinkRef" value="${data.link}" readonly class="w-full bg-slate-950 border border-purple-500/40 rounded-xl px-3 py-2 text-xs text-slate-200 select-all outline-none">
-              <button onclick="copiarEnlaceReferido()" class="px-3 py-2 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-xs transition shrink-0 flex items-center gap-1">
-                <i data-lucide="copy" class="w-3.5 h-3.5"></i> Copiar
-              </button>
-            </div>
-          </div>
-
-          <div class="p-3 rounded-xl bg-purple-950/50 border border-purple-500/30 space-y-1.5">
-            <div class="flex justify-between text-xs">
-              <span class="text-slate-400">📊 Referidos activos este mes:</span>
-              <span class="font-bold text-cyan-400">${data.referidos_mes} / 10</span>
-            </div>
-            <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-purple-500/20">
-              <div class="bg-cyan-500 h-full transition-all duration-500" style="width: ${(data.referidos_mes / 10) * 100}%"></div>
-            </div>
-            <p class="text-[10px] text-slate-400 pt-1">💰 Bonos cobrados este mes: <strong class="text-emerald-400">${data.bonos_cobrados_mes} / 1</strong> (Límite mensual)</p>
-          </div>
-        </div>
-      `;
-    } else {
-      // Bloqueado: No cumple las 200 barajitas
-      bodyContainer.innerHTML = `
-        <div class="text-center space-y-3 py-2">
-          <div class="w-12 h-12 mx-auto rounded-full bg-purple-900/50 border border-purple-500/40 flex items-center justify-center text-purple-400">
-            <i data-lucide="lock" class="w-6 h-6"></i>
-          </div>
-          <h4 class="font-bold text-base text-purple-300">Candado de Referidos</h4>
-          <p class="text-xs text-slate-300 leading-relaxed">${data.message || 'Debes comprar al menos 200 barajitas para desbloquear tu enlace de referido.'}</p>
-        </div>
-      `;
-    }
-
-    if (typeof lucide !== 'undefined') {
-      lucide.createIcons();
-    }
-  } catch (err) {
-    console.error("Error al obtener link de referido:", err);
-    bodyContainer.innerHTML = `<p class="text-center text-red-400 text-xs">Error de conexión al cargar el sistema de referidos.</p>`;
-  }
-}
-
-function closeReferralModal() {
-  const modal = document.getElementById('referralModal');
-  if (modal) modal.classList.add('hidden');
-}
-
-function copiarEnlaceReferido() {
-  const input = document.getElementById('inputLinkRef');
-  if (input) {
-    input.select();
-    input.setSelectionRange(0, 99999); // Para móviles
-    navigator.clipboard.writeText(input.value).then(() => {
-      showFloatingNotification("¡Enlace de referido copiado al portapapeles!");
-    }).catch(() => {
-      document.execCommand('copy');
-      showFloatingNotification("¡Enlace copiado!");
-    });
-  }
-}
