@@ -3,6 +3,7 @@ import threading
 import requests
 import traceback
 import re
+import secrets
 from flask import Flask, request, jsonify
 from flask_cors import CORS
 from supabase import create_client, Client
@@ -72,6 +73,21 @@ def registrar_conexion(usuario_id, evento_tipo):
         }]).execute()
     except Exception as e:
         print(f"Error al registrar conexión en BD: {e}")
+
+# 🔒 Función auxiliar para validar tokens de sesión en rutas protegidas
+def validar_token_sesion(usuario_id, token_enviado):
+    if not usuario_id or not token_enviado or not supabase_client:
+        return False
+    try:
+        res = supabase_client.table("usuarios").select("session_token, bloqueado").eq("id", usuario_id).execute()
+        if res.data and len(res.data) > 0:
+            usr = res.data[0]
+            if usr.get("bloqueado") is True:
+                return False
+            return usr.get("session_token") == token_enviado
+    except Exception as e:
+        print(f"Error al validar token de sesión: {e}")
+    return False
 
 @app.route("/", methods=["GET"])
 def index():
@@ -169,10 +185,22 @@ def api_login():
         if user.get("bloqueado") is True:
             return jsonify({"success": False, "bloqueado": True, "message": "Cuenta bloqueada"}), 403
 
+        # 🔒 Generar token de sesión único de 32 bytes
+        session_token = secrets.token_hex(32)
+        
+        # Guardar el token en Supabase
+        supabase_client.table("usuarios").update({
+            "session_token": session_token
+        }).eq("id", user.get("id")).execute()
+
         # 📝 Registrar el inicio de sesión en la tabla `conexiones`
         registrar_conexion(user.get("id"), "login")
 
-        return jsonify({"success": True, "user_id": user.get("id")}), 200
+        return jsonify({
+            "success": True, 
+            "user_id": user.get("id"),
+            "session_token": session_token
+        }), 200
     except Exception as e:
         print(f"Error en login: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
@@ -200,6 +228,9 @@ def api_register():
         if existing_user.data and len(existing_user.data) > 0:
             return jsonify({"error": "El nombre de usuario ya está registrado. Por favor elige otro."}), 400
 
+        # 🔒 Generar token inicial
+        session_token = secrets.token_hex(32)
+
         supabase_client.table("usuarios").insert([{
             "id": user_id,
             "username": username,
@@ -210,6 +241,7 @@ def api_register():
             "telefono": telefono,
             "cantidad_barajitas": 0,
             "saldo_bs": 0.0,
+            "session_token": session_token,
             "terminos_aceptados": True,
             "privacidad_aceptada": True,
             "fecha_aceptacion": datetime.now(timezone.utc).isoformat(),
@@ -219,7 +251,11 @@ def api_register():
         # 📝 Registrar el evento de registro en la tabla `conexiones`
         registrar_conexion(user_id, "registro")
 
-        return jsonify({"success": True}), 200
+        return jsonify({
+            "success": True,
+            "user_id": user_id,
+            "session_token": session_token
+        }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
 
@@ -346,6 +382,13 @@ def notificar_logout():
     
     if not usuario_id:
         return jsonify({"status": "error", "message": "ID no proporcionado"}), 400
+
+    if supabase_client:
+        try:
+            # Borrar token de sesión al cerrar sesión
+            supabase_client.table("usuarios").update({"session_token": None}).eq("id", usuario_id).execute()
+        except Exception as e:
+            print(f"Error borrando session_token en logout: {e}")
 
     if usuario_id.upper() == ADMIN_USER_ID.upper():
         mensaje = (
@@ -666,7 +709,6 @@ def procesar_compra_admin():
             tx = tx_res.data[0]
             nuevo_estado = "aprobado" if accion == "aprobar" else "rechazado"
             
-            # Actualizamos estado y guardamos fecha/hora exacta de aprobación para el feed
             update_payload = {"estado": nuevo_estado}
             if accion == "aprobar":
                 update_payload["fecha_aprobacion"] = datetime.now(timezone.utc).isoformat()
@@ -918,7 +960,8 @@ def telegram_webhook():
                     target_user_id = parts[1] if len(parts) > 1 else ""
                     if target_user_id:
                         supabase_client.table("usuarios").update({
-                            "bloqueado": True
+                            "bloqueado": True,
+                            "session_token": None
                         }).eq("id", target_user_id).execute()
 
                     requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
