@@ -96,15 +96,52 @@ def api_feed_actividad():
     if not supabase_client:
         return jsonify({"status": "error", "message": "BD no disponible"}), 500
     try:
-        # Consultamos las transacciones que ya estén aprobadas por el admin
-        res = supabase_client.table("transacciones") \
+        # 1. Obtener compras aprobadas
+        tx_res = supabase_client.table("transacciones") \
             .select("id, usuario_id, barajitas_qty, monto_bs, created_at, fecha_aprobacion") \
             .eq("estado", "aprobado") \
             .order("fecha_aprobacion", desc=True) \
-            .limit(30) \
+            .limit(15) \
             .execute()
         
-        return jsonify({"status": "success", "actividades": res.data or []}), 200
+        # 2. Obtener retiros aprobados
+        retiros_res = supabase_client.table("retiros") \
+            .select("id, usuario_id, tipo, milestone, monto_bs, created_at, referencia") \
+            .eq("estado", "aprobado") \
+            .order("created_at", desc=True) \
+            .limit(15) \
+            .execute()
+
+        actividades = []
+        
+        # Procesar compras
+        for t in (tx_res.data or []):
+            actividades.append({
+                "tipo": "compra",
+                "usuario_id": t.get("usuario_id"),
+                "detalle": f"compró {t.get('barajitas_qty')} barajitas",
+                "monto_bs": t.get("monto_bs"),
+                "fecha": t.get("fecha_aprobacion") or t.get("created_at")
+            })
+
+        # Procesar retiros
+        for r in (retiros_res.data or []):
+            tipo_retiro = r.get("tipo")
+            milestone = r.get("milestone")
+            texto_detalle = "realizó liquidación total" if tipo_retiro == "liquidacion_total" or milestone >= 2000 else f"reclamó Premio Hito #{milestone}"
+            
+            actividades.append({
+                "tipo": "retiro",
+                "usuario_id": r.get("usuario_id"),
+                "detalle": texto_detalle,
+                "monto_bs": r.get("monto_bs"),
+                "fecha": r.get("created_at")
+            })
+
+        # Ordenar todas las actividades de la más reciente a la más antigua
+        actividades.sort(key=lambda x: x["fecha"] or "", reverse=True)
+
+        return jsonify({"status": "success", "actividades": actividades[:25]}), 200
     except Exception as e:
         print(f"Error en /api/feed-actividad: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
