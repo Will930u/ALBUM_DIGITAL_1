@@ -91,7 +91,7 @@ def validar_token_sesion(usuario_id, token_enviado):
 
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.8.0"}), 200
+    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "3.9.0"}), 200
 
 @app.route("/api/bcv", methods=["GET"])
 def get_bcv_rate():
@@ -112,7 +112,6 @@ def api_feed_actividad():
     if not supabase_client:
         return jsonify({"status": "error", "message": "BD no disponible"}), 500
     try:
-        # 1. Obtener compras aprobadas
         tx_res = supabase_client.table("transacciones") \
             .select("id, usuario_id, barajitas_qty, monto_bs, created_at, fecha_aprobacion") \
             .eq("estado", "aprobado") \
@@ -120,7 +119,6 @@ def api_feed_actividad():
             .limit(15) \
             .execute()
         
-        # 2. Obtener retiros aprobados
         retiros_res = supabase_client.table("retiros") \
             .select("id, usuario_id, tipo, milestone, monto_bs, created_at, referencia") \
             .eq("estado", "aprobado") \
@@ -130,7 +128,6 @@ def api_feed_actividad():
 
         actividades = []
         
-        # Procesar compras
         for t in (tx_res.data or []):
             actividades.append({
                 "tipo": "compra",
@@ -140,7 +137,6 @@ def api_feed_actividad():
                 "fecha": t.get("fecha_aprobacion") or t.get("created_at")
             })
 
-        # Procesar retiros
         for r in (retiros_res.data or []):
             tipo_retiro = r.get("tipo")
             milestone = r.get("milestone")
@@ -154,7 +150,6 @@ def api_feed_actividad():
                 "fecha": r.get("created_at")
             })
 
-        # Ordenar todas las actividades de la más reciente a la más antigua
         actividades.sort(key=lambda x: x["fecha"] or "", reverse=True)
 
         return jsonify({"status": "success", "actividades": actividades[:25]}), 200
@@ -185,15 +180,12 @@ def api_login():
         if user.get("bloqueado") is True:
             return jsonify({"success": False, "bloqueado": True, "message": "Cuenta bloqueada"}), 403
 
-        # 🔒 Generar token de sesión único de 32 bytes
         session_token = secrets.token_hex(32)
         
-        # Guardar el token en Supabase
         supabase_client.table("usuarios").update({
             "session_token": session_token
         }).eq("id", user.get("id")).execute()
 
-        # 📝 Registrar el inicio de sesión en la tabla `conexiones`
         registrar_conexion(user.get("id"), "login")
 
         return jsonify({
@@ -214,6 +206,7 @@ def api_register():
     banco = str(data.get("banco", "")).strip()
     cedula = str(data.get("cedula", "")).strip()
     telefono = str(data.get("telefono", "")).strip()
+    codigo_ref_recibido = str(data.get("ref", "")).strip()
 
     if not all([username, email, password]):
         return jsonify({"error": "Faltan campos obligatorios"}), 400
@@ -228,8 +221,17 @@ def api_register():
         if existing_user.data and len(existing_user.data) > 0:
             return jsonify({"error": "El nombre de usuario ya está registrado. Por favor elige otro."}), 400
 
-        # 🔒 Generar token inicial
         session_token = secrets.token_hex(32)
+        
+        # Generar código de referido único para este nuevo usuario
+        codigo_referido_propio = f"REF-{secrets.token_hex(4).upper()}"
+
+        # Verificar si usó un código de referido válido
+        padrino_id = None
+        if codigo_ref_recibido:
+            res_padre = supabase_client.table("usuarios").select("id").eq("codigo_referido", codigo_ref_recibido).execute()
+            if res_padre.data:
+                padrino_id = res_padre.data[0].get("id")
 
         supabase_client.table("usuarios").insert([{
             "id": user_id,
@@ -242,13 +244,53 @@ def api_register():
             "cantidad_barajitas": 0,
             "saldo_bs": 0.0,
             "session_token": session_token,
+            "codigo_referido": codigo_referido_propio,
+            "referido_por": padrino_id,
+            "referidos_activos_mes": 0,
+            "bonos_referidos_mes": 0,
+            "ultimo_mes_bono": datetime.now(timezone.utc).month,
             "terminos_aceptados": True,
             "privacidad_aceptada": True,
             "fecha_aceptacion": datetime.now(timezone.utc).isoformat(),
             "bloqueado": False
         }]).execute()
         
-        # 📝 Registrar el evento de registro en la tabla `conexiones`
+        # Si tiene padrino, incrementar su contador de referidos de forma segura
+        if padrino_id:
+            try:
+                res_pad = supabase_client.table("usuarios").select("referidos_activos_mes, bonos_referidos_mes, ultimo_mes_bono, saldo").eq("id", padrino_id).execute()
+                if res_pad.data:
+                    pad = res_pad.data[0]
+                    mes_actual = datetime.now(timezone.utc).month
+                    ref_mes = pad.get("referidos_activos_mes", 0) or 0
+                    bonos_mes = pad.get("bonos_referidos_mes", 0) or 0
+                    
+                    if pad.get("ultimo_mes_bono") != mes_actual:
+                        ref_mes = 0
+                        bonos_mes = 0
+
+                    nuevos_refs = ref_mes + 1
+                    
+                    # Lógica de recompensa: 10 referidos = $5 de bono (máximo 1 vez al mes)
+                    if nuevos_refs >= 10 and bonos_mes < 1:
+                        saldo_actual = float(pad.get("saldo") or pad.get("saldo_bs") or 0.0) # Ajustable según tu moneda base
+                        # Nota: Aquí acreditamos saldo. Como tu saldo principal es saldo_bs, sumamos el equivalente o guardamos bono
+                        nuevo_saldo_bs = float(pad.get("saldo_bs") or 0.0) + (5.0 * 36.0) # O el equivalente según tasa si manejas USD directo, adaptado a tu esquema
+                        
+                        supabase_client.table("usuarios").update({
+                            "saldo_bs": (pad.get("saldo_bs") or 0.0) + 180.0, # Ejemplo 5$ a tasa estimada o ajuste directo
+                            "referidos_activos_mes": 0,
+                            "bonos_referidos_mes": bonos_mes + 1,
+                            "ultimo_mes_bono": mes_actual
+                        }).eq("id", padrino_id).execute()
+                    else:
+                        supabase_client.table("usuarios").update({
+                            "referidos_activos_mes": nuevos_refs,
+                            "ultimo_mes_bono": mes_actual
+                        }).eq("id", padrino_id).execute()
+            except Exception as e:
+                print(f"Error procesando referido en registro: {e}")
+
         registrar_conexion(user_id, "registro")
 
         return jsonify({
@@ -258,6 +300,62 @@ def api_register():
         }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
+# ==========================================
+# ENDPOINT: SISTEMA DE REFERIDOS (OBTENER LINK)
+# ==========================================
+@app.route("/api/referidos/obtener-link", methods=["POST"])
+def obtener_link_referido():
+    data = request.get_json(silent=True) or {}
+    user_id = str(data.get("usuario_id", "")).strip()
+    
+    if not user_id or not supabase_client:
+        return jsonify({"success": False, "message": "ID de usuario requerido"}), 400
+        
+    try:
+        res = supabase_client.table("usuarios").select("cantidad_barajitas, codigo_referido, referidos_activos_mes, bonos_referidos_mes, ultimo_mes_bono").eq("id", user_id).execute()
+        if not res.data:
+            return jsonify({"success": False, "message": "Usuario no encontrado"}), 404
+            
+        user = res.data[0]
+        barajitas_compradas = int(user.get("cantidad_barajitas", 0) or 0)
+        
+        # CANDADO DE 200 BARAJITAS
+        if barajitas_compradas < 200:
+            return jsonify({
+                "success": False, 
+                "unlocked": False,
+                "message": f"Debes comprar al menos 200 barajitas para desbloquear tu enlace de referido. (Llevas {barajitas_compradas}/200)"
+            }), 200
+            
+        # Control mensual (1 intento / bono máximo al mes)
+        mes_actual = datetime.now(timezone.utc).month
+        if user.get("ultimo_mes_bono") != mes_actual:
+            supabase_client.table("usuarios").update({
+                "referidos_activos_mes": 0,
+                "bonos_referidos_mes": 0,
+                "ultimo_mes_bono": mes_actual
+            }).eq("id", user_id).execute()
+            user["referidos_activos_mes"] = 0
+            user["bonos_referidos_mes"] = 0
+
+        codigo_ref = user.get("codigo_referido")
+        if not codigo_ref:
+            codigo_ref = f"REF-{secrets.token_hex(4).upper()}"
+            supabase_client.table("usuarios").update({"codigo_referido": codigo_ref}).eq("id", user_id).execute()
+
+        link_referido = f"https://will930u.github.io/ALBUM_DIGITAL_1/album.html?ref={codigo_ref}"
+        
+        return jsonify({
+            "success": True,
+            "unlocked": True,
+            "link": link_referido,
+            "referidos_mes": user.get("referidos_activos_mes", 0),
+            "bonos_cobrados_mes": user.get("bonos_referidos_mes", 0)
+        }), 200
+    except Exception as e:
+        print(f"Error en obtener_link_referido: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/api/solicitar-recuperacion", methods=["POST"])
 def solicitar_recuperacion():
@@ -385,7 +483,6 @@ def notificar_logout():
 
     if supabase_client:
         try:
-            # Borrar token de sesión al cerrar sesión
             supabase_client.table("usuarios").update({"session_token": None}).eq("id", usuario_id).execute()
         except Exception as e:
             print(f"Error borrando session_token en logout: {e}")
@@ -440,10 +537,8 @@ def verificar_admin():
                         "bloqueado": True
                     }).eq("id", usuario_id).execute()
 
-                    # 📝 Registrar intento fallido definitivo en `conexiones`
                     registrar_conexion(usuario_id, "bloqueo_intrusion")
 
-                    # 🚨 Notificación a Telegram con IP y Dispositivo
                     send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, 
                         f"🚨 <b>¡INTRUSIÓN BLOQUEADA (3 INTENTOS)!</b>\n\n"
                         f"👤 <b>Usuario:</b> <code>{usuario_id}</code>\n"
@@ -462,10 +557,8 @@ def verificar_admin():
                         "intentos_admin": intentos_actuales
                     }).eq("id", usuario_id).execute()
 
-                    # 📝 Registrar intento de intrusión en `conexiones`
                     registrar_conexion(usuario_id, f"intento_admin_{intentos_actuales}")
 
-                    # ⚠️ Notificación de intento con IP y Dispositivo
                     send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, 
                         f"⚠️ <b>¡ALERTA DE INTRUSIÓN!</b>\n\n"
                         f"👤 <b>Usuario:</b> <code>{usuario_id}</code>\n"
@@ -828,7 +921,6 @@ def telegram_webhook():
                 pass
         return jsonify({"status": "unauthorized"}), 200
 
-    # 1. Manejo de respuestas de texto
     message = data.get("message")
     if message and message.get("text"):
         reply_to = message.get("reply_to_message")
@@ -872,7 +964,6 @@ def telegram_webhook():
                     except Exception as e:
                         print(f"Error procesando texto en webhook: {e}")
 
-    # 2. Manejo de botones de acción (Callback Queries)
     if not callback_query:
         return jsonify({"status": "ok"}), 200
 
