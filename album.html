@@ -48,6 +48,12 @@
         </div>
       </div>
 
+      <!-- Botón Sistema de Referidos -->
+<button onclick="openReferralModal()" class="px-2.5 py-1.5 rounded-full bg-gradient-to-r from-purple-600 to-indigo-600 text-white font-bold text-[11px] md:text-xs flex items-center space-x-1 shadow-lg transition hover:opacity-90">
+  <i data-lucide="share-2" class="w-3.5 h-3.5"></i>
+  <span>Referidos ($5)</span>
+</button>
+      
       <!-- Botón Salir en móvil arriba a la derecha -->
       <button onclick="logoutUser()" class="md:hidden px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-900/50 text-red-200 border border-red-500/30 shrink-0">
         Salir
@@ -129,6 +135,27 @@
         <h3 class="text-lg md:text-xl font-bold text-amber-400">Premios de Hito / Ciclo ($200)</h3>
         <button onclick="closeWithdrawModal()" class="text-slate-400 font-bold hover:text-white p-1">✕</button>
       </div>
+
+      <!-- ========================================== -->
+<!-- MODAL DEL SISTEMA DE REFERIDOS             -->
+<!-- ========================================== -->
+<div id="referralModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+  <div class="metal-card max-w-lg w-full p-5 md:p-6 space-y-4 border border-purple-500/50 relative z-20">
+    <div class="flex justify-between items-center border-b border-purple-500/30 pb-3">
+      <h3 class="text-lg md:text-xl font-bold text-purple-300">🎁 Sistema de Referidos</h3>
+      <button onclick="closeReferralModal()" class="text-slate-400 font-bold hover:text-white p-1">✕</button>
+    </div>
+    
+    <div id="referralModalBody" class="space-y-3 text-xs md:text-sm text-purple-200 leading-relaxed">
+      <!-- Aquí se cargará dinámicamente si está bloqueado (menos de 200 barajitas) o desbloqueado -->
+      <p class="text-center text-slate-400">Cargando información de referidos...</p>
+    </div>
+
+    <button type="button" onclick="closeReferralModal()" class="w-full py-2.5 bg-slate-800 hover:bg-slate-700 text-white font-bold rounded-xl text-sm transition border border-purple-500/30">Cerrar</button>
+  </div>
+</div>
+
+      
       
       <div id="milestoneOptions" class="grid grid-cols-2 gap-2 text-xs"></div>
       
