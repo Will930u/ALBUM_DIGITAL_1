@@ -348,6 +348,7 @@ async function renderFinancialMetrics() {
     const stickersSold = data.stickers_sold || 0;
     const totalUsers = data.total_usuarios || 0;
     const onlineUsers = data.usuarios_online || 0;
+    const transaccionesReales = data.transacciones || [];
 
     // Métricas intocables (Usuarios Totales y Activos)
     const elTotalUsers = document.getElementById('metricTotalUsers');
@@ -378,37 +379,74 @@ async function renderFinancialMetrics() {
     if (elBcv) elBcv.innerText = `Bs. ${bcvRate.toFixed(2)}`;
 
     // ==========================================
-    // RENDERIZADO DE LA GRÁFICA DE BARRAS (DIARIO / SEMANAL / MENSUAL)
+    // PROCESAMIENTO DE DATOS REALES PARA LA GRÁFICA DE BARRAS
     // ==========================================
+    let chartLabels = [];
+    let chartDataValues = [];
+
+    if (currentChartPeriod === 'diario') {
+      // Agrupar por los últimos 7 días reales
+      chartLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+      let valoresDias = [0, 0, 0, 0, 0, 0, 0]; // Lunes a Domingo
+
+      transaccionesReales.forEach(tx => {
+        const fechaStr = tx.fecha_aprobacion || tx.created_at;
+        if (fechaStr) {
+          const date = new Date(fechaStr);
+          let dayIndex = date.getDay(); // 0 es Domingo, 1 es Lunes...
+          // Reorganizar índice para que Lunes sea 0 y Domingo sea 6
+          let indexMapeado = dayIndex === 0 ? 6 : dayIndex - 1;
+          const monto = parseFloat(tx.monto_bs || tx.monto || 0);
+          valoresDias[indexMapeado] += monto;
+        }
+      });
+      chartDataValues = valoresDias;
+
+    } else if (currentChartPeriod === 'semanal') {
+      chartLabels = ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4'];
+      let valoresSemanas = [0, 0, 0, 0];
+
+      transaccionesReales.forEach(tx => {
+        const fechaStr = tx.fecha_aprobacion || tx.created_at;
+        if (fechaStr) {
+          const date = new Date(fechaStr);
+          const diaMes = date.getDate();
+          let semanaIdx = Math.min(Math.floor((diaMes - 1) / 7), 3);
+          const monto = parseFloat(tx.monto_bs || tx.monto || 0);
+          valoresSemanas[semanaIdx] += monto;
+        }
+      });
+      chartDataValues = valoresSemanas;
+
+    } else {
+      chartLabels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+      let valoresMeses = new Array(12).fill(0);
+
+      transaccionesReales.forEach(tx => {
+        const fechaStr = tx.fecha_aprobacion || tx.created_at;
+        if (fechaStr) {
+          const date = new Date(fechaStr);
+          const mesIdx = date.getMonth(); // 0 a 11
+          const monto = parseFloat(tx.monto_bs || tx.monto || 0);
+          valoresMeses[mesIdx] += monto;
+        }
+      });
+      chartDataValues = valoresMeses;
+    }
+
     const chartCanvas = document.getElementById('financialChart');
     if (chartCanvas) {
       const ctx = chartCanvas.getContext('2d');
       if (window.myChart) window.myChart.destroy();
       
-      // Datos simulados/agrupados según el período seleccionado para la gráfica de barras
-      let chartLabels = [];
-      let chartDataValues = [];
-
-      if (currentChartPeriod === 'diario') {
-        chartLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
-        // Distribuir el total o mostrar valores basados en la caja actual
-        chartDataValues = [totalSalesBs * 0.1, totalSalesBs * 0.15, totalSalesBs * 0.08, totalSalesBs * 0.2, totalSalesBs * 0.22, totalSalesBs * 0.15, totalSalesBs * 0.1];
-      } else if (currentChartPeriod === 'semanal') {
-        chartLabels = ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4'];
-        chartDataValues = [totalSalesBs * 0.2, totalSalesBs * 0.3, totalSalesBs * 0.25, totalSalesBs * 0.25];
-      } else {
-        chartLabels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
-        chartDataValues = new Array(12).fill(totalSalesBs / 12);
-      }
-
       window.myChart = new Chart(ctx, {
-        type: 'bar', // Gráfica de barras solicitada
+        type: 'bar',
         data: {
           labels: chartLabels,
           datasets: [{
-            label: 'Volumen de Transacciones (Bs.)',
+            label: 'Transacciones Reales (Bs.)',
             data: chartDataValues,
-            backgroundColor: 'rgba(168, 85, 247, 0.7)',
+            backgroundColor: 'rgba(168, 85, 247, 0.75)',
             borderColor: '#a855f7',
             borderWidth: 1,
             borderRadius: 8
