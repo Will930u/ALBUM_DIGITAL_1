@@ -257,11 +257,26 @@ async function loadUserDataFromDB() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ usuario_id: STATE.userId })
     });
+
+    // 🔒 CAPA DE SEGURIDAD: Validar si la cuenta fue bloqueada (Estado 403)
+    if (res.status === 403) {
+      alert("🚨 Tu cuenta ha sido bloqueada o suspendida por el administrador.");
+      logoutUser();
+      return;
+    }
+
     const data = await res.json();
     
     const previousStickersCount = STATE.userStickersCount;
 
     if (data && data.user) {
+      // 🔒 CAPA DE SEGURIDAD: Validar si el campo booleano 'bloqueado' está activo en la BD
+      if (data.user.bloqueado === true) {
+        alert("🚨 Acceso revocado. Has sido expulsado del sistema.");
+        logoutUser();
+        return;
+      }
+
       STATE.userStickersCount = data.user.cantidad_barajitas || 0;
       STATE.userBalanceBs = data.user.saldo_bs || 0;
       // Capturar los datos de pago precargados de Supabase
