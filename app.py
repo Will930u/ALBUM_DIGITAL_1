@@ -901,26 +901,7 @@ def procesar_retiro_admin():
             return jsonify({"status": "error", "message": str(e)}), 500
     return jsonify({"status": "error", "message": "Sin conexión"}), 500
 
-@app.route("/api/telegram-webhook", methods=["POST"])
-def telegram_webhook():
-    data = request.get_json(silent=True) or {}
-    
-    message_data = data.get("message") or {}
-    callback_query = data.get("callback_query") or {}
-    chat = message_data.get("chat") or callback_query.get("message", {}).get("chat", {})
-    remitente_chat_id = str(chat.get("id", ""))
-    
-    # 🔒 Validación de seguridad del chat del Administrador
-    if remitente_chat_id != str(TELEGRAM_ADMIN_CHAT_ID):
-        if remitente_chat_id:
-            try:
-                requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/sendMessage", json={
-                    "chat_id": remitente_chat_id,
-                    "text": "⛔ <b>Acceso denegado:</b> Bot exclusivo del administrador."
-                }, timeout=5)
-            except:
-                pass
-        return jsonify({"status": "unauthorized"}), 200
+def telegram_webhook
 
     # 1️⃣ Procesamiento de respuestas por texto (para registrar referencia bancaria en retiros)
     message = data.get("message")
