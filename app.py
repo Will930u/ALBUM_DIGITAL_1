@@ -346,7 +346,8 @@ def obtener_link_referido():
             codigo_ref = f"REF-{secrets.token_hex(4).upper()}"
             supabase_client.table("usuarios").update({"codigo_referido": codigo_ref}).eq("id", user_id).execute()
 
-        link_referido = f"https://will930u.github.io/ALBUM_DIGITAL_1/album.html?ref={codigo_ref}"
+        # Cambiar en app.py:
+        link_referido = f"https://will930u.github.io/ALBUM_DIGITAL_1/index.html?ref={codigo_ref}"
         
         return jsonify({
             "success": True,
