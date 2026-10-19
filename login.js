@@ -3,20 +3,36 @@ const API_URL = "https://album-digital-1.onrender.com";
 // ==========================================
 // CAPTURA DEL PARÁMETRO ?REF= AL CARGAR LA PÁGINA
 // ==========================================
-window.addEventListener('DOMContentLoaded', () => {
-    const urlParams = new URLSearchParams(window.location.search);
-    const refCode = urlParams.get('ref');
-    
-    if (refCode) {
-        localStorage.setItem('codigo_referido_pendiente', refCode);
-        console.log("🔗 Código de referido invitado guardado:", refCode);
-    }
-});
+document.addEventListener('DOMContentLoaded', () => {
+  const urlParams = new URLSearchParams(window.location.search);
+  const refCode = urlParams.get('ref');
 
-  // Verificar si ya hay una sesión activa para redirigir directamente al álbum
-  const activeUserId = localStorage.getItem('active_user_id');
-  if (activeUserId) {
-    window.location.href = 'album.html';
+  if (refCode) {
+    // 1. Guardar en sessionStorage para el registro
+    sessionStorage.setItem('codigo_referido_invitacion', refCode);
+    console.log("🔗 Código de referido detectado:", refCode);
+
+    // 2. Si tu login y registro están en la misma página por pestañas o modales, 
+    // forzamos a mostrar el formulario de registro automáticamente:
+    const registerTabBtn = document.getElementById('btnTabRegister'); // O el botón/pestaña que cambia a registro
+    const registerForm = document.getElementById('registerForm');
+    const loginForm = document.getElementById('loginForm');
+
+    if (registerForm && loginForm) {
+      loginForm.classList.add('hidden');
+      registerForm.classList.remove('hidden');
+    }
+
+    // 3. Autorellenar el campo del código de referido si existe en tu formulario
+    // (Asegúrate de que tu input de referido en el HTML tenga el id="regCodigoReferido" o similar)
+    setTimeout(() => {
+      const inputRefField = document.getElementById('regCodigoReferido') || document.getElementById('refInput');
+      if (inputRefField) {
+        inputRefField.value = refCode;
+        // Opcional: bloquearlo para que el usuario no lo borre por error
+        inputRefField.readOnly = true; 
+      }
+    }, 300);
   }
 });
 
