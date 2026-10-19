@@ -1,33 +1,90 @@
+/* ==========================================
+   ESTILOS DE LA TIENDA OFICIAL
+   ========================================== */
 body {
-  background: radial-gradient(circle at center, #1a0b36 0%, #080314 100%);
-  color: #e2e8f0;
-  font-family: 'Segoe UI', sans-serif;
+  background-color: #06030d;
+  color: #f1f5f9;
+  font-family: 'Inter', system-ui, -apple-system, sans-serif;
   min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+  position: relative;
+}
+
+.bg-smoke-video {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  object-fit: cover;
+  pointer-events: none;
+  z-index: -1;
+  opacity: 0.6;
+}
+
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  pointer-events: none;
+  z-index: -1;
+  mix-blend-mode: overlay;
+  animation: humoColorGlobal 12s ease-in-out infinite;
+  -webkit-animation: humoColorGlobal 12s ease-in-out infinite;
+}
+
+@keyframes humoColorGlobal {
+  0%, 100% { background: rgba(79, 70, 229, 0.08); }
+  50% { background: rgba(147, 51, 234, 0.12); }
 }
 
 .metal-card {
-  background: linear-gradient(135deg, rgba(30, 27, 75, 0.8) 0%, rgba(88, 28, 135, 0.8) 100%);
-  border: 1px solid rgba(168, 85, 247, 0.4);
-  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.5);
-  backdrop-filter: blur(12px);
-  border-radius: 16px;
+  background: rgba(13, 9, 29, 0.95);
+  border: 1px solid rgba(168, 85, 247, 0.25);
+  box-shadow: 
+    0 20px 40px -15px rgba(0, 0, 0, 0.9),
+    0 0 25px rgba(168, 85, 247, 0.1),
+    inset 0 1px 0 rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border-radius: 20px;
+  position: relative;
+  z-index: 1;
+}
+
+.metal-card::before {
+  content: '';
+  position: absolute;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: linear-gradient(135deg, rgba(99, 102, 241, 0.15), rgba(168, 85, 247, 0.05));
+  border-radius: 20px;
+  z-index: -1;
+  pointer-events: none;
 }
 
 .metal-button {
-  background: linear-gradient(135deg, #3b82f6 0%, #9333ea 100%);
-  border: 1px solid rgba(255, 255, 255, 0.3);
-  transition: all 0.3s ease;
+  background: linear-gradient(135deg, #4f46e5 0%, #9333ea 100%);
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  box-shadow: 0 4px 20px rgba(79, 70, 229, 0.4);
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
 }
 
 .metal-button:hover {
-  background: linear-gradient(135deg, #2563eb 0%, #7e22ce 100%);
+  background: linear-gradient(135deg, #4338ca 0%, #7e22ce 100%);
   transform: translateY(-2px);
+  box-shadow: 0 6px 25px rgba(147, 51, 234, 0.6);
 }
 
 .glow-text {
-  text-shadow: 0 0 10px rgba(168, 85, 247, 0.8);
+  text-shadow: 0 0 15px rgba(168, 85, 247, 0.6), 0 0 30px rgba(79, 70, 229, 0.4);
+  letter-spacing: 0.5px;
 }
 
-::-webkit-scrollbar { width: 8px; }
-::-webkit-scrollbar-track { background: #080314; }
-::-webkit-scrollbar-thumb { background: #581c87; border-radius: 4px; }
+::-webkit-scrollbar { width: 6px; height: 6px; }
+::-webkit-scrollbar-track { background: #06030d; }
+::-webkit-scrollbar-thumb { background: #4f46e5; border-radius: 3px; }
+::-webkit-scrollbar-thumb:hover { background: #9333ea; }
