@@ -25,7 +25,7 @@
       </div>
       <div>
         <h1 class="text-lg font-bold glow-text leading-none">PANEL ADMIN</h1>
-        <span class="text-xs text-red-300">Gestión General del Sistema</span>
+        <span class="text-xs text-red-300">Gestión General del Sistema (1000 Barajitas)</span>
       </div>
     </div>
     <div class="flex items-center space-x-2">
@@ -40,14 +40,14 @@
       <div class="metal-card p-6 md:p-8 space-y-6">
         
         <div class="flex justify-between items-center border-b border-purple-500/30 pb-4">
-          <h2 class="text-2xl font-bold glow-text">CENTRO DE INTELIGENCIA FINANCIERA Y OPERATIVA</h2>
+          <h2 class="text-xl md:text-2xl font-bold glow-text">CENTRO DE INTELIGENCIA FINANCIERA Y OPERATIVA</h2>
           <span class="text-xs text-purple-300 font-mono">Modo Auditoría en Vivo</span>
         </div>
 
         <!-- Pestañas de Navegación del Panel -->
         <div class="flex border-b border-slate-800 space-x-4 overflow-x-auto">
           <button onclick="switchAdminTab('pagos')" id="tabAdminPagos" class="pb-3 font-semibold text-sm border-b-2 border-purple-500 text-purple-300 whitespace-nowrap">Pagos Pendientes</button>
-          <button onclick="switchAdminTab('retiros')" id="tabAdminRetiros" class="pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap">Solicitudes de Retiro</button>
+          <button onclick="switchAdminTab('retiros')" id="tabAdminRetiros" class="pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap">Solicitudes de Retiro ($100)</button>
           <button onclick="switchAdminTab('imagenes')" id="tabAdminImagenes" class="pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap">Carga Masiva</button>
           <button onclick="switchAdminTab('metricas')" id="tabAdminMetricas" class="pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap">Métricas y Caja (30%/70%)</button>
           <button onclick="switchAdminTab('usuarios')" id="tabAdminUsuarios" class="pb-3 font-semibold text-sm border-b-2 border-transparent text-slate-400 whitespace-nowrap">Usuarios y Trazabilidad</button>
@@ -81,8 +81,8 @@
         <!-- Sub-tab: Carga Masiva de Imágenes -->
         <div id="adminContentImagenes" class="hidden space-y-4">
           <div class="bg-slate-950/60 p-5 rounded-xl border border-purple-500/30 space-y-4">
-            <h3 class="text-base font-bold text-purple-200">Subida Masiva de Barajitas a Supabase Storage</h3>
-            <p class="text-xs text-slate-400">Selecciona imágenes nombradas con su número respectivo (Ej: 1.jpg, 2.jpg).</p>
+            <h3 class="text-base font-bold text-purple-200">Subida Masiva de Barajitas a Supabase Storage (1000 Barajitas)</h3>
+            <p class="text-xs text-slate-400">Selecciona imágenes nombradas con su número respectivo (Ej: 1.jpg, 2.jpg... hasta 1000.jpg).</p>
             <form onsubmit="uploadStickerImagesBatch(event)" class="space-y-3">
               <input type="file" id="imgFileAssetBatch" accept="image/*,application/zip" multiple required class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-xs text-slate-300">
               <button type="submit" class="metal-button w-full py-3 rounded-lg text-xs font-bold text-white transition">Iniciar Carga Masiva</button>
@@ -90,10 +90,10 @@
           </div>
         </div>
 
-        <!-- Sub-tab: Métricas y Caja Avanzadas (Doble Divisa + En Vivo) -->
+        <!-- Sub-tab: Métricas y Caja Avanzadas (Doble Divisa + Gráfica de Movimientos) -->
         <div id="adminContentMetricas" class="hidden space-y-6">
           
-          <!-- Tarjetas Estadísticas en Vivo (Usuarios Totales y Activos) -->
+          <!-- Tarjetas Estadísticas en Vivo (Usuarios Totales y Activos - INTACTAS) -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="bg-slate-950/70 p-5 rounded-2xl border border-indigo-500/30 flex items-center justify-between shadow-lg">
               <div>
@@ -108,7 +108,7 @@
                 <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold">En Línea (Tiempo Real)</span>
                 <p id="metricOnlineUsers" class="text-2xl font-extrabold text-emerald-400 mt-1">0</p>
               </div>
-              <div class="p-3 bg-emerald-950/50 rounded-xl border border-emerald-500/40 text-emerald-300 font-bold text-sm animate-pulse">📡Conectados</div>
+              <div class="p-3 bg-emerald-950/50 rounded-xl border border-emerald-500/40 text-emerald-300 font-bold text-sm animate-pulse">📡 Conectados</div>
             </div>
           </div>
 
@@ -139,18 +139,43 @@
             </div>
           </div>
 
-          <!-- Gráfica -->
+          <!-- Sección de Gráfica de Barras y Controles -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div class="bg-slate-950/70 p-5 rounded-2xl border border-purple-500/20 space-y-3 flex flex-col justify-between">
-              <h4 class="text-sm font-bold text-purple-200 border-b border-purple-500/20 pb-2">Resumen de Auditoría</h4>
-              <div class="space-y-2 text-xs text-slate-300">
-                <div class="flex justify-between"><span>Transacciones Aprobadas:</span> <span id="metricCountApproved" class="font-bold text-white">0</span></div>
-                <div class="flex justify-between"><span>Barajitas Comercializadas:</span> <span id="metricTotalStickersSold" class="font-bold text-white">0</span></div>
-                <div class="flex justify-between"><span>Tasa BCV de Referencia:</span> <span id="metricBcvReference" class="font-mono text-emerald-400">Calculando...</span></div>
+            <div class="bg-slate-950/70 p-5 rounded-2xl border border-purple-500/20 space-y-4 flex flex-col justify-between">
+              <div>
+                <h4 class="text-sm font-bold text-purple-200 border-b border-purple-500/20 pb-2 mb-3">Resumen de Auditoría</h4>
+                <div class="space-y-2 text-xs text-slate-300">
+                  <div class="flex justify-between"><span>Transacciones Aprobadas:</span> <span id="metricCountApproved" class="font-bold text-white">0</span></div>
+                  <div class="flex justify-between"><span>Barajitas Comercializadas:</span> <span id="metricTotalStickersSold" class="font-bold text-white">0</span></div>
+                  <div class="flex justify-between"><span>Tasa BCV de Referencia:</span> <span id="metricBcvReference" class="font-mono text-emerald-400">Calculando...</span></div>
+                </div>
               </div>
+
+              <!-- Selector de Período para la Gráfica de Barras -->
+              <div class="space-y-2 pt-2">
+                <label class="block text-[11px] font-bold text-purple-300">Movimientos de Transacciones:</label>
+                <div class="grid grid-cols-3 gap-1 bg-slate-900 p-1 rounded-xl border border-purple-500/30">
+                  <button onclick="changeChartPeriod('diario')" id="btnChartDiario" class="py-1.5 rounded-lg text-[11px] font-bold bg-purple-600 text-white transition">Diario</button>
+                  <button onclick="changeChartPeriod('semanal')" id="btnChartSemanal" class="py-1.5 rounded-lg text-[11px] font-semibold text-slate-400 transition hover:text-white">Semanal</button>
+                  <button onclick="changeChartPeriod('mensual')" id="btnChartMensual" class="py-1.5 rounded-lg text-[11px] font-semibold text-slate-400 transition hover:text-white">Mensual</button>
+                </div>
+              </div>
+
+              <!-- BOTÓN GENERAL DE LIMPIEZA DE MÉTRICAS OPERATIVAS -->
+              <button onclick="clearOperationalMetrics()" class="w-full py-2.5 bg-red-600/30 hover:bg-red-600/50 text-red-300 border border-red-500/40 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-md">
+                <i data-lucide="trash-2" class="w-4 h-4"></i> Limpiar Métricas Operativas
+              </button>
             </div>
-            <div class="md:col-span-2 bg-slate-950/70 p-4 rounded-2xl border border-purple-500/20 h-64 flex items-center justify-center relative">
-              <canvas id="financialChart"></canvas>
+
+            <!-- Contenedor de la Gráfica de Barras -->
+            <div class="md:col-span-2 bg-slate-950/70 p-4 rounded-2xl border border-purple-500/20 h-72 flex flex-col items-center justify-center relative">
+              <div class="w-full flex justify-between items-center mb-2 px-2">
+                <span id="chartTitleLabel" class="text-xs font-bold text-purple-300 uppercase tracking-wider">Flujo de Transacciones - Diario</span>
+                <span class="text-[10px] text-slate-400 font-mono">Actualizado en vivo</span>
+              </div>
+              <div class="w-full h-full relative">
+                <canvas id="financialChart"></canvas>
+              </div>
             </div>
           </div>
 
@@ -164,7 +189,7 @@
                 <tr>
                   <th class="p-3">Usuario</th>
                   <th class="p-3">Gmail</th>
-                  <th class="p-3">Barajitas</th>
+                  <th class="p-3">Barajitas (Máx 1000)</th>
                   <th class="p-3">Saldo Bs.</th>
                   <th class="p-3">Trazabilidad Legal (Aceptación)</th>
                   <th class="p-3 text-center">Estado (Bloqueo)</th>
@@ -177,12 +202,10 @@
         </div>
 
         <!-- SECCIÓN CONFIGURACIÓN DE PAGOS -->
-        <!-- SECCIÓN CONFIGURACIÓN DE PAGOS -->
         <div id="adminContentConfig" class="hidden space-y-6">
           <div class="metal-card p-6 max-w-xl mx-auto space-y-4">
             <h3 class="text-xl font-bold text-purple-200 border-b border-purple-500/30 pb-3">Datos de Pago Móvil de la Plataforma</h3>
             
-            <!-- Contenedor dinámico del estado del cerrojo -->
             <div id="avisoBloqueoConfig"></div>
 
             <form onsubmit="savePlatformConfig(event)" class="space-y-4">
@@ -206,9 +229,16 @@
             </form>
           </div>
         </div>
+
+      </div>
     </section>
   </main>
 
+  <script>
+    document.addEventListener("DOMContentLoaded", () => {
+      if (typeof lucide !== 'undefined') lucide.createIcons();
+    });
+  </script>
   <script src="admin.js"></script>
 </body>
 </html>
