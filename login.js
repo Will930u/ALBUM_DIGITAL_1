@@ -4,13 +4,14 @@ const API_URL = "https://album-digital-1.onrender.com";
 // CAPTURA DEL PARÁMETRO ?REF= AL CARGAR LA PÁGINA
 // ==========================================
 window.addEventListener('DOMContentLoaded', () => {
-  const urlParams = new URLSearchParams(window.location.search);
-  const refCode = urlParams.get('ref');
-  
-  if (refCode) {
-    sessionStorage.setItem('codigo_referido_invitacion', refCode);
-    console.log("🔗 Invitado por código de referido:", refCode);
-  }
+    const urlParams = new URLSearchParams(window.location.search);
+    const refCode = urlParams.get('ref');
+    
+    if (refCode) {
+        localStorage.setItem('codigo_referido_pendiente', refCode);
+        console.log("🔗 Código de referido invitado guardado:", refCode);
+    }
+});
 
   // Verificar si ya hay una sesión activa para redirigir directamente al álbum
   const activeUserId = localStorage.getItem('active_user_id');
