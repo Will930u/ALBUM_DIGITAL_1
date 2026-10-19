@@ -2,7 +2,7 @@ const API_URL = "https://album-digital-1.onrender.com";
 
 const STATE = {
   currentPage: 1, 
-  totalPages: 40, // Ajustado a 40 páginas (1000 barajitas en total)
+  totalPages: 40, // Ajustado de 80 a 40 páginas
   stickersPerPage: 25, 
   totalStickers: 1000, // Ajustado de 2000 a 1000 barajitas
   bcvRate: 36.5, 
@@ -199,7 +199,7 @@ function renderAlbumPage() {
 
     for (let i = startIndex; i <= endIndex; i++) {
       const isUnlocked = i <= STATE.userStickersCount;
-      const isMilestone = (i % 250 === 0); // Hitos ajustados de 250 en 250 (250, 500, 750, 1000)
+      const isMilestone = (i % 250 === 0); // Ajustado de 500 a 250 (hitos en 250, 500, 750, 1000)
       const slot = document.createElement('div');
       slot.className = `metal-slot sticker-card aspect-[2.5/3.5] w-full rounded-xl flex flex-col items-center justify-center p-2 relative overflow-hidden cursor-pointer ${isUnlocked ? 'filled' : ''} ${isMilestone ? 'milestone-slot' : ''}`;
       
@@ -530,7 +530,7 @@ async function ejecutarSolicitudPremio(milestoneVal, tipoRetiro) {
     return alert('Error: Faltan los datos de pago del usuario en el sistema.');
   }
 
-  const bsVal = (100 * STATE.bcvRate).toFixed(2); // Ajustado a $100 USD
+  const bsVal = (100 * STATE.bcvRate).toFixed(2); // Ajustado a $100 USD por hito
 
   const res = await fetch(`${API_URL}/api/notificar-retiro`, {
     method: 'POST', 
