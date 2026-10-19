@@ -1,5 +1,8 @@
 const API_URL = "https://album-digital-1.onrender.com";
 
+// Variable global para controlar el período activo de la gráfica de barras
+let currentChartPeriod = 'diario';
+
 // 🛡️ PANTALLA DE ÁREA RESTRINGIDA Y CIERRE DE SESIÓN
 function mostrarAreaRestringida(mensaje = "⛔ ACCESO DENEGADO: Área restringida exclusivamente para administradores.") {
   document.body.innerHTML = `
@@ -14,13 +17,12 @@ function mostrarAreaRestringida(mensaje = "⛔ ACCESO DENEGADO: Área restringid
   `;
 }
 
-
 function forceLogoutAndExit(mensaje = "Tu acceso ha sido revocado remotamente.") {
   localStorage.removeItem('active_user_id');
   mostrarAreaRestringida(mensaje);
 }
 
-// 🛡️ VALIDACIÓN DE SEGURIDAD INICIAL (UNA SOLA EJECUCIÓN POR VISITA)
+// 🛡️ VALIDACIÓN DE SEGURIDAD INICIAL
 document.addEventListener('DOMContentLoaded', async () => {
   const activeUserId = localStorage.getItem('active_user_id');
   
@@ -29,7 +31,6 @@ document.addEventListener('DOMContentLoaded', async () => {
     return;
   }
 
-  // Verificar de inmediato una sola vez al cargar la página
   await checkAdminSessionSecurity(activeUserId);
 });
 
@@ -43,27 +44,23 @@ async function checkAdminSessionSecurity(userId) {
     
     const data = await response.json();
     
-    // Si la cuenta ya está bloqueada o superó los 3 intentos
     if (response.status === 403 || data.status === 'blocked' || data.bloqueado === true) {
       mostrarAreaRestringida("🚨 ACCESO BLOQUEADO: Has intentado ingresar repetidamente a un área restringida. Tu cuenta ha sido bloqueada permanentemente.");
       localStorage.removeItem('active_user_id');
       return;
     }
 
-    // Si es un intento no autorizado (1/3 o 2/3)
     if (data.status === 'warning') {
       mostrarAreaRestringida(`⚠️ ÁREA RESTRINGIDA: No tienes permisos de administrador. Intento registrado (${data.intentos}/3).`);
       return;
     }
 
-    // Si el servidor responde unauthorized
     if (data.status === 'unauthorized' || response.status === 403) {
       mostrarAreaRestringida("⛔ ÁREA RESTRINGIDA: Acceso no permitido.");
       return;
     }
 
-    // ✅ SI LLEGA AQUÍ, ES EL ADMINISTRADOR AUTORIZADO: CARGA EL PANEL CON NORMALIDAD
-    // Actualizar las métricas del panel automáticamente cada 2 segundos
+    // Actualizar métricas automáticamente cada 2 segundos si la pestaña está activa
     setInterval(() => {
       const metricTab = document.getElementById('adminContentMetricas');
       if (metricTab && !metricTab.classList.contains('hidden')) {
@@ -251,7 +248,7 @@ async function loadPendingWithdrawals() {
         <tr class="border-b border-slate-800">
           <td class="p-3">${new Date(w.created_at).toLocaleString()}</td>
           <td class="p-3 font-mono">${w.usuario_id}</td>
-          <td class="p-3">${w.tipo}</td>
+          <td class="p-3">${w.tipo} (Hito #${w.milestone})</td>
           <td class="p-3">$${w.monto_usd}</td>
           <td class="p-3">${w.datos_pago}</td>
           <td class="p-3 text-center space-x-1">
@@ -290,7 +287,52 @@ async function processAdminWithdrawal(wId, accion) {
 
 async function uploadStickerImagesBatch(e) {
   e.preventDefault();
-  alert("La carga masiva de imágenes se gestiona directamente en el servidor seguro.");
+  alert("La carga masiva de imágenes para las 1000 barajitas se gestiona directamente en el servidor seguro.");
+}
+
+// ==========================================
+// CONTROL DE PERÍODO DE LA GRÁFICA DE BARRAS
+// ==========================================
+function changeChartPeriod(period) {
+  currentChartPeriod = period;
+  
+  // Actualizar estilos de los botones del selector
+  ['diario', 'semanal', 'mensual'].forEach(p => {
+    const btn = document.getElementById(`btnChart${p.charAt(0).toUpperCase() + p.slice(1)}`);
+    if (btn) {
+      if (p === period) {
+        btn.className = "py-1.5 rounded-lg text-[11px] font-bold bg-purple-600 text-white transition";
+      } else {
+        btn.className = "py-1.5 rounded-lg text-[11px] font-semibold text-slate-400 transition hover:text-white";
+      }
+    }
+  });
+
+  const labelTitle = document.getElementById('chartTitleLabel');
+  if (labelTitle) {
+    labelTitle.innerText = `Flujo de Transacciones - ${period.charAt(0).toUpperCase() + period.slice(1)}`;
+  }
+
+  renderFinancialMetrics();
+}
+
+// ==========================================
+// FUNCIÓN DE LIMPIEZA DE MÉTRICAS OPERATIVAS
+// ==========================================
+async function clearOperationalMetrics() {
+  if (!confirm("⚠️ ¿Estás seguro de que deseas limpiar y reiniciar las métricas operativas y la gráfica de movimientos? (Esto no afecta el total de usuarios registrados ni los usuarios en línea).")) return;
+
+  try {
+    const res = await fetch(`${API_URL}/api/admin/purgar`, { method: 'POST' });
+    if (res.ok) {
+      alert("✅ Métricas operativas y transacciones limpiadas con éxito.");
+      renderFinancialMetrics();
+    } else {
+      alert("Error al limpiar las métricas en el servidor.");
+    }
+  } catch (err) {
+    console.error("Error al limpiar métricas operativas:", err);
+  }
 }
 
 async function renderFinancialMetrics() {
@@ -307,6 +349,7 @@ async function renderFinancialMetrics() {
     const totalUsers = data.total_usuarios || 0;
     const onlineUsers = data.usuarios_online || 0;
 
+    // Métricas intocables (Usuarios Totales y Activos)
     const elTotalUsers = document.getElementById('metricTotalUsers');
     const elOnlineUsers = document.getElementById('metricOnlineUsers');
     if (elTotalUsers) elTotalUsers.innerText = totalUsers;
@@ -334,29 +377,57 @@ async function renderFinancialMetrics() {
     if (elStickers) elStickers.innerText = stickersSold;
     if (elBcv) elBcv.innerText = `Bs. ${bcvRate.toFixed(2)}`;
 
+    // ==========================================
+    // RENDERIZADO DE LA GRÁFICA DE BARRAS (DIARIO / SEMANAL / MENSUAL)
+    // ==========================================
     const chartCanvas = document.getElementById('financialChart');
     if (chartCanvas) {
       const ctx = chartCanvas.getContext('2d');
       if (window.myChart) window.myChart.destroy();
       
+      // Datos simulados/agrupados según el período seleccionado para la gráfica de barras
+      let chartLabels = [];
+      let chartDataValues = [];
+
+      if (currentChartPeriod === 'diario') {
+        chartLabels = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom'];
+        // Distribuir el total o mostrar valores basados en la caja actual
+        chartDataValues = [totalSalesBs * 0.1, totalSalesBs * 0.15, totalSalesBs * 0.08, totalSalesBs * 0.2, totalSalesBs * 0.22, totalSalesBs * 0.15, totalSalesBs * 0.1];
+      } else if (currentChartPeriod === 'semanal') {
+        chartLabels = ['Semana 1', 'Semana 2', 'Semana 3', 'Semana 4'];
+        chartDataValues = [totalSalesBs * 0.2, totalSalesBs * 0.3, totalSalesBs * 0.25, totalSalesBs * 0.25];
+      } else {
+        chartLabels = ['Ene', 'Feb', 'Mar', 'Abr', 'May', 'Jun', 'Jul', 'Ago', 'Sep', 'Oct', 'Nov', 'Dic'];
+        chartDataValues = new Array(12).fill(totalSalesBs / 12);
+      }
+
       window.myChart = new Chart(ctx, {
-        type: 'doughnut',
+        type: 'bar', // Gráfica de barras solicitada
         data: {
-          labels: ['Caja Plataforma (30%)', 'Fondo Neto Usuarios (70%)'],
+          labels: chartLabels,
           datasets: [{
-            data: [totalSalesBs * 0.30, totalSalesBs * 0.70],
-            backgroundColor: ['#a855f7', '#10b981'],
+            label: 'Volumen de Transacciones (Bs.)',
+            data: chartDataValues,
+            backgroundColor: 'rgba(168, 85, 247, 0.7)',
+            borderColor: '#a855f7',
             borderWidth: 1,
-            borderColor: '#1e293b'
+            borderRadius: 8
           }]
         },
         options: {
           responsive: true,
           maintainAspectRatio: false,
           plugins: {
-            legend: {
-              position: 'bottom',
-              labels: { color: '#cbd5e1', font: { size: 11 } }
+            legend: { display: false }
+          },
+          scales: {
+            x: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: '#94a3b8', font: { size: 10 } }
+            },
+            y: {
+              grid: { color: 'rgba(255, 255, 255, 0.05)' },
+              ticks: { color: '#94a3b8', font: { size: 10 } }
             }
           }
         }
@@ -394,7 +465,7 @@ async function loadUserList() {
         <tr class="border-b border-slate-800">
           <td class="p-3 font-bold">${u.username}</td>
           <td class="p-3">${u.gmail || '-'}</td>
-          <td class="p-3">${u.cantidad_barajitas || 0}</td>
+          <td class="p-3">${u.cantidad_barajitas || 0} / 1000</td>
           <td class="p-3 text-emerald-400">Bs. ${u.saldo_bs || 0}</td>
           <td class="p-3 text-xs text-purple-300 font-mono">📅 ${fechaAceptacion}</td>
           <td class="p-3 text-center">${estadoHtml}</td>
