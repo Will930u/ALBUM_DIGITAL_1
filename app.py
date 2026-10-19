@@ -649,7 +649,7 @@ def admin_retiros_pendientes():
 @app.route("/api/admin/metricas", methods=["GET"])
 def admin_metricas():
     if not supabase_client:
-        return jsonify({"total_sales": 0, "bcv_rate": 1.0, "approved_count": 0, "stickers_sold": 0, "total_usuarios": 0, "usuarios_online": 0}), 200
+        return jsonify({"total_sales": 0, "bcv_rate": 1.0, "approved_count": 0, "stickers_sold": 0, "total_usuarios": 0, "usuarios_online": 0, "transacciones": []}), 200
     try:
         res = supabase_client.table("transacciones").select("*").eq("estado", "aprobado").execute()
         transacciones = res.data or []
@@ -693,7 +693,8 @@ def admin_metricas():
             "approved_count": approved_count,
             "stickers_sold": stickers_sold,
             "total_usuarios": total_usuarios,
-            "usuarios_online": usuarios_online
+            "usuarios_online": usuarios_online,
+            "transacciones": transacciones  # <--- Enviamos las transacciones reales para la gráfica
         }), 200
     except Exception as e:
         print(f"Error en admin_metricas: {e}")
