@@ -1,5 +1,4 @@
 const API_URL = "https://album-digital-1.onrender.com";
-
 const STATE = {
   currentPage: 1, totalPages: 80, stickersPerPage: 25, totalStickers: 2000,
   bcvRate: 36.5, userId: localStorage.getItem('active_user_id') || null,
