@@ -1,23 +1,13 @@
 const API_URL = "https://album-digital-1.onrender.com";
 
 const STATE = {
-  currentPage: 1, 
-  totalPages: 40, // Ajustado de 80 a 40 páginas
-  stickersPerPage: 25, 
-  totalStickers: 1000, // Ajustado de 2000 a 1000 barajitas
-  bcvRate: 36.5, 
-  userId: localStorage.getItem('active_user_id') || null,
-  userStickersCount: 0, 
-  userBalanceBs: 0, 
+  currentPage: 1, totalPages: 80, stickersPerPage: 25, totalStickers: 2000,
+  bcvRate: 36.5, userId: localStorage.getItem('active_user_id') || null,
+  userStickersCount: 0, userBalanceBs: 0, 
   // Datos de pago precargados desde la tabla de usuarios de Supabase
-  userBanco: '', 
-  userCedula: '', 
-  userTelefono: '',
-  claimedMilestones: [], 
-  selectedMilestone: null,
-  isProcessingWithdrawal: false, 
-  logoClicks: 0, 
-  clickTimer: null,
+  userBanco: '', userCedula: '', userTelefono: '',
+  claimedMilestones: [], selectedMilestone: null,
+  isProcessingWithdrawal: false, logoClicks: 0, clickTimer: null,
   notifiedTransactions: new Set(),
   notifiedWithdrawals: new Set(),
   isInitialLoad: true
@@ -199,7 +189,7 @@ function renderAlbumPage() {
 
     for (let i = startIndex; i <= endIndex; i++) {
       const isUnlocked = i <= STATE.userStickersCount;
-      const isMilestone = (i % 250 === 0); // Ajustado de 500 a 250 (hitos en 250, 500, 750, 1000)
+      const isMilestone = (i % 500 === 0);
       const slot = document.createElement('div');
       slot.className = `metal-slot sticker-card aspect-[2.5/3.5] w-full rounded-xl flex flex-col items-center justify-center p-2 relative overflow-hidden cursor-pointer ${isUnlocked ? 'filled' : ''} ${isMilestone ? 'milestone-slot' : ''}`;
       
@@ -311,7 +301,7 @@ async function loadUserDataFromDB() {
             STATE.notifiedWithdrawals.add(trackingKey);
             if (!STATE.isInitialLoad) {
               const refText = ` Referencia bancaria: <b>${r.referencia}</b>`;
-              if (r.tipo === 'liquidacion_total' || r.tipo === 'ciclo_completo' || r.milestone >= 1000) {
+              if (r.tipo === 'liquidacion_total' || r.tipo === 'ciclo_completo' || r.milestone >= 2000) {
                 showFloatingNotification(`¡Liquidación total aprobada y pagada!${refText}`);
                 renderAlbumPage();
               } else {
@@ -327,7 +317,7 @@ async function loadUserDataFromDB() {
 
       let ultimaLiquidacionIndex = -1;
       data.retiros.forEach((r, idx) => {
-        if ((r.tipo === 'liquidacion_total' || r.milestone >= 1000 || r.tipo === 'ciclo_completo') && r.estado === 'aprobado') {
+        if ((r.tipo === 'liquidacion_total' || r.milestone >= 2000 || r.tipo === 'ciclo_completo') && r.estado === 'aprobado') {
           ultimaLiquidacionIndex = idx;
         }
       });
@@ -335,7 +325,7 @@ async function loadUserDataFromDB() {
       const retirosCicloActual = ultimaLiquidacionIndex >= 0 ? data.retiros.slice(ultimaLiquidacionIndex + 1) : data.retiros;
 
       retirosCicloActual.forEach(r => {
-        if ((r.estado === 'aprobado' || r.estado === 'liquidado') && r.milestone > 0 && r.milestone < 1000) {
+        if ((r.estado === 'aprobado' || r.estado === 'liquidado') && r.milestone > 0 && r.milestone < 2000) {
           if (!STATE.claimedMilestones.includes(r.milestone)) {
             STATE.claimedMilestones.push(r.milestone);
           }
@@ -367,8 +357,8 @@ function updateUIHeader() {
     return;
   }
 
-  const milestoneBsValue = 100 * STATE.bcvRate; // Ajustado a $100 USD por hito
-  const hasAvailableMilestone = [250, 500, 750, 1000].some(m =>
+  const milestoneBsValue = 200 * STATE.bcvRate;
+  const hasAvailableMilestone = [500, 1000, 1500, 2000].some(m =>
     STATE.userStickersCount >= m && !STATE.claimedMilestones.includes(m) && STATE.userBalanceBs >= milestoneBsValue
   );
   if(btnMilestone) btnMilestone.disabled = !hasAvailableMilestone;
@@ -429,7 +419,7 @@ async function openReferralModal() {
             <i data-lucide="lock" class="w-6 h-6"></i>
           </div>
           <h4 class="font-bold text-base text-purple-300">Candado de Referidos</h4>
-          <p class="text-xs text-slate-300 leading-relaxed">${data.message || 'Debes comprar al menos 100 barajitas para desbloquear tu enlace de referido.'}</p>
+          <p class="text-xs text-slate-300 leading-relaxed">${data.message || 'Debes comprar al menos 200 barajitas para desbloquear tu enlace de referido.'}</p>
         </div>
       `;
     }
@@ -473,14 +463,14 @@ function openWithdrawModal() {
     return;
   }
 
-  if (STATE.userStickersCount >= 1000 && !STATE.claimedMilestones.includes(1000)) {
+  if (STATE.userStickersCount >= 2000 && !STATE.claimedMilestones.includes(2000)) {
     const confirmarCiclo = confirm(
       "🌟 ¡FELICIDADES Y GRACIAS POR COMPLETAR EL ÁLBUM! 🌟\n\n" +
-      "Has completado las 1000 barajitas (Ciclo Completo). Tu solicitud de pago se enviará automáticamente con tus datos registrados:\n" +
+      "Has completado las 2000 barajitas (Ciclo Completo). Tu solicitud de pago se enviará automáticamente con tus datos registrados:\n" +
       `🏦 Banco: ${STATE.userBanco}\n📱 Teléfono: ${STATE.userTelefono}\n🆔 Cédula: ${STATE.userCedula}\n\n¿Deseas proceder?`
     );
     if (confirmarCiclo) {
-      ejecutarSolicitudPremio(1000, 'ciclo_completo');
+      ejecutarSolicitudPremio(2000, 'ciclo_completo');
     }
     return;
   }
@@ -489,13 +479,13 @@ function openWithdrawModal() {
   if(!container) return;
   container.innerHTML = '';
 
-  [250, 500, 750, 1000].forEach(m => {
+  [500, 1000, 1500, 2000].forEach(m => {
     const unlocked = STATE.userStickersCount >= m;
     const claimed = STATE.claimedMilestones.includes(m);
     const btn = document.createElement('button');
     btn.type = 'button';
     btn.className = `p-3 rounded-xl border text-left transition ${claimed ? 'opacity-50 border-slate-700 bg-slate-900' : unlocked ? 'border-amber-500 bg-slate-900 text-white cursor-pointer hover:bg-amber-500/10' : 'opacity-40 border-slate-800 bg-slate-950 cursor-not-allowed'}`;
-    btn.innerHTML = `<span class="font-bold text-amber-300 block">${m === 1000 ? 'Ciclo Completo #1000' : 'Hito #' + m}</span><span class="text-xs text-slate-300">$100.00 USD ${claimed ? '(Reclamado)' : ''}</span>`;
+    btn.innerHTML = `<span class="font-bold text-amber-300 block">${m === 2000 ? 'Ciclo Completo #2000' : 'Hito #' + m}</span><span class="text-xs text-slate-300">$200.00 USD ${claimed ? '(Reclamado)' : ''}</span>`;
 
     if (unlocked && !claimed) {
       btn.onclick = () => {
@@ -522,7 +512,7 @@ function closeWithdrawModal() {
 
 async function submitWithdrawalRequest() {
   if (!STATE.selectedMilestone) return alert('Selecciona un hito primero.');
-  ejecutarSolicitudPremio(STATE.selectedMilestone, STATE.selectedMilestone === 1000 ? 'ciclo_completo' : 'hito_parcial');
+  ejecutarSolicitudPremio(STATE.selectedMilestone, STATE.selectedMilestone === 2000 ? 'ciclo_completo' : 'hito_parcial');
 }
 
 async function ejecutarSolicitudPremio(milestoneVal, tipoRetiro) {
@@ -530,7 +520,7 @@ async function ejecutarSolicitudPremio(milestoneVal, tipoRetiro) {
     return alert('Error: Faltan los datos de pago del usuario en el sistema.');
   }
 
-  const bsVal = (100 * STATE.bcvRate).toFixed(2); // Ajustado a $100 USD por hito
+  const bsVal = (200 * STATE.bcvRate).toFixed(2);
 
   const res = await fetch(`${API_URL}/api/notificar-retiro`, {
     method: 'POST', 
@@ -540,7 +530,7 @@ async function ejecutarSolicitudPremio(milestoneVal, tipoRetiro) {
       tipo: tipoRetiro, 
       milestone: milestoneVal, 
       monto_bs: bsVal, 
-      monto_usd: 100.00, 
+      monto_usd: 200.00, 
       datos_pago: `${STATE.userBanco} | ${STATE.userTelefono} | ${STATE.userCedula}` 
     })
   });
