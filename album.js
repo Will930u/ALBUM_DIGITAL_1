@@ -584,10 +584,15 @@ function openStickerModal(imgSrc, titleText, index) {
   const modalImg = document.getElementById('modalStickerImg');
   const modalTitle = document.getElementById('modalStickerTitle');
 
-  if (!modal) return;
+  if (!modal || !modalImg) return;
 
+  // Asignar imagen y respaldar en caso de error de carga en Supabase
   modalImg.src = imgSrc;
-  modalTitle.textContent = titleText;
+  modalImg.onerror = function() {
+    this.src = `https://via.placeholder.com/400x560/1e1b4b/a855f7?text=${encodeURIComponent(titleText)}`;
+  };
+
+  if (modalTitle) modalTitle.textContent = titleText;
   currentModalIndex = index;
 
   modal.classList.remove('hidden');
@@ -596,7 +601,6 @@ function openStickerModal(imgSrc, titleText, index) {
     lucide.createIcons();
   }
 }
-
 function closeStickerModal() {
   const modal = document.getElementById('stickerModal');
   if (modal) {
