@@ -1,7 +1,9 @@
 const API_URL = "https://album-digital-1.onrender.com";
 const STATE = {
   bcvRate: 36.5,
-  userId: localStorage.getItem('active_user_id') || null
+  userId: localStorage.getItem('active_user_id') || null,
+  userCurrentStickers: 0,
+  maxAllowedToBuy: 1000
 };
 
 document.addEventListener('DOMContentLoaded', async () => {
@@ -13,6 +15,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     lucide.createIcons();
     await fetchBcvRate();
     await loadPlatformPaymentInfo(); 
+    await loadUserAlbumProgress();
     
     const today = new Date().toISOString().split('T')[0];
     const dateField = document.getElementById('dateInput');
@@ -53,10 +56,63 @@ async function fetchBcvRate() {
   }
 }
 
+// 🛡️ CARGAR PROGRESO DEL USUARIO Y LIMITAR COMPRA MÁXIMA A 1000 BARAJITAS
+async function loadUserAlbumProgress() {
+  try {
+    const res = await fetch(`${API_URL}/api/usuario/info`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ usuario_id: STATE.userId })
+    });
+    const data = await res.json();
+
+    if (data && data.user) {
+      STATE.userCurrentStickers = data.user.cantidad_barajitas || 0;
+      STATE.maxAllowedToBuy = Math.max(0, 1000 - STATE.userCurrentStickers);
+
+      const progressInfo = document.getElementById('userProgressInfo');
+      if (progressInfo) {
+        progressInfo.innerText = `${STATE.userCurrentStickers} / 1000 barajitas`;
+      }
+
+      const qtyInput = document.getElementById('stickerQty');
+      const warningSpan = document.getElementById('maxPurchaseWarning');
+
+      if (qtyInput) {
+        qtyInput.max = STATE.maxAllowedToBuy;
+        if (STATE.maxAllowedToBuy <= 0) {
+          qtyInput.value = 0;
+          qtyInput.disabled = true;
+          warningSpan.innerHTML = "🌟 ¡Felicidades! Ya has completado las 1000 barajitas del álbum.";
+        } else {
+          qtyInput.value = Math.min(1, STATE.maxAllowedToBuy);
+          warningSpan.innerHTML = `⚠️ Puedes comprar un máximo de <b>${STATE.maxAllowedToBuy}</b> barajitas para completar tu álbum.`;
+        }
+      }
+      calculateTotal();
+    }
+  } catch (e) {
+    console.error("Error al obtener progreso de barajitas del usuario:", e);
+  }
+}
+
 function calculateTotal() {
-  const qty = parseInt(document.getElementById('stickerQty').value) || 0;
+  const qtyInput = document.getElementById('stickerQty');
+  let qty = parseInt(qtyInput.value) || 0;
+
+  // Evitar que el usuario compre más de lo permitido
+  if (qty > STATE.maxAllowedToBuy) {
+    qty = STATE.maxAllowedToBuy;
+    qtyInput.value = qty;
+  }
+  if (qty < 0) {
+    qty = 0;
+    qtyInput.value = 0;
+  }
+
   const totalUSD = qty * 0.62;
   const totalBs = totalUSD * STATE.bcvRate;
+  
   document.getElementById('totalUSDDisplay').innerText = `$${totalUSD.toFixed(2)}`;
   document.getElementById('totalBsDisplay').innerText = `Bs. ${totalBs.toFixed(2)}`;
 }
@@ -90,7 +146,17 @@ async function submitPurchase(e) {
   const fechaPago = document.getElementById('dateInput').value;
   const btnSubmit = document.getElementById('btnSubmitPurchase');
 
-  if (qty <= 0 || !phone || !bank || !ref || !fechaPago) {
+  if (qty <= 0) {
+    alert('La cantidad de barajitas debe ser mayor a 0 o ya has completado el álbum.');
+    return;
+  }
+
+  if (qty > STATE.maxAllowedToBuy) {
+    alert(`No puedes comprar esa cantidad. Solo te faltan ${STATE.maxAllowedToBuy} barajitas para completar el álbum.`);
+    return;
+  }
+
+  if (!phone || !bank || !ref || !fechaPago) {
     alert('Por favor completa todos los campos del formulario de pago.');
     return;
   }
@@ -124,7 +190,7 @@ async function submitPurchase(e) {
       return;
     }
 
-    alert('¡Pago reportado con éxito! En revisión.');
+    alert('¡Pago reportado con éxito! En revisión por el administrador.');
     window.location.href = 'album.html';
   } catch (err) {
     console.error(err);
