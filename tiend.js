@@ -1,5 +1,4 @@
 const API_URL = "https://album-digital-1.onrender.com";
-
 const STATE = {
   bcvRate: 36.5,
   userId: localStorage.getItem('active_user_id') || null
