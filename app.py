@@ -50,7 +50,6 @@ def send_telegram_message(chat_id: str, text: str, reply_markup=None):
     thread.start()
     return True
 
-# 🌐 Función para extraer IP y User-Agent
 def obtener_datos_cliente(req):
     ip = req.headers.get("X-Forwarded-For", req.remote_addr)
     if ip and "," in ip:
@@ -58,7 +57,6 @@ def obtener_datos_cliente(req):
     user_agent = req.headers.get("User-Agent", "Desconocido")
     return ip, user_agent
 
-# 📝 Función auxiliar para registrar cada evento en la tabla `conexiones`
 def registrar_conexion(usuario_id, evento_tipo):
     if not supabase_client:
         return
@@ -74,7 +72,6 @@ def registrar_conexion(usuario_id, evento_tipo):
     except Exception as e:
         print(f"Error al registrar conexión en BD: {e}")
 
-# 🔒 Función auxiliar para validar tokens de sesión en rutas protegidas
 def validar_token_sesion(usuario_id, token_enviado):
     if not usuario_id or not token_enviado or not supabase_client:
         return False
@@ -89,7 +86,6 @@ def validar_token_sesion(usuario_id, token_enviado):
         print(f"Error al validar token de sesión: {e}")
     return False
 
-# --- 🎁 FUNCIÓN DE REFERIDOS: Sumar al padrino cuando el invitado hace su primera compra ---
 def verificar_y_sumar_referido(usuario_comprador_id):
     if not supabase_client:
         return
@@ -303,7 +299,6 @@ def api_register():
         }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
-
 @app.route("/api/referidos/obtener-link", methods=["POST"])
 def obtener_link_referido():
     data = request.get_json(silent=True) or {}
@@ -538,7 +533,6 @@ def verificar_admin():
         except Exception as e:
             print(f"Error procesando rechazo de usuario común: {e}")
 
-    # Retorno 403 estricto para que admin.js lo mande de regreso a album.html
     return jsonify({"status": "unauthorized", "message": "Acceso restringido para el administrador."}), 403
 
 @app.route("/api/admin/toggle-bloqueo", methods=["POST"])
@@ -683,7 +677,6 @@ def admin_purgar():
         return jsonify({"success": True}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 @app.route("/api/notificar-compra", methods=["POST"])
 def notificar_compra():
     data = request.get_json(silent=True) or {}
@@ -866,19 +859,16 @@ def procesar_retiro_admin():
 def telegram_webhook():
     data = request.get_json(silent=True) or {}
     
-    # 🛡️ FILTRO DE SEGURIDAD EXCLUSIVO PARA TELEGRAM
     chat_id_remitente = None
     if "message" in data:
         chat_id_remitente = str(data["message"]["chat"]["id"])
     elif "callback_query" in data:
         chat_id_remitente = str(data["callback_query"]["message"]["chat"]["id"])
 
-    # Rechazar de inmediato cualquier interacción proveniente de un chat no autorizado
     if chat_id_remitente and TELEGRAM_ADMIN_CHAT_ID and chat_id_remitente != TELEGRAM_ADMIN_CHAT_ID:
         print(f"⛔ Intento de interacción bloqueado en Telegram desde CHAT_ID no autorizado: {chat_id_remitente}")
         return jsonify({"status": "ignored", "reason": "Unauthorized chat"}), 200
 
-    # 1️⃣ Procesamiento de respuestas por texto (para registrar referencia bancaria en retiros)
     message = data.get("message")
     if message and message.get("text"):
         reply_to = message.get("reply_to_message")
@@ -941,7 +931,6 @@ def telegram_webhook():
     except Exception as e:
         print(f"Error al enviar answerCallbackQuery inicial: {e}")
 
-    # 2️⃣ Teclado interactivo permanente del Administrador
     keyboard_admin = {
         "inline_keyboard": [
             [
@@ -970,4 +959,129 @@ def telegram_webhook():
                     "parse_mode": "HTML",
                     "reply_markup": keyboard_admin
                 }, timeout=5)
-                return jsonify({"status": "ok"}),
+                return jsonify({"status": "ok"}), 200
+
+            if data_str == "desbloquear_pago":
+                supabase_client.table("configuracion").update({"pago_bloqueado": False}).eq("id", 1).execute()
+                texto_base = texto_original.split('ESTADO:')[0].strip()
+                requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
+                    "chat_id": chat_id,
+                    "message_id": message_id,
+                    "text": f"{texto_base}\n\n<b>ESTADO: 🔓 CONFIGURACIÓN DE PAGO DESBLOQUEADA</b>",
+                    "parse_mode": "HTML",
+                    "reply_markup": keyboard_admin
+                }, timeout=5)
+                return jsonify({"status": "ok"}), 200
+
+        except Exception as e:
+            print(f"Error en acciones de pago: {e}")
+
+    parts = data_str.split("_")
+    if len(parts) >= 2:
+        tipo_accion = parts[0]
+
+        if supabase_client:
+            try:
+                if tipo_accion == "desbloquear":
+                    target_user_id = parts[1] if len(parts) > 1 else ADMIN_USER_ID
+                    if target_user_id:
+                        supabase_client.table("usuarios").update({
+                            "bloqueado": False,
+                            "intentos_admin": 0
+                        }).eq("id", target_user_id).execute()
+
+                    texto_base = texto_original.split('ESTADO:')[0].strip()
+                    requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
+                        "chat_id": chat_id,
+                        "message_id": message_id,
+                        "text": f"{texto_base}\n\n<b>ESTADO: 🔓 USUARIO DESBLOQUEADO</b>",
+                        "parse_mode": "HTML",
+                        "reply_markup": keyboard_admin
+                    }, timeout=5)
+                    return jsonify({"status": "ok"}), 200
+
+                if tipo_accion == "bloquear":
+                    target_user_id = parts[1] if len(parts) > 1 else ADMIN_USER_ID
+                    if target_user_id:
+                        supabase_client.table("usuarios").update({
+                            "bloqueado": True,
+                            "session_token": None
+                        }).eq("id", target_user_id).execute()
+
+                    texto_base = texto_original.split('ESTADO:')[0].strip()
+                    requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
+                        "chat_id": chat_id,
+                        "message_id": message_id,
+                        "text": f"{texto_base}\n\n<b>ESTADO: 🚨 USUARIO BLOQUEADO Y EXPULSADO</b>",
+                        "parse_mode": "HTML",
+                        "reply_markup": keyboard_admin
+                    }, timeout=5)
+                    return jsonify({"status": "ok"}), 200
+
+                if len(parts) >= 3:
+                    accion = parts[1]
+                    item_id = parts[2]
+
+                    if tipo_accion == "compra":
+                        tx_res = supabase_client.table("transacciones").select("*").eq("id", item_id).execute()
+                        if tx_res.data:
+                            tx = tx_res.data[0]
+                            nuevo_estado = "aprobado" if accion == "aprobar" else "rechazado"
+                            
+                            update_payload = {"estado": nuevo_estado}
+                            if accion == "aprobar":
+                                update_payload["fecha_aprobacion"] = datetime.now(timezone.utc).isoformat()
+
+                            supabase_client.table("transacciones").update(update_payload).eq("id", item_id).execute()
+
+                            if accion == "aprobar":
+                                usr_res = supabase_client.table("usuarios").select("*").eq("id", tx["usuario_id"]).execute()
+                                if usr_res.data:
+                                    usr = usr_res.data[0]
+                                    barajitas_a_sumar = int(tx.get("barajitas_qty") or 0)
+                                    monto_bs_total = float(tx.get("monto_bs") or tx.get("monto") or 0.0)
+                                    
+                                    supabase_client.table("usuarios").update({
+                                        "cantidad_barajitas": (usr.get("cantidad_barajitas") or 0) + barajitas_a_sumar,
+                                        "saldo_bs": (usr.get("saldo_bs") or 0.0) + (monto_bs_total * 0.70)
+                                    }).eq("id", tx["usuario_id"]).execute()
+
+                                    verificar_y_sumar_referido(tx["usuario_id"])
+
+                    elif tipo_accion == "retiro":
+                        w_res = supabase_client.table("retiros").select("*").eq("id", item_id).execute()
+                        if w_res.data:
+                            w = w_res.data[0]
+                            nuevo_estado = "aprobado" if accion == "aprobar" else "rechazado"
+                            supabase_client.table("retiros").update({"estado": nuevo_estado}).eq("id", item_id).execute()
+
+                            if accion == "aprobar":
+                                usr_res = supabase_client.table("usuarios").select("*").eq("id", w["usuario_id"]).execute()
+                                if usr_res.data:
+                                    usr = usr_res.data[0]
+                                    if w["tipo"] == "liquidacion_total" or w.get("milestone", 0) >= 1000:
+                                        supabase_client.table("usuarios").update({"cantidad_barajitas": 0, "saldo_bs": 0.0}).eq("id", w["usuario_id"]).execute()
+                                    else:
+                                        nuevo_saldo = max(0.0, (usr.get("saldo_bs") or 0.0) - float(w["monto_bs"]))
+                                        supabase_client.table("usuarios").update({"saldo_bs": nuevo_saldo}).eq("id", w["usuario_id"]).execute()
+
+                    estado_texto = "✅ APROBADO Y APLICADO" if accion == "aprobar" else "❌ RECHAZADO"
+                    texto_base = texto_original.split('ESTADO:')[0].strip()
+                    nuevo_texto_tg = f"{texto_base}\n\n<b>ESTADO: {estado_texto}</b>"
+
+                    requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
+                        "chat_id": chat_id,
+                        "message_id": message_id,
+                        "text": nuevo_texto_tg,
+                        "parse_mode": "HTML"
+                    }, timeout=10)
+
+            except Exception as e:
+                print(f"Error procesando callback: {e}")
+                traceback.print_exc()
+
+    return jsonify({"status": "ok"}), 200
+
+if __name__ == "__main__":
+    port = int(os.environ.get("PORT", 5000))
+    app.run(host="0.0.0.0", port=port, debug=False)
