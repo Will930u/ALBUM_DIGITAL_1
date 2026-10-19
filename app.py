@@ -50,6 +50,7 @@ def send_telegram_message(chat_id: str, text: str, reply_markup=None):
     thread.start()
     return True
 
+# 🌐 Función para extraer IP y User-Agent
 def obtener_datos_cliente(req):
     ip = req.headers.get("X-Forwarded-For", req.remote_addr)
     if ip and "," in ip:
@@ -57,6 +58,7 @@ def obtener_datos_cliente(req):
     user_agent = req.headers.get("User-Agent", "Desconocido")
     return ip, user_agent
 
+# 📝 Función auxiliar para registrar cada evento en la tabla `conexiones`
 def registrar_conexion(usuario_id, evento_tipo):
     if not supabase_client:
         return
@@ -72,6 +74,7 @@ def registrar_conexion(usuario_id, evento_tipo):
     except Exception as e:
         print(f"Error al registrar conexión en BD: {e}")
 
+# 🔒 Función auxiliar para validar tokens de sesión en rutas protegidas
 def validar_token_sesion(usuario_id, token_enviado):
     if not usuario_id or not token_enviado or not supabase_client:
         return False
@@ -86,6 +89,7 @@ def validar_token_sesion(usuario_id, token_enviado):
         print(f"Error al validar token de sesión: {e}")
     return False
 
+# --- 🎁 FUNCIÓN DE REFERIDOS: Sumar al padrino cuando el invitado hace su primera compra ---
 def verificar_y_sumar_referido(usuario_comprador_id):
     if not supabase_client:
         return
@@ -98,6 +102,7 @@ def verificar_y_sumar_referido(usuario_comprador_id):
         padrino_id = comprador.get("referido_por")
         ya_conto = comprador.get("primera_compra_referido_hecha", False)
         
+        # Si tiene padrino y es su primera compra registrada para referidos
         if padrino_id and not ya_conto:
             supabase_client.table("usuarios").update({"primera_compra_referido_hecha": True}).eq("id", usuario_comprador_id).execute()
             
@@ -115,9 +120,10 @@ def verificar_y_sumar_referido(usuario_comprador_id):
                     
                 nuevos_referidos = referidos_mes + 1
                 
+                # Meta de 10 referidos con compra y máximo 1 bono al mes
                 if nuevos_referidos >= 10 and bonos_mes < 1:
                     saldo_actual_bs = float(padrino.get("saldo_bs") or 0.0)
-                    nuevo_saldo_bs = saldo_actual_bs + 180.0
+                    nuevo_saldo_bs = saldo_actual_bs + 180.0 # Equivalente a los $5 del bono en Bs
                     
                     supabase_client.table("usuarios").update({
                         "saldo_bs": nuevo_saldo_bs,
@@ -135,7 +141,7 @@ def verificar_y_sumar_referido(usuario_comprador_id):
 
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "4.2.0"}), 200
+    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "4.0.0"}), 200
 
 @app.route("/api/bcv", methods=["GET"])
 def get_bcv_rate():
@@ -181,7 +187,7 @@ def api_feed_actividad():
         for r in (retiros_res.data or []):
             tipo_retiro = r.get("tipo")
             milestone = r.get("milestone")
-            texto_detalle = "realizó liquidación total" if tipo_retiro == "liquidacion_total" or milestone >= 1000 else f"reclamó Premio Hito #{milestone}"
+            texto_detalle = "realizó liquidación total" if tipo_retiro == "liquidacion_total" or milestone >= 2000 else f"reclamó Premio Hito #{milestone}"
             
             actividades.append({
                 "tipo": "retiro",
@@ -316,12 +322,12 @@ def obtener_link_referido():
         user = res.data[0]
         barajitas_compradas = int(user.get("cantidad_barajitas", 0) or 0)
         
-        # CANDADO DE 100 BARAJITAS (Ajustado exactamente al nuevo álbum de 1000)
-        if barajitas_compradas < 100:
+        # CANDADO DE 200 BARAJITAS
+        if barajitas_compradas < 200:
             return jsonify({
                 "success": False, 
                 "unlocked": False,
-                "message": f"Debes comprar al menos 100 barajitas para desbloquear tu enlace de referido. (Llevas {barajitas_compradas}/100)"
+                "message": f"Debes comprar al menos 200 barajitas para desbloquear tu enlace de referido. (Llevas {barajitas_compradas}/200)"
             }), 200
             
         mes_actual = datetime.now(timezone.utc).month
@@ -814,6 +820,7 @@ def procesar_compra_admin():
                         "saldo_bs": nuevo_saldo
                     }).eq("id", tx["usuario_id"]).execute()
 
+                    # 🎁 EVALUAR Y SUMAR REFERIDO AL APROBAR SU PRIMERA COMPRA
                     verificar_y_sumar_referido(tx["usuario_id"])
 
             return jsonify({"status": "success"}), 200
@@ -828,7 +835,7 @@ def notificar_retiro():
     tipo = data.get("tipo", "hito_parcial")
     milestone = int(data.get("milestone", 0))
     monto_bs = data.get("monto_bs")
-    monto_usd = data.get("monto_usd", 100.0)
+    monto_usd = data.get("monto_usd", 200.0)
     datos_pago = data.get("datos_pago")
 
     if not all([usuario_id, monto_bs, datos_pago]):
@@ -851,21 +858,10 @@ def notificar_retiro():
         except Exception as e:
             return jsonify({"status": "error", "message": str(e)}), 500
 
-    tipo_texto = "LIQUIDACIÓN TOTAL" if tipo == "liquidacion_total" else f"Premio Hito (#{milestone})"
-    mensaje = f"🏆 <b>SOLICITUD DE {tipo_texto}</b> [ID:{w_id}]\n\n👤 <b>Usuario:</b> <code>{usuario_id}</code>\n💰 <b>Monto Bs.:</b> {float(monto_bs):.2f}\n📱 <b>Pago Móvil:</b> {datos_pago}"
-    
-    keyboard = {
-        "inline_keyboard": [
-            [
-                {"text": "✅ Aprobar", "callback_data": f"retiro_aprobar_{w_id}"},
-                {"text": "❌ Rechazar", "callback_data": f"retiro_rechazar_{w_id}"}
-            ]
-        ]
-    } if w_id else None
-
-    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje, reply_markup=keyboard)
+    mensaje = f"🏆 <b>SOLICITUD DE RETIRO / HITO (#{milestone})</b> [ID:{w_id}]\n\n👤 <b>Usuario:</b> <code>{usuario_id}</code>\n💰 <b>Monto Bs.:</b> {float(monto_bs):.2f}\n📱 <b>Pago Móvil:</b> {datos_pago}"
+    send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje)
     return jsonify({"status": "success", "telegram_sent": True}), 200
-
+    
 @app.route("/api/procesar-retiro-admin", methods=["POST"])
 def procesar_retiro_admin():
     data = request.get_json(silent=True) or {}
@@ -890,7 +886,7 @@ def procesar_retiro_admin():
                 usr_res = supabase_client.table("usuarios").select("*").eq("id", w["usuario_id"]).execute()
                 if usr_res.data:
                     usr = usr_res.data[0]
-                    if w["tipo"] == "liquidacion_total" or w.get("milestone", 0) >= 1000 or w["tipo"] == "ciclo_completo":
+                    if w["tipo"] == "liquidacion_total" or w.get("milestone", 0) >= 2000:
                         supabase_client.table("usuarios").update({"cantidad_barajitas": 0, "saldo_bs": 0.0}).eq("id", w["usuario_id"]).execute()
                     else:
                         nuevo_saldo = max(0.0, (usr.get("saldo_bs") or 0.0) - float(w["monto_bs"]))
@@ -945,7 +941,7 @@ def telegram_webhook():
                                 "referencia": referencia_ingresada
                             }).eq("id", w_id).execute()
 
-                            if tipo_retiro == "liquidacion_total" or milestone_val >= 1000 or tipo_retiro == "ciclo_completo":
+                            if tipo_retiro == "liquidacion_total" or milestone_val >= 2000 or tipo_retiro == "ciclo_completo":
                                 supabase_client.table("usuarios").update({
                                     "cantidad_barajitas": 0,
                                     "saldo_bs": 0.0
@@ -1091,6 +1087,7 @@ def telegram_webhook():
                                         "saldo_bs": (usr.get("saldo_bs") or 0.0) + (monto_bs_total * 0.70)
                                     }).eq("id", tx["usuario_id"]).execute()
 
+                                    # 🎁 EVALUAR Y SUMAR REFERIDO AL APROBAR DESDE TELEGRAM
                                     verificar_y_sumar_referido(tx["usuario_id"])
 
                     elif tipo_accion == "retiro":
@@ -1104,7 +1101,7 @@ def telegram_webhook():
                                 usr_res = supabase_client.table("usuarios").select("*").eq("id", w["usuario_id"]).execute()
                                 if usr_res.data:
                                     usr = usr_res.data[0]
-                                    if w["tipo"] == "liquidacion_total" or w.get("milestone", 0) >= 1000 or w["tipo"] == "ciclo_completo":
+                                    if w["tipo"] == "liquidacion_total" or w.get("milestone", 0) >= 2000:
                                         supabase_client.table("usuarios").update({"cantidad_barajitas": 0, "saldo_bs": 0.0}).eq("id", w["usuario_id"]).execute()
                                     else:
                                         nuevo_saldo = max(0.0, (usr.get("saldo_bs") or 0.0) - float(w["monto_bs"]))
