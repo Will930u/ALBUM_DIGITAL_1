@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ALBUN DIGITAL</title>
+  <link rel="icon" type="image/jpeg" href="logo-album.jpg">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <link rel="stylesheet" href="login.css">
+</head>
+<body class="flex items-center justify-center min-h-screen p-4">
+  
+ <video autoplay muted loop playsinline class="bg-smoke-video">
+  <source src="smoke.mp4" type="video/mp4">
+</video>
+
+  <main class="max-w-md w-full p-8 metal-card space-y-6">
+    <div class="text-center space-y-2">
+      <!-- LOGO CON LA IMAGEN DEL LIBRO EN EL LOGIN -->
+      <div class="w-20 h-20 mx-auto rounded-2xl overflow-hidden shadow-xl border-2 border-purple-500/80 bg-slate-900 group transition hover:scale-105">
+        <img src="logo-album.jpg" alt="Logo Álbum" class="w-full h-full object-cover">
+      </div>
+      <h2 class="text-2xl font-extrabold glow-text" id="authTitle">ACCESO AL SISTEMA</h2>
+      <p class="text-xs text-purple-200/80">Inicia sesión o regístrate para gestionar tu álbum.</p>
+    </div>
+
+    <!-- Formulario de Inicio de Sesión -->
+    <form id="loginForm" onsubmit="handleLogin(event)" class="space-y-4">
+      <div>
+        <label class="block text-xs font-semibold text-purple-200 mb-1">Usuario / Username:</label>
+        <input type="text" id="loginUsername" required class="w-full bg-slate-900 border border-purple-500/40 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-purple-200 mb-1">Contraseña:</label>
+        <input type="password" id="loginPassword" required class="w-full bg-slate-900 border border-purple-500/40 rounded-xl px-4 py-2.5 text-white text-sm focus:outline-none">
+      </div>
+      <button type="submit" class="metal-button w-full py-3 rounded-xl font-bold text-white text-sm">INICIAR SESIÓN</button>
+      <div class="flex justify-between text-xs text-purple-300 pt-2">
+        <button type="button" onclick="switchAuthMode('register')" class="hover:underline">¿No tienes cuenta? Regístrate</button>
+        <button type="button" onclick="openRecoveryModal()" class="hover:underline text-amber-400">¿Olvidaste tu contraseña?</button>
+      </div>
+    </form>
+
+    <!-- Formulario de Registro -->
+    <form id="registerForm" onsubmit="handleRegister(event)" class="hidden space-y-3">
+      <div>
+        <label class="block text-xs font-semibold text-purple-200 mb-1">Usuario (Username):</label>
+        <input type="text" id="regUsername" required class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white text-xs">
+        <!-- Espacio reservado para el mensaje de error visual dinámico -->
+        <p id="regErrorMsg" class="text-red-400 text-[11px] mt-1 font-medium min-h-[16px]"></p>
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-purple-200 mb-1">Correo Electrónico (Gmail):</label>
+        <input type="email" id="regEmail" required class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white text-xs">
+      </div>
+      <div>
+        <label class="block text-xs font-semibold text-purple-200 mb-1">Contraseña:</label>
+        <input type="password" id="regPassword" required class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white text-xs">
+      </div>
+      <div class="grid grid-cols-3 gap-2">
+        <div><label class="block text-[10px] text-purple-200">Banco:</label><input type="text" id="regBanco" required placeholder="0134" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white text-xs"></div>
+        <div><label class="block text-[10px] text-purple-200">Cédula:</label><input type="text" id="regCedula" required placeholder="V-********" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white text-xs"></div>
+        <div><label class="block text-[10px] text-purple-200">Teléfono:</label><input type="text" id="regTelefono" required placeholder="0412..." class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2 text-white text-xs"></div>
+      </div>
+
+      <!-- Casilla 1: Términos y Condiciones -->
+      <div class="flex items-center space-x-2 pt-1">
+        <input type="checkbox" id="regTerms" required class="rounded border-purple-500/40 bg-slate-900 text-purple-600 focus:ring-0">
+        <label for="regTerms" class="text-[11px] text-purple-200">
+          Acepto los <button type="button" onclick="openTermsModal()" class="text-amber-400 underline font-semibold hover:text-amber-300">Términos y Condiciones</button>
+        </label>
+      </div>
+
+      <!-- Casilla 2: Política de Privacidad -->
+      <div class="flex items-center space-x-2">
+        <input type="checkbox" id="regPrivacy" required class="rounded border-purple-500/40 bg-slate-900 text-purple-600 focus:ring-0">
+        <label for="regPrivacy" class="text-[11px] text-purple-200">
+          Acepto la <button type="button" onclick="openPrivacyModal()" class="text-amber-400 underline font-semibold hover:text-amber-300">Política de Privacidad</button>
+        </label>
+      </div>
+
+      <button type="submit" class="metal-button w-full py-3 rounded-xl font-bold text-white text-sm mt-2">REGISTRARSE</button>
+      <button type="button" onclick="switchAuthMode('login')" class="w-full text-center text-xs text-purple-300 hover:underline pt-2">¿Ya tienes cuenta? Inicia sesión</button>
+    </form>
+
+  <!-- Modal de Recuperación -->
+  <div id="recoveryModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="metal-card max-w-lg w-full p-6 space-y-4 border border-amber-500/50">
+      <div class="flex justify-between items-center border-b border-amber-500/30 pb-3">
+        <h3 class="text-lg font-bold text-amber-400">Recuperación de Contraseña (Soporte Telegram)</h3>
+        <button onclick="closeRecoveryModal()" class="text-slate-400 font-bold hover:text-white">✕</button>
+      </div>
+      
+      <!-- Paso 1: Formulario con los 4 datos obligatorios -->
+      <div id="recoveryStep1" class="space-y-3 text-xs">
+        <p class="text-purple-200">Para verificar tu identidad, ingresa los 4 datos con los que te registraste:</p>
+        <input type="text" id="recUsername" placeholder="Tu Usuario" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2.5 text-white">
+        <input type="email" id="recEmail" placeholder="Tu Correo Electrónico (Gmail)" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2.5 text-white">
+        <input type="text" id="recCedula" placeholder="Tu Cédula de Identidad" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2.5 text-white">
+        <input type="text" id="recTelefono" placeholder="Tu Teléfono de Pago Móvil" class="w-full bg-slate-900 border border-purple-500/40 rounded-lg p-2.5 text-white">
+        <p id="recErrorMsg" class="text-red-400 text-[11px] font-medium min-h-[14px]"></p>
+        <button onclick="verifyRecoveryData()" class="w-full py-2.5 bg-purple-600 text-white font-bold rounded-lg hover:bg-purple-500 transition">Verificar Datos</button>
+      </div>
+
+      <!-- Paso 2: Mensaje de éxito limpio -->
+      <div id="recoveryStep2" class="hidden space-y-4 text-center">
+        <div class="bg-purple-950/60 p-4 rounded-xl border border-purple-500/40 space-y-2">
+          <div class="text-amber-400 font-bold text-sm">✅ ¡Solicitud Enviada con Éxito!</div>
+          <p class="text-xs text-purple-200 leading-relaxed">
+            Tus datos han sido remitidos a nuestro sistema. El administrador validará tu identidad y se pondrá en contacto contigo para ayudarte a recuperar tu cuenta.
+          </p>
+        </div>
+        <button onclick="closeRecoveryModal()" class="w-full py-2.5 bg-slate-800 text-slate-300 rounded-lg text-xs font-semibold hover:bg-slate-700 transition">Entendido, Cerrar</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal de Términos y Condiciones -->
+  <div id="termsModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="metal-card max-w-lg w-full p-6 space-y-4 border border-purple-500/50">
+      <div class="flex justify-between items-center border-b border-purple-500/30 pb-3">
+        <h3 class="text-base font-bold text-amber-400">Términos y Condiciones de Uso</h3>
+        <button onclick="closeTermsModal()" class="text-slate-400 font-bold hover:text-white">✕</button>
+      </div>
+      <div class="space-y-3 text-xs text-purple-100 max-h-80 overflow-y-auto pr-2 leading-relaxed">
+        <p><b>1. Aceptación:</b> Al registrarte, aceptas los lineamientos de participación en el Álbum Digital.</p>
+        <p><b>2. Veracidad de Datos:</b> Los datos bancarios y de identidad suministrados deben ser exactos para el canje de premios.</p>
+        <p><b>3. Seguridad:</b> El uso indebido o intentos de hackeo redundarán en la expulsión permanente del sistema.</p>
+      </div>
+      <button onclick="closeTermsModal()" class="w-full py-2.5 bg-purple-600 text-white font-bold rounded-lg text-xs">Entendido</button>
+    </div>
+  </div>
+
+  <!-- Modal de Política de Privacidad y Cookies -->
+  <div id="privacyModal" class="hidden fixed inset-0 z-50 bg-black/80 backdrop-blur-sm flex items-center justify-center p-4">
+    <div class="metal-card max-w-lg w-full p-6 space-y-4 border border-purple-500/50">
+      <div class="flex justify-between items-center border-b border-purple-500/30 pb-3">
+        <h3 class="text-base font-bold text-amber-400">Política de Privacidad y Cookies</h3>
+        <button onclick="closePrivacyModal()" class="text-slate-400 font-bold hover:text-white">✕</button>
+      </div>
+      <div class="space-y-3 text-xs text-purple-100 max-h-80 overflow-y-auto pr-2 leading-relaxed">
+        <p><b>1. Aceptación del Servicio:</b> Al registrarte en la plataforma Álbum Digital, aceptas cumplir con los presentes términos y condiciones de uso.</p>
+        <p><b>2. Registro y Veracidad:</b> El usuario garantiza que los datos suministrados (Usuario, Gmail, Cédula, Teléfono y Banco) son reales y de su titularidad exclusiva para el procesamiento de premios y retiros.</p>
+        <p><b>3. Seguridad de Cuenta:</b> La clave de acceso es personal e intransferible. La recuperación de contraseña requiere la validación exacta de los 4 datos de registro ante el administrador.</p>
+        <p><b>4. Políticas de Pagos y Precios:</b> Toda transacción o liquidación de saldo se procesa según la tasa oficial publicada en el sistema y queda sujeta a verificación previa de los soportes de pago.</p>
+        <p><b>5. Conducta del Usuario:</b> Cualquier intento de vulnerar áreas administrativas o alterar el funcionamiento del sistema resultará en el bloqueo permanente de la cuenta y la anulación del saldo disponible.</p>
+        <p><b>6. Política de Reembolsos y Saldos:</b> Las compras de saldo y barajitas digitales son definitivas. Debido a la naturaleza consumible inmediata del contenido digital, no aplican devoluciones ni reembolsos en efectivo una vez acreditado el saldo o aperturado el paquete, excepto por fallos técnicos verificados por la administración.</p>
+        <p><b>7. Propiedad Intelectual y Exención de Derechos:</b> Las imágenes, marcas y logotipos de terceros mostrados en este sitio web tienen fines estrictamente ilustrativos, recreativos y de coleccionismo digital. Todos los derechos, marcas comerciales y derechos de autor pertenecen a sus respectivos propietarios. Si usted es titular de los derechos de algún contenido visual y desea su retiro, puede solicitarlo mediante nuestro canal de soporte y será removido a la brevedad.</p>
+      </div>
+      <button onclick="closePrivacyModal()" class="w-full py-2.5 bg-purple-600 text-white font-bold rounded-lg text-xs hover:bg-purple-500 transition">Entendido y Acepto</button>
+    </div>
+  </div>
+  <script src="login.js"></script>
+</body>
+</html>
