@@ -12,7 +12,6 @@ const STATE = {
   notifiedWithdrawals: new Set(),
   isInitialLoad: true
 };
-
 // Variables globales para el visor de pantalla completa (Lightbox)
 let currentModalIndex = 0;
 let allPageStickers = [];
