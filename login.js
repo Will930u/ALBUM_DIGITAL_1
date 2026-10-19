@@ -69,7 +69,7 @@ async function logoutUser() {
   }
 
   localStorage.removeItem('active_user_id');
-  window.location.href = 'index.html';
+  window.location.href = 'album.html';
 }
 
 // ----------------------------------------------------
