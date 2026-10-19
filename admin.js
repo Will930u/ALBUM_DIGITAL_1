@@ -14,6 +14,7 @@ function mostrarAreaRestringida(mensaje = "⛔ ACCESO DENEGADO: Área restringid
   `;
 }
 
+
 function forceLogoutAndExit(mensaje = "Tu acceso ha sido revocado remotamente.") {
   localStorage.removeItem('active_user_id');
   mostrarAreaRestringida(mensaje);
