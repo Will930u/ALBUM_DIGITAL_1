@@ -141,7 +141,7 @@ def verificar_y_sumar_referido(usuario_comprador_id):
 
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "4.0.0"}), 200
+    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "4.1.0"}), 200
 
 @app.route("/api/bcv", methods=["GET"])
 def get_bcv_rate():
@@ -187,7 +187,8 @@ def api_feed_actividad():
         for r in (retiros_res.data or []):
             tipo_retiro = r.get("tipo")
             milestone = r.get("milestone")
-            texto_detalle = "realizó liquidación total" if tipo_retiro == "liquidacion_total" or milestone >= 2000 else f"reclamó Premio Hito #{milestone}"
+            # Ajustado el ciclo completo al hito 1000
+            texto_detalle = "realizó liquidación total" if tipo_retiro == "liquidacion_total" or milestone >= 1000 else f"reclamó Premio Hito #{milestone}"
             
             actividades.append({
                 "tipo": "retiro",
@@ -322,12 +323,12 @@ def obtener_link_referido():
         user = res.data[0]
         barajitas_compradas = int(user.get("cantidad_barajitas", 0) or 0)
         
-        # CANDADO DE 200 BARAJITAS
-        if barajitas_compradas < 200:
+        # CANDADO DE 100 BARAJITAS (Ajustado al nuevo modelo)
+        if barajitas_compradas < 100:
             return jsonify({
                 "success": False, 
                 "unlocked": False,
-                "message": f"Debes comprar al menos 200 barajitas para desbloquear tu enlace de referido. (Llevas {barajitas_compradas}/200)"
+                "message": f"Debes comprar al menos 100 barajitas para desbloquear tu enlace de referido. (Llevas {barajitas_compradas}/100)"
             }), 200
             
         mes_actual = datetime.now(timezone.utc).month
@@ -835,7 +836,7 @@ def notificar_retiro():
     tipo = data.get("tipo", "hito_parcial")
     milestone = int(data.get("milestone", 0))
     monto_bs = data.get("monto_bs")
-    monto_usd = data.get("monto_usd", 200.0)
+    monto_usd = data.get("monto_usd", 100.0) # Ajustado a $100 USD
     datos_pago = data.get("datos_pago")
 
     if not all([usuario_id, monto_bs, datos_pago]):
@@ -886,7 +887,8 @@ def procesar_retiro_admin():
                 usr_res = supabase_client.table("usuarios").select("*").eq("id", w["usuario_id"]).execute()
                 if usr_res.data:
                     usr = usr_res.data[0]
-                    if w["tipo"] == "liquidacion_total" or w.get("milestone", 0) >= 2000:
+                    # Ajustado el ciclo completo al hito 1000
+                    if w["tipo"] == "liquidacion_total" or w.get("milestone", 0) >= 1000:
                         supabase_client.table("usuarios").update({"cantidad_barajitas": 0, "saldo_bs": 0.0}).eq("id", w["usuario_id"]).execute()
                     else:
                         nuevo_saldo = max(0.0, (usr.get("saldo_bs") or 0.0) - float(w["monto_bs"]))
@@ -941,7 +943,8 @@ def telegram_webhook():
                                 "referencia": referencia_ingresada
                             }).eq("id", w_id).execute()
 
-                            if tipo_retiro == "liquidacion_total" or milestone_val >= 2000 or tipo_retiro == "ciclo_completo":
+                            # Ajustado al hito 1000
+                            if tipo_retiro == "liquidacion_total" or milestone_val >= 1000 or tipo_retiro == "ciclo_completo":
                                 supabase_client.table("usuarios").update({
                                     "cantidad_barajitas": 0,
                                     "saldo_bs": 0.0
@@ -1101,7 +1104,8 @@ def telegram_webhook():
                                 usr_res = supabase_client.table("usuarios").select("*").eq("id", w["usuario_id"]).execute()
                                 if usr_res.data:
                                     usr = usr_res.data[0]
-                                    if w["tipo"] == "liquidacion_total" or w.get("milestone", 0) >= 2000:
+                                    # Ajustado al hito 1000
+                                    if w["tipo"] == "liquidacion_total" or w.get("milestone", 0) >= 1000:
                                         supabase_client.table("usuarios").update({"cantidad_barajitas": 0, "saldo_bs": 0.0}).eq("id", w["usuario_id"]).execute()
                                     else:
                                         nuevo_saldo = max(0.0, (usr.get("saldo_bs") or 0.0) - float(w["monto_bs"]))
