@@ -15,6 +15,17 @@ img, video, canvas {
 /* ==========================================
    1. CAPA OSCURA GENERAL SOBRE EL VIDEO (Velo Humos / Sombra)
    ========================================== */
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(0, 0, 0, 3); /* Oscurece el video un 75% manteniendo el tono futurista */
+  pointer-events: none;
+  z-index: -1; /* Se coloca justo encima del video y debajo del contenido */
+}
 
 /* ==========================================
    CONTENEDOR CENTRAL DEL ÁLBUM TRANSPARENTE
