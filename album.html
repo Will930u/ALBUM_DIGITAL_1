@@ -10,16 +10,21 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <link rel="stylesheet" href="album.css">
 </head>
-<body class="bg-transparent text-slate-100 min-h-screen relative overflow-x-hidden">
+<body class="flex flex-col min-h-screen relative overflow-x-hidden text-slate-100">
 
-  <!-- 🎬 VIDEO DE HUMO EN VIVO -->
- <video class="bg-smoke-video" autoplay muted playsinline loop>
-  <source src="smoke.mp4" type="video/mp4">
-</video>
+  <!-- 🎬 VIDEO DE HUMO DE FONDO -->
+  <video class="bg-smoke-video" autoplay loop muted playsinline>
+    <source src="smoke.mp4" type="video/mp4">
+  </video>
+
+  <!-- Asegúrate de que este div NO tenga bg-[#080314] -->
+  <div class="relative z-10 w-full flex-1">
+    <!-- Tu header, tienda, grid de barajitas, etc. -->
+  </div>
+
+</body>
 
   <!-- Resto de tu HTML -->
-
-  <!-- Resto de tu contenido (header, grid, etc.) -->
   <!-- CABECERA DE NAVEGACIÓN -->
   <header class="sticky top-0 z-40 metal-card rounded-none px-3 py-2.5 md:px-6 md:py-3 flex flex-col gap-3 shadow-xl">
     
