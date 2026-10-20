@@ -156,7 +156,7 @@ def api_feed_actividad():
         tx_res = supabase_client.table("transacciones") \
             .select("id, usuario_id, barajitas_qty, monto_bs, created_at, fecha_aprobacion") \
             .eq("estado", "aprobado") \
-            .order("fecha_aprobacion", desc=True) \
+            .order("created_at", desc=True) \
             .limit(40) \
             .execute()
         
