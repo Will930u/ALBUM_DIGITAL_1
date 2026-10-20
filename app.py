@@ -865,7 +865,7 @@ def procesar_retiro_admin():
     return jsonify({"status": "error", "message": "Sin conexión"}), 500
 
 # 🤖 WEBHOOK BLINDADO DE TELEGRAM (CORREGIDO Y OPTIMIZADO)
-@app.route("/telegram-webhook", methods=["POST"])
+@app.route("/api/telegram-webhook", methods=["POST"])
 def telegram_webhook():
     data = request.get_json(silent=True) or {}
     
