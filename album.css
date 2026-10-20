@@ -39,7 +39,7 @@ body {
   height: 100vh;
   object-fit: cover;
   pointer-events: none;
-  z-index: -99; /* Fondo absoluto para que se luzca el video */
+  z-index: 0; /* Fondo absoluto para que se luzca el video */
   opacity: 0.8;  /* Visibilidad ideal del humo */
 }
 
