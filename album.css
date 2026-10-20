@@ -13,19 +13,18 @@ img, video, canvas {
 }
 
 /* ==========================================
-   FONDO Y CUERPO (Fondo transparente para el video)
+   1. CAPA OSCURA GENERAL SOBRE EL VIDEO (Velo Humos / Sombra)
    ========================================== */
-body {
-  background-color: transparent !important;
-  background-image: none !important;
-  color: #f8fafc;
-  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
-  min-height: 100vh;
-  overflow-x: hidden;
-  position: relative;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
+body::before {
+  content: '';
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background-color: rgba(8, 3, 20, 0.75); /* Oscurece el video un 75% manteniendo el tono futurista */
+  pointer-events: none;
+  z-index: -1; /* Se coloca justo encima del video y debajo del contenido */
 }
 
 /* ==========================================
