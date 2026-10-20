@@ -16,7 +16,7 @@ img, video, canvas {
    CAPA BASE DEL BODY
    ========================================== */
 body {
-  background-color: #080314;
+  background-color: transparent;
   color: #e2e8f0;
   font-family: 'Segoe UI', sans-serif;
   min-height: 100vh;
