@@ -16,17 +16,20 @@ img, video, canvas {
    FONDO Y CUERPO (Fondo transparente para el video)
    ========================================== */
 body {
-  background-color: transparent !important; /* Importante para que deje respirar al video */
+  background-color: transparent !important;
   background-image: none !important;
   color: #f8fafc;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
   position: relative;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
 }
 
 /* ==========================================
-   VIDEO DE HUMO (BACKGROUND)
+   VIDEO DE HUMO DE FONDO (SMOKE.MP4)
    ========================================== */
 .bg-smoke-video {
   position: fixed;
@@ -36,8 +39,22 @@ body {
   height: 100vh;
   object-fit: cover;
   pointer-events: none;
-  z-index: -1; /* Detrás de todo */
-  opacity: 0.75; /* Ajusta la opacidad a tu gusto para que no opaque las tarjetas */
+  z-index: -99; /* Fondo absoluto para que se luzca el video */
+  opacity: 0.8;  /* Visibilidad ideal del humo */
+}
+
+/* ==========================================
+   ANIMACIÓN DE DESVANECIMIENTO (TICKER EN VIVO)
+   ========================================== */
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(5px); }
+  15% { opacity: 1; transform: translateY(0); }
+  85% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-5px); }
+}
+
+.animate-fade-ticker {
+  animation: fadeInOut 2s ease-in-out infinite;
 }
 
 /* ==========================================
@@ -55,7 +72,7 @@ header, nav,
    TARJETAS Y PANELES (FONDO SÓLIDO Y NÍTIDO)
    ========================================== */
 .metal-card {
-  background: rgba(14, 9, 30, 0.98);
+  background: rgba(14, 9, 30, 0.96); /* Fondo oscuro sólido para legibilidad perfecta */
   border: 1.5px solid rgba(168, 85, 247, 0.8);
   border-radius: 16px;
   box-shadow: 
