@@ -13,16 +13,17 @@ img, video, canvas {
 }
 
 /* ==========================================
-   1. CAPA OSCURA GENERAL SOBRE EL VIDEO (Velo Humos / Sombra)
+   CAPA BASE DEL BODY
    ========================================== */
-background-color: #080314;
+body {
+  background-color: #080314;
   color: #e2e8f0;
   font-family: 'Segoe UI', sans-serif;
   min-height: 100vh;
   margin: 0;
   overflow-x: hidden;
   position: relative;
-
+}
 /* ==========================================
    CONTENEDOR CENTRAL DEL ÁLBUM TRANSPARENTE
    ========================================== */
