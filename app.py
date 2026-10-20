@@ -157,20 +157,20 @@ def api_feed_actividad():
             .select("id, usuario_id, barajitas_qty, monto_bs, created_at, fecha_aprobacion") \
             .eq("estado", "aprobado") \
             .order("fecha_aprobacion", desc=True) \
-            .limit(15) \
+            .limit(40) \
             .execute()
         
         retiros_res = supabase_client.table("retiros") \
             .select("id, usuario_id, tipo, milestone, monto_bs, created_at, referencia") \
             .eq("estado", "aprobado") \
             .order("created_at", desc=True) \
-            .limit(15) \
+            .limit(40) \
             .execute()
 
-        actividades = []
+        actividades_raw = []
         
         for t in (tx_res.data or []):
-            actividades.append({
+            actividades_raw.append({
                 "tipo": "compra",
                 "usuario_id": t.get("usuario_id"),
                 "detalle": f"compró {t.get('barajitas_qty')} barajitas",
@@ -183,7 +183,7 @@ def api_feed_actividad():
             milestone = r.get("milestone") or 0
             texto_detalle = "realizó liquidación total" if tipo_retiro == "liquidacion_total" or milestone >= 1000 else f"reclamó Premio Hito #{milestone}"
             
-            actividades.append({
+            actividades_raw.append({
                 "tipo": "retiro",
                 "usuario_id": r.get("usuario_id"),
                 "detalle": texto_detalle,
@@ -191,13 +191,22 @@ def api_feed_actividad():
                 "fecha": r.get("created_at")
             })
 
-        actividades.sort(key=lambda x: x["fecha"] or "", reverse=True)
+        # Ordenar globalmente por fecha descendente (más reciente primero)
+        actividades_raw.sort(key=lambda x: x["fecha"] or "", reverse=True)
 
-        return jsonify({"status": "success", "actividades": actividades[:25]}), 200
+        # 🛡️ FILTRO: Evitar que el mismo usuario se repita. Solo se muestra su actividad más reciente.
+        usuarios_vistos = set()
+        actividades_filtradas = []
+        for act in actividades_raw:
+            uid = act["usuario_id"]
+            if uid not in usuarios_vistos:
+                usuarios_vistos.add(uid)
+                actividades_filtradas.append(act)
+
+        return jsonify({"status": "success", "actividades": actividades_filtradas[:15]}), 200
     except Exception as e:
         print(f"Error en /api/feed-actividad: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
-
 @app.route("/api/login", methods=["POST"])
 def api_login():
     data = request.get_json(silent=True) or {}
