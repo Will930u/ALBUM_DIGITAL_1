@@ -12,7 +12,22 @@ img, video, canvas {
   height: 100%;
 }
 
-/* El video de humo cubriendo 100% la pantalla fija */
+/* ==========================================
+   1. ESTILOS BASE DEL BODY (CORREGIDO)
+   ========================================== */
+body {
+  background-color: #080314;
+  color: #e2e8f0;
+  font-family: 'Segoe UI', sans-serif;
+  min-height: 100vh;
+  margin: 0;
+  overflow-x: hidden;
+  position: relative;
+}
+
+/* ==========================================
+   EL VIDEO DE HUMO (VISIBILIDAD Y NITIDEZ TOTAL)
+   ========================================== */
 .bg-smoke-video {
   position: fixed;
   top: 0;
@@ -22,27 +37,52 @@ img, video, canvas {
   object-fit: cover;
   pointer-events: none;
   z-index: -1;
-  opacity: 0.8;
+  opacity: 1.0; /* Nitidez y brillo total idéntico al login */
 }
 
 /* ==========================================
-   CAPA GENERAL AL FRENTE (MÁXIMA NITIDEZ SIN BLUR)
+   CONTENEDOR CENTRAL DEL ÁLBUM TRANSPARENTE
    ========================================== */
-header, nav, 
-.metal-card {
+#albumContainer, 
+.album-main-container,
+div[class*="bg-slate-900"],
+div[class*="bg-slate-950"] {
+  background-color: rgba(14, 9, 30, 0.40) !important; /* Translúcido para ver el humo pasar detrás */
+  backdrop-filter: blur(4px) !important;
+  -webkit-backdrop-filter: blur(4px) !important;
+}
+
+/* ==========================================
+   ANIMACIÓN DE DESVANECIMIENTO (TICKER EN VIVO)
+   ========================================== */
+@keyframes fadeInOut {
+  0% { opacity: 0; transform: translateY(5px); }
+  15% { opacity: 1; transform: translateY(0); }
+  85% { opacity: 1; transform: translateY(0); }
+  100% { opacity: 0; transform: translateY(-5px); }
+}
+
+.animate-fade-ticker {
+  animation: fadeInOut 2s ease-in-out infinite;
+}
+
+/* ==========================================
+   CAPA GENERAL AL FRENTE
+   ========================================== */
+header, nav {
   position: relative;
   z-index: 10;
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
 }
 
 /* ==========================================
-   TARJETAS Y PANELES (FONDO SÓLIDO Y NÍTIDO)
+   TARJETAS Y PANELES (SEMTRANSPARENTES PARA VER EL HUMO)
    ========================================== */
 .metal-card {
-  background: rgba(14, 9, 30, 0.96); /* Fondo oscuro sólido para legibilidad perfecta */
+  background: rgba(14, 9, 30, 0.55); /* Capa cristalina que permite ver el video detrás */
   border: 1.5px solid rgba(168, 85, 247, 0.8);
   border-radius: 16px;
+  backdrop-filter: blur(8px);
+  -webkit-backdrop-filter: blur(8px);
   box-shadow: 
     0 15px 35px rgba(0, 0, 0, 0.8),
     0 0 20px rgba(168, 85, 247, 0.3);
@@ -77,6 +117,8 @@ header, nav,
   box-sizing: border-box;
   justify-content: center;
   align-content: start;
+  position: relative;
+  z-index: 10;
 }
 
 @media (min-width: 768px) {
@@ -94,7 +136,7 @@ header, nav,
   width: 100%;
   aspect-ratio: 2.5 / 3.5;
   border-radius: 12px;
-  background: linear-gradient(145deg, #1e1b4b, #090514);
+  background: linear-gradient(145deg, rgba(30, 27, 75, 0.85), rgba(9, 5, 20, 0.85));
   border: 2px solid rgba(168, 85, 247, 0.8);
   box-shadow: 0 8px 20px rgba(0, 0, 0, 0.7);
   display: flex;
