@@ -37,7 +37,7 @@ body {
   object-fit: cover;
   pointer-events: none;
   z-index: 1;
-  opacity: 1.0; /* Nitidez y brillo total idéntico al login */
+  opacity: 12.0; /* Nitidez y brillo total idéntico al login */
 }
 
 /* ==========================================
