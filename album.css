@@ -16,7 +16,7 @@ img, video, canvas {
    1. ESTILOS BASE DEL BODY (CORREGIDO)
    ========================================== */
 body {
-  background-color: #080314;
+  background-color: #transparent;
   color: #e2e8f0;
   font-family: 'Segoe UI', sans-serif;
   min-height: 100vh;
@@ -36,7 +36,7 @@ body {
   height: 100vh;
   object-fit: cover;
   pointer-events: none;
-  z-index: -10;
+  z-index: 1;
   opacity: 1.0; /* Nitidez y brillo total idéntico al login */
 }
 
