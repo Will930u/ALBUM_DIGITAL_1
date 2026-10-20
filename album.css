@@ -16,15 +16,13 @@ img, video, canvas {
    FONDO Y CUERPO (Fondo transparente para el video)
    ========================================== */
 body {
-  background-color: #080314; /* Color de respaldo por si el video tarda en cargar */
+  background-color: transparent !important; /* Importante para que deje respirar al video */
+  background-image: none !important;
   color: #f8fafc;
   font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
   min-height: 100vh;
   overflow-x: hidden;
   position: relative;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-  text-rendering: optimizeLegibility;
 }
 
 /* ==========================================
@@ -40,41 +38,6 @@ body {
   pointer-events: none;
   z-index: -1; /* Detrás de todo */
   opacity: 0.75; /* Ajusta la opacidad a tu gusto para que no opaque las tarjetas */
-}
-
-/* ==========================================
-   CAPA DE COLOR ANIMADA SOBRE EL HUMO
-   ========================================== */
-.bg-smoke-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  width: 100vw;
-  height: 100vh;
-  pointer-events: none;
-  z-index: 1; /* Encima del video, debajo del contenido */
-  mix-blend-mode: color-dodge;
-  background: radial-gradient(circle at 20% 20%, rgba(26, 11, 54, 0.6), transparent 70%);
-  animation: humoColorGlobal 10s ease-in-out infinite;
-}
-
-@keyframes humoColorGlobal {
-  0%, 100% { filter: hue-rotate(0deg); }
-  50% { filter: hue-rotate(60deg); }
-}
-
-/* ==========================================
-   ANIMACIÓN DE DESVANECIMIENTO (TICKER)
-   ========================================== */
-@keyframes fadeInOut {
-  0% { opacity: 0; transform: translateY(5px); }
-  15% { opacity: 1; transform: translateY(0); }
-  85% { opacity: 1; transform: translateY(0); }
-  100% { opacity: 0; transform: translateY(-5px); }
-}
-
-.animate-fade-ticker {
-  animation: fadeInOut 2s ease-in-out infinite;
 }
 
 /* ==========================================
