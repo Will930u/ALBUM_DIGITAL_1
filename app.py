@@ -132,8 +132,7 @@ def verificar_y_sumar_referido(usuario_comprador_id):
                     }).eq("id", padrino_id).execute()
     except Exception as e:
         print(f"Error al procesar referido en compra: {e}")
-
-@app.route("/", methods=["GET"])
+        @app.route("/", methods=["GET"])
 def index():
     return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "4.1.0"}), 200
 
@@ -299,6 +298,7 @@ def api_register():
         }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
 @app.route("/api/referidos/obtener-link", methods=["POST"])
 def obtener_link_referido():
     data = request.get_json(silent=True) or {}
@@ -392,8 +392,7 @@ def solicitar_recuperacion():
     except Exception as e:
         print(f"Error en solicitar_recuperacion: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
-
-@app.route("/api/usuario/info", methods=["POST"])
+        @app.route("/api/usuario/info", methods=["POST"])
 def api_usuario_info():
     data = request.get_json(silent=True) or {}
     usuario_id = str(data.get("usuario_id", "")).strip()
@@ -490,7 +489,6 @@ def notificar_logout():
 
     return jsonify({"status": "success"}), 200
 
-# 🛡️ VERIFICACIÓN ESTRICTA Y EXPULSIÓN DE USUARIOS NO AUTORIZADOS
 @app.route("/api/verificar-admin", methods=["POST"])
 def verificar_admin():
     data = request.get_json(silent=True) or {}
@@ -498,11 +496,9 @@ def verificar_admin():
 
     client_ip, user_agent = obtener_datos_cliente(request)
 
-    # 1. SI ES EL ADMINISTRADOR OFICIAL (DEFINIDO EN RENDER) -> LUZ VERDE DIRECTA
     if usuario_id.upper() == ADMIN_USER_ID.upper():
         return jsonify({"status": "authorized"}), 200
 
-    # 2. SI NO ES EL ADMINISTRADOR, ES UN USUARIO COMÚN TRATANDO DE ACCEDER -> DENEGAR Y EXPULSAR
     if supabase_client:
         try:
             usr_res = supabase_client.table("usuarios").select("*").eq("id", usuario_id).execute()
@@ -677,6 +673,7 @@ def admin_purgar():
         return jsonify({"success": True}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 @app.route("/api/notificar-compra", methods=["POST"])
 def notificar_compra():
     data = request.get_json(silent=True) or {}
@@ -727,6 +724,7 @@ def notificar_compra():
         f"📅 <b>Fecha:</b> {fecha_pago or 'N/A'}"
     )
     
+    # ⚠️ Prefijos exactos 'compra_aprobar_' y 'compra_rechazar_' sincronizados con el Webhook
     keyboard = {
         "inline_keyboard": [
             [
@@ -738,12 +736,11 @@ def notificar_compra():
 
     send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje, reply_markup=keyboard)
     return jsonify({"status": "success", "telegram_sent": True}), 200
-
-@app.route("/api/procesar-compra-admin", methods=["POST"])
+    @app.route("/api/procesar-compra-admin", methods=["POST"])
 def procesar_compra_admin():
     data = request.get_json(silent=True) or {}
     tx_id = data.get("tx_id")
-    accion = data.get("accion") # "aprobar" o "rechazar"
+    accion = data.get("accion")
     
     if tx_id is None or not accion:
         return jsonify({"status": "error", "message": "Datos incompletos"}), 400
@@ -780,9 +777,6 @@ def procesar_compra_admin():
 
                     verificar_y_sumar_referido(tx["usuario_id"])
 
-            # 🔄 🔔 NOTIFICAR A TELEGRAM PARA ACTUALIZAR EL MENSAJE (SINCRONIZACIÓN)
-            # Nota: Si guardas el telegram_message_id en tu tabla transacciones, puedes editarlo directamente.
-            # Como alternativa general, enviamos un mensaje de confirmación al chat del admin:
             estado_texto = "✅ APROBADO DESDE LA WEB" if accion == "aprobar" else "❌ RECHAZADO DESDE LA WEB"
             send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, f"📢 <b>Actualización de Compra [ID:{tx_id}]</b>\nEstado cambiado a: <b>{estado_texto}</b>")
 
@@ -855,7 +849,6 @@ def procesar_retiro_admin():
                         nuevo_saldo = max(0.0, (usr.get("saldo_bs") or 0.0) - float(w["monto_bs"]))
                         supabase_client.table("usuarios").update({"saldo_bs": nuevo_saldo}).eq("id", w["usuario_id"]).execute()
 
-            # 🔄 🔔 NOTIFICAR A TELEGRAM SOBRE EL RETIRO PROCESADO EN LA WEB
             estado_texto = f"✅ APROBADO (Ref: {referencia})" if accion == "aprobar" else "❌ RECHAZADO"
             send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, f"🏆 <b>Actualización de Retiro/Hito [ID:{w_id}]</b>\nEstado cambiado a: <b>{estado_texto}</b>")
 
@@ -864,7 +857,6 @@ def procesar_retiro_admin():
             return jsonify({"status": "error", "message": str(e)}), 500
     return jsonify({"status": "error", "message": "Sin conexión"}), 500
 
-# 🤖 WEBHOOK BLINDADO DE TELEGRAM
 @app.route("/telegram-webhook", methods=["POST"])
 def telegram_webhook():
     data = request.get_json(silent=True) or {}
@@ -876,7 +868,6 @@ def telegram_webhook():
         chat_id_remitente = str(data["callback_query"]["message"]["chat"]["id"])
 
     if chat_id_remitente and TELEGRAM_ADMIN_CHAT_ID and chat_id_remitente != TELEGRAM_ADMIN_CHAT_ID:
-        print(f"⛔ Intento de interacción bloqueado en Telegram desde CHAT_ID no autorizado: {chat_id_remitente}")
         return jsonify({"status": "ignored", "reason": "Unauthorized chat"}), 200
 
     message = data.get("message")
