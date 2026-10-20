@@ -1004,9 +1004,9 @@ def telegram_webhook():
             if data_str.startswith("compra_") or data_str.startswith("retiro_"):
                 segmentos = data_str.split("_")
                 if len(segmentos) >= 3:
-                    tipo_entidad = segmentos[0] # compra o retiro
-                    accion_tipo = segmentos[1]   # aprobar o rechazar
-                    item_id = "_".join(segmentos[2:]) # ID (soporta strings o números)
+                    tipo_entidad = segmentos[0] # "compra" o "retiro"
+                    accion_tipo = segmentos[1]   # "aprobar" o "rechazar"
+                    item_id = "_".join(segmentos[2:]) # ID de la transacción o retiro
 
                     if tipo_entidad == "compra":
                         tx_res = supabase_client.table("transacciones").select("*").eq("id", item_id).execute()
