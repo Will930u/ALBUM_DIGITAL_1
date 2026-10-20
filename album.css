@@ -11,18 +11,31 @@ img, video, canvas {
   max-width: 100%;
   height: 100%;
 }
+/* Evita que la página salte o mueva elementos al calcular barras de desplazamiento */
+html {
+  overflow-y: scroll; /* Mantiene la barra de desplazamiento siempre visible para que la pantalla no "baile" a los lados al cargar */
+}
 
-/* ==========================================
-   1. ESTILOS BASE DEL BODY (CORREGIDO)
-   ========================================== */
+/* Fija la estructura general para que mantenga su espacio reservado */
 body {
-  background-color: #08031480;
+  background-color: #080314;
   color: #e2e8f0;
   font-family: 'Segoe UI', sans-serif;
   min-height: 100vh;
   margin: 0;
   overflow-x: hidden;
   position: relative;
+}
+
+/* Reserva el espacio exacto del grid de barajitas para que no colapse al recargar */
+#stickersGrid {
+  display: grid;
+  grid-template-columns: repeat(5, 1fr);
+  gap: 1rem;
+  min-height: 600px; /* Evita que la pantalla se contraiga y mueva el footer hacia arriba al iniciar */
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
 }
 
 /* ==========================================
