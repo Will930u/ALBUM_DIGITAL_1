@@ -20,7 +20,7 @@ body {
   object-fit: cover;
   pointer-events: none;
   z-index: -1;
-  opacity: 03;
+  opacity: 3;
 }
 
 /* ==========================================
