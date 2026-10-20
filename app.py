@@ -923,7 +923,7 @@ def telegram_webhook():
                         print(f"Error procesando texto en webhook: {e}")
 
     # 2. MANEJO DE CLICS EN BOTONES INLINE (CALLBACK QUERIES)
-    callback_query = data.get("callback_query")
+callback_query = data.get("callback_query")
     if not callback_query:
         return jsonify({"status": "ok"}), 200
 
@@ -934,13 +934,15 @@ def telegram_webhook():
     message_id = message_cb.get("message_id")
     texto_original = message_cb.get("text", "Solicitud")
 
+    # ⚡ 1. RESPONDER A TELEGRAM AL INSTANTE PARA EVITAR EL TIMEOUT (CODE 400)
     try:
         requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery", json={
             "callback_query_id": query_id,
-            "text": "⚡ Procesando..."
-        }, timeout=5)
+            "text": "⚡ Procesando solicitud...",
+            "showAlert": False
+        }, timeout=3)
     except Exception as e:
-        print(f"Error al enviar answerCallbackQuery: {e}")
+        print(f"Error al responder callback inmediato: {e}")
 
     keyboard_admin = {
         "inline_keyboard": [
