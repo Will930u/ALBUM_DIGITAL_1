@@ -743,7 +743,7 @@ def notificar_compra():
 def procesar_compra_admin():
     data = request.get_json(silent=True) or {}
     tx_id = data.get("tx_id")
-    accion = data.get("accion")
+    accion = data.get("accion") # "aprobar" o "rechazar"
     
     if tx_id is None or not accion:
         return jsonify({"status": "error", "message": "Datos incompletos"}), 400
@@ -779,6 +779,12 @@ def procesar_compra_admin():
                     }).eq("id", tx["usuario_id"]).execute()
 
                     verificar_y_sumar_referido(tx["usuario_id"])
+
+            # 🔄 🔔 NOTIFICAR A TELEGRAM PARA ACTUALIZAR EL MENSAJE (SINCRONIZACIÓN)
+            # Nota: Si guardas el telegram_message_id en tu tabla transacciones, puedes editarlo directamente.
+            # Como alternativa general, enviamos un mensaje de confirmación al chat del admin:
+            estado_texto = "✅ APROBADO DESDE LA WEB" if accion == "aprobar" else "❌ RECHAZADO DESDE LA WEB"
+            send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, f"📢 <b>Actualización de Compra [ID:{tx_id}]</b>\nEstado cambiado a: <b>{estado_texto}</b>")
 
             return jsonify({"status": "success"}), 200
         except Exception as e:
@@ -848,6 +854,10 @@ def procesar_retiro_admin():
                     else:
                         nuevo_saldo = max(0.0, (usr.get("saldo_bs") or 0.0) - float(w["monto_bs"]))
                         supabase_client.table("usuarios").update({"saldo_bs": nuevo_saldo}).eq("id", w["usuario_id"]).execute()
+
+            # 🔄 🔔 NOTIFICAR A TELEGRAM SOBRE EL RETIRO PROCESADO EN LA WEB
+            estado_texto = f"✅ APROBADO (Ref: {referencia})" if accion == "aprobar" else "❌ RECHAZADO"
+            send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, f"🏆 <b>Actualización de Retiro/Hito [ID:{w_id}]</b>\nEstado cambiado a: <b>{estado_texto}</b>")
 
             return jsonify({"status": "success"}), 200
         except Exception as e:
