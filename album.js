@@ -90,13 +90,27 @@ async function cargarFeedActividad() {
     const data = await res.json();
 
     if (data.status === 'success' && data.actividades && data.actividades.length > 0) {
-      feedActividadesGlobal = data.actividades;
+      
+      // 🛡️ UNICIDAD ESTRICTA EN EL FRONTEND:
+      // Filtramos para que cada usuario aparezca SOLO 1 VEZ por ciclo
+      const usuariosVistos = new Set();
+      const actividadesUnicas = [];
+
+      data.actividades.forEach(act => {
+        const uid = act.usuario_id || 'Comunidad';
+        if (!usuariosVistos.has(uid)) {
+          usuariosVistos.add(uid);
+          actividadesUnicas.push(act);
+        }
+      });
+
+      feedActividadesGlobal = actividadesUnicas;
       feedIndexActual = 0;
       
       // Iniciar la rotación visual si no está activa
       if (!feedIntervalId) {
         mostrarSiguienteItemFeed();
-        feedIntervalId = setInterval(mostrarSiguienteItemFeed, 5000); // Cambia de mensaje cada 5 segundos
+        feedIntervalId = setInterval(mostrarSiguienteItemFeed, 5000); // Cambia cada 5 segundos
       }
     } else {
       tickerContainer.innerHTML = `<span class="text-slate-400">✨ ¡Sé el primero en unirte a la acción comunitaria del álbum!</span>`;
@@ -110,22 +124,12 @@ function mostrarSiguienteItemFeed() {
   const tickerContainer = document.getElementById('tickerContent');
   if (!tickerContainer || feedActividadesGlobal.length === 0) return;
 
-  // 🛡️ FILTRO ADICIONAL EN CLIENTE: Asegurar unicidad estricta por usuario_id en el carrusel
-  const usuariosUnicosMap = new Map();
-  feedActividadesGlobal.forEach(act => {
-    const uid = act.usuario_id || 'Comunidad';
-    if (!usuariosUnicosMap.has(uid)) {
-      usuariosUnicosMap.set(uid, act);
-    }
-  });
-  const feedUnico = Array.from(usuariosUnicosMap.values());
-
-  // Ajustar el índice si excede el nuevo arreglo único
-  if (feedIndexActual >= feedUnico.length) {
+  // Garantizar que el índice se mantenga dentro de los límites de la lista única
+  if (feedIndexActual >= feedActividadesGlobal.length) {
     feedIndexActual = 0;
   }
 
-  const item = feedUnico[feedIndexActual];
+  const item = feedActividadesGlobal[feedIndexActual];
   const usuario = item.usuario_id || 'Comunidad';
   const detalle = item.detalle || 'actividad en el álbum';
   const monto = item.monto_bs || 0;
@@ -143,7 +147,8 @@ function mostrarSiguienteItemFeed() {
     </div>
   `;
 
-  feedIndexActual = (feedIndexActual + 1) % feedUnico.length;
+  // Avanza al siguiente usuario único de la lista
+  feedIndexActual = (feedIndexActual + 1) % feedActividadesGlobal.length;
 }
 // ----------------------------------------------------
 // SISTEMA DE NOTIFICACIONES FLOTANTES EN TIEMPO REAL
