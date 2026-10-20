@@ -91,8 +91,7 @@ async function cargarFeedActividad() {
 
     if (data.status === 'success' && data.actividades && data.actividades.length > 0) {
       
-      // 🛡️ UNICIDAD ESTRICTA EN EL FRONTEND:
-      // Filtramos para que cada usuario aparezca SOLO 1 VEZ por ciclo
+      // 🛡️ FILTRO DE UNICIDAD ESTRICTA: Cada usuario aparece una sola vez
       const usuariosVistos = new Set();
       const actividadesUnicas = [];
 
@@ -124,7 +123,6 @@ function mostrarSiguienteItemFeed() {
   const tickerContainer = document.getElementById('tickerContent');
   if (!tickerContainer || feedActividadesGlobal.length === 0) return;
 
-  // Garantizar que el índice se mantenga dentro de los límites de la lista única
   if (feedIndexActual >= feedActividadesGlobal.length) {
     feedIndexActual = 0;
   }
@@ -135,7 +133,6 @@ function mostrarSiguienteItemFeed() {
   const monto = item.monto_bs || 0;
   const esRetiro = item.tipo === 'retiro';
 
-  // Icono y color dinámico según el tipo de evento
   const icono = esRetiro ? '🏆' : '🛒';
   const colorClase = esRetiro ? 'text-amber-300 font-bold' : 'text-amber-400 font-bold';
 
@@ -147,7 +144,6 @@ function mostrarSiguienteItemFeed() {
     </div>
   `;
 
-  // Avanza al siguiente usuario único de la lista
   feedIndexActual = (feedIndexActual + 1) % feedActividadesGlobal.length;
 }
 // ----------------------------------------------------
