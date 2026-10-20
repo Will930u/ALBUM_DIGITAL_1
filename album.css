@@ -22,7 +22,7 @@ body::before {
   left: 0;
   width: 100vw;
   height: 100vh;
-  background-color: rgba(8, 3, 20, 0.75); /* Oscurece el video un 75% manteniendo el tono futurista */
+  background-color: rgba(0, 0, 0, 0.75); /* Oscurece el video un 75% manteniendo el tono futurista */
   pointer-events: none;
   z-index: -1; /* Se coloca justo encima del video y debajo del contenido */
 }
