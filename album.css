@@ -24,18 +24,6 @@ body {
   overflow-x: hidden;
   position: relative;
 }
-/* ==========================================
-   CONTENEDOR CENTRAL DEL ÁLBUM TRANSPARENTE
-   ========================================== */
-/* Asegura que el contenedor blanco/gris de las barajitas sea translúcido para que se vea el humo */
-#albumContainer, 
-.album-main-container,
-div[class*="bg-slate-900"],
-div[class*="bg-slate-950"] {
-  background-color: rgba(14, 9, 30, 0.70) !important; /* Translúcido para ver el humo detrás */
-  backdrop-filter: none !important;
-  -webkit-backdrop-filter: none !important;
-}
 
 /* El video de humo cubriendo 100% la pantalla fija */
 .bg-smoke-video {
