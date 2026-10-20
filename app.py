@@ -755,6 +755,11 @@ def procesar_compra_admin():
                 return jsonify({"status": "error", "message": "Transacción no encontrada"}), 404
             
             tx = tx_res.data[0]
+            
+            # 🛡️ Validación web de doble ejecución
+            if tx.get("estado") != "pendiente":
+                return jsonify({"status": "error", "message": "Esta transacción ya fue procesada anteriormente."}), 400
+
             nuevo_estado = "aprobado" if accion == "aprobar" else "rechazado"
             
             update_payload = {"estado": nuevo_estado}
@@ -780,10 +785,9 @@ def procesar_compra_admin():
 
                     verificar_y_sumar_referido(tx["usuario_id"])
 
-            # 🔄 🔔 NOTIFICAR A TELEGRAM PARA ACTUALIZAR EL MENSAJE (SINCRONIZACIÓN)
-            # Nota: Si guardas el telegram_message_id en tu tabla transacciones, puedes editarlo directamente.
-            # Como alternativa general, enviamos un mensaje de confirmación al chat del admin:
             estado_texto = "✅ APROBADO DESDE LA WEB" if accion == "aprobar" else "❌ RECHAZADO DESDE LA WEB"
+            
+            # Notificar al chat del admin con confirmación clara
             send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, f"📢 <b>Actualización de Compra [ID:{tx_id}]</b>\nEstado cambiado a: <b>{estado_texto}</b>")
 
             return jsonify({"status": "success"}), 200
@@ -1014,6 +1018,17 @@ def telegram_webhook():
                         tx_res = supabase_client.table("transacciones").select("*").eq("id", item_id).execute()
                         if tx_res.data:
                             tx = tx_res.data[0]
+                            
+                            # 🛡️ VALIDACIÓN ESTRICTA: Si ya fue procesada, no hacer nada más
+                            if tx.get("estado") != "pendiente":
+                                requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
+                                    "chat_id": chat_id,
+                                    "message_id": message_id,
+                                    "text": f"{texto_original}\n\n<b>ESTADO: ⚠️ YA HABÍA SIDO PROCESADA ANTERIORMENTE</b>",
+                                    "parse_mode": "HTML"
+                                }, timeout=5)
+                                return jsonify({"status": "ok"}), 200
+
                             nuevo_estado = "aprobado" if accion_tipo == "aprobar" else "rechazado"
                             
                             update_payload = {"estado": nuevo_estado}
@@ -1035,7 +1050,6 @@ def telegram_webhook():
                                     }).eq("id", tx["usuario_id"]).execute()
 
                                     verificar_y_sumar_referido(tx["usuario_id"])
-
                     elif tipo_entidad == "retiro":
                         w_res = supabase_client.table("retiros").select("*").eq("id", item_id).execute()
                         if w_res.data:
