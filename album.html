@@ -10,16 +10,19 @@
   <script src="https://unpkg.com/lucide@latest"></script>
   <link rel="stylesheet" href="album.css">
 </head>
-<body class="flex flex-col min-h-screen relative overflow-x-hidden text-slate-100">
+<body class="flex flex-col min-h-screen relative overflow-x-hidden text-slate-100 bg-transparent">
 
-  <!-- 🎬 VIDEO DE HUMO DE FONDO -->
+  <!-- 🎬 VIDEO DE HUMO FIJO GLOBAL (Fuera de cualquier contenedor dinámico) -->
   <video class="bg-smoke-video" autoplay loop muted playsinline>
     <source src="smoke.mp4" type="video/mp4">
   </video>
 
-  <!-- Asegúrate de que este div NO tenga bg-[#080314] -->
-  <div class="relative z-10 w-full flex-1">
-    <!-- Tu header, tienda, grid de barajitas, etc. -->
+  <!-- 🌑 CAPA OSCURA GLOBAL -->
+  <div class="fixed inset-0 bg-[#080314]/75 pointer-events-none z-[-1]"></div>
+
+  <!-- CONTENEDOR PRINCIPAL DE TU APLICACIÓN (Aquí cambia el contenido de Álbum / Tienda) -->
+  <div id="appContainer" class="relative z-10 flex flex-col flex-1 w-full">
+    <!-- Tu header, navegación y pestañas dinámicas -->
   </div>
 
 </body>
