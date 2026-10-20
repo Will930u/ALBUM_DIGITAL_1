@@ -47,9 +47,9 @@ body {
 .album-main-container,
 div[class*="bg-slate-900"],
 div[class*="bg-slate-950"] {
-  background-color: rgba(14, 9, 30, 0.40) !important; /* Translúcido para ver el humo pasar detrás */
-  backdrop-filter: blur(4px) !important;
-  -webkit-backdrop-filter: blur(4px) !important;
+  background-color: transparent !important; /* 👈 Se vuelve 100% invisible para dejar ver el humo limpio */
+  backdrop-filter: none !important;
+  -webkit-backdrop-filter: none !important;
 }
 
 /* ==========================================
