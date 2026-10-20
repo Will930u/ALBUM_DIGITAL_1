@@ -110,7 +110,22 @@ function mostrarSiguienteItemFeed() {
   const tickerContainer = document.getElementById('tickerContent');
   if (!tickerContainer || feedActividadesGlobal.length === 0) return;
 
-  const item = feedActividadesGlobal[feedIndexActual];
+  // 🛡️ FILTRO ADICIONAL EN CLIENTE: Asegurar unicidad estricta por usuario_id en el carrusel
+  const usuariosUnicosMap = new Map();
+  feedActividadesGlobal.forEach(act => {
+    const uid = act.usuario_id || 'Comunidad';
+    if (!usuariosUnicosMap.has(uid)) {
+      usuariosUnicosMap.set(uid, act);
+    }
+  });
+  const feedUnico = Array.from(usuariosUnicosMap.values());
+
+  // Ajustar el índice si excede el nuevo arreglo único
+  if (feedIndexActual >= feedUnico.length) {
+    feedIndexActual = 0;
+  }
+
+  const item = feedUnico[feedIndexActual];
   const usuario = item.usuario_id || 'Comunidad';
   const detalle = item.detalle || 'actividad en el álbum';
   const monto = item.monto_bs || 0;
@@ -128,9 +143,8 @@ function mostrarSiguienteItemFeed() {
     </div>
   `;
 
-  feedIndexActual = (feedIndexActual + 1) % feedActividadesGlobal.length;
+  feedIndexActual = (feedIndexActual + 1) % feedUnico.length;
 }
-
 // ----------------------------------------------------
 // SISTEMA DE NOTIFICACIONES FLOTANTES EN TIEMPO REAL
 // ----------------------------------------------------
