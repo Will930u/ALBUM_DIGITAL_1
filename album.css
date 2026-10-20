@@ -54,16 +54,19 @@ body {
 }
 
 /* ==========================================
-   CONTENEDOR CENTRAL DEL ÁLBUM TRANSPARENTE
+   CINTA SUPERIOR SÓLIDA Y ELEGANTE (SIN TRANSPARENCIA)
    ========================================== */
 #albumContainer, 
 .album-main-container,
+header,
 div[class*="bg-slate-900"],
 div[class*="bg-slate-950"] {
-  background-color: #0d0821 !important; /* Un tono púrpura/azulado oscuro y sólido muy elegante */
-  border-bottom: 1.5px solid rgba(168, 85, 247, 0.4); /* Una línea sutil neón en el borde inferior */
+  background-color: #0d0821 !important; /* Color oscuro sólido, profundo y futurista */
+  border: 1.5px solid rgba(168, 85, 247, 0.7) !important; /* Borde neón púrpura bien definido */
+  border-radius: 16px; /* Esquinas redondeadas profesionales */
   backdrop-filter: none !important;
   -webkit-backdrop-filter: none !important;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.8), 0 0 15px rgba(168, 85, 247, 0.2);
 }
 
 /* ==========================================
