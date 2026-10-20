@@ -884,7 +884,7 @@ def telegram_webhook():
         reply_to = message.get("reply_to_message")
         if reply_to and reply_to.get("text"):
             text_original = reply_to.get("text")
-            match = re.search(r'\[ID:([a-fA-F0-9\-]+|\d+)\]', text_original) # Soporta IDs numéricos o UUIDs de Supabase
+            match = re.search(r'\[ID:([a-fA-F0-9\-]+|\d+)\]', text_original)
             if match:
                 w_id = match.group(1)
                 referencia_ingresada = message.get("text").strip()
@@ -923,10 +923,10 @@ def telegram_webhook():
                         print(f"Error procesando texto en webhook: {e}")
 
     # 2. MANEJO DE CLICS EN BOTONES INLINE (CALLBACK QUERIES)
-callback_query = data.get("callback_query")
+    callback_query = data.get("callback_query")
     if not callback_query:
         return jsonify({"status": "ok"}), 200
-
+        
     query_id = callback_query.get("id")
     data_str = callback_query.get("data", "")
     message_cb = callback_query.get("message", {})
