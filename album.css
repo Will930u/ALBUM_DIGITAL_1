@@ -38,8 +38,8 @@ body {
   height: 100vh;
   object-fit: cover;
   pointer-events: none;
-  z-index: 0; /* Ubicado en la base visual */
-  opacity: 0.75;
+  z-index: -1; /* Detrás de todo */
+  opacity: 0.75; /* Ajusta la opacidad a tu gusto para que no opaque las tarjetas */
 }
 
 /* ==========================================
