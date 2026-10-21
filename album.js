@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderAlbumPage();
     setupSwipeGestures();
     
-    // Iniciar el carrusel de actividad en tiempo real
+    // Iniciar el carrusel de actividad en tiempo real con rotación aleatoria
     initActivityTicker();
     
     // Iniciar verificación periódica en tiempo real (cada 5 segundos)
@@ -69,16 +69,26 @@ async function logoutUser() {
 }
 
 // ----------------------------------------------------
-// CARRUSEL / TICKER DE ACTIVIDAD EN TIEMPO REAL
+// CARRUSEL / TICKER DE ACTIVIDAD EN TIEMPO REAL (ALEATORIO + PRIORIDAD DE COMPRA)
 // ----------------------------------------------------
 let feedActividadesGlobal = [];
 let feedIndexActual = 0;
 let feedIntervalId = null;
+let prioridadCompraActiva = false; // Bandera para interrumpir con compras recientes
 
 async function initActivityTicker() {
   await cargarFeedActividad();
   // Actualizar los datos desde el servidor cada 30 segundos
   setInterval(cargarFeedActividad, 30000);
+}
+
+// Función auxiliar para barajar un array de forma aleatoria (Fisher-Yates)
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
 }
 
 async function cargarFeedActividad() {
@@ -103,7 +113,8 @@ async function cargarFeedActividad() {
         }
       });
 
-      feedActividadesGlobal = actividadesUnicas;
+      // 🎲 Aplicar orden aleatorio a la rotación comunitaria
+      feedActividadesGlobal = shuffleArray(actividadesUnicas);
       feedIndexActual = 0;
       
       // Iniciar la rotación visual si no está activa
@@ -119,12 +130,37 @@ async function cargarFeedActividad() {
   }
 }
 
+// ⚡ Función para inyectar y dar protagonismo inmediato a una compra reciente
+function destacarCompraEnTicker(usuario, detalle, monto) {
+  const tickerContainer = document.getElementById('tickerContent');
+  if (!tickerContainer) return;
+
+  prioridadCompraActiva = true;
+
+  tickerContainer.innerHTML = `
+    <div class="animate-fade-ticker flex items-center justify-center space-x-1.5 text-center w-full bg-purple-900/40 border border-purple-500/40 rounded-lg px-2 py-0.5">
+      <span class="text-amber-400 font-bold animate-pulse">🛒 <b>${usuario}</b></span>
+      <span class="text-purple-200">${detalle}</span>
+      <span class="text-emerald-400 text-[10px]">(Bs. ${parseFloat(monto).toFixed(2)})</span>
+    </div>
+  `;
+
+  // Después de 8 segundos de protagonismo, regresa a la rotación aleatoria normal
+  setTimeout(() => {
+    prioridadCompraActiva = false;
+  }, 8000);
+}
+
 function mostrarSiguienteItemFeed() {
+  if (prioridadCompraActiva) return; // Si hay una compra prioritaria en pantalla, pausar el ciclo momentáneamente
+
   const tickerContainer = document.getElementById('tickerContent');
   if (!tickerContainer || feedActividadesGlobal.length === 0) return;
 
   if (feedIndexActual >= feedActividadesGlobal.length) {
     feedIndexActual = 0;
+    // Volver a barajar al terminar una vuelta completa para mantenerlo 100% aleatorio
+    feedActividadesGlobal = shuffleArray(feedActividadesGlobal);
   }
 
   const item = feedActividadesGlobal[feedIndexActual];
@@ -144,8 +180,9 @@ function mostrarSiguienteItemFeed() {
     </div>
   `;
 
-  feedIndexActual = (feedIndexActual + 1) % feedActividadesGlobal.length;
+  feedIndexActual++;
 }
+
 // ----------------------------------------------------
 // SISTEMA DE NOTIFICACIONES FLOTANTES EN TIEMPO REAL
 // ----------------------------------------------------
@@ -311,6 +348,10 @@ async function loadUserDataFromDB() {
             STATE.notifiedTransactions.add(tx.id);
             if (!STATE.isInitialLoad) {
               showFloatingNotification(`¡Pago verificado con éxito! Se han acreditado ${tx.barajitas_qty} barajitas en tu álbum.`);
+              
+              // 🛒 ¡Aquí activamos la prioridad en el carrusel cuando se aprueba una compra!
+              destacarCompraEnTicker(STATE.userId, `compró ${tx.barajitas_qty} barajitas`, tx.monto_bs || 0);
+
               renderAlbumPage();
             }
           }
@@ -601,7 +642,6 @@ function openStickerModal(imgSrc, titleText, index) {
 
   if (!modal || !modalImg) return;
 
-  // Asignar imagen y respaldar en caso de error de carga en Supabase
   modalImg.src = imgSrc;
   modalImg.onerror = function() {
     this.src = `https://via.placeholder.com/400x560/1e1b4b/a855f7?text=${encodeURIComponent(titleText)}`;
@@ -685,7 +725,6 @@ setInterval(async () => {
   }
 }, 10000);
 
-// 💓 PULSO DE CONEXIÓN EN TIEMPO REAL (HEARTBEAT)
 function enviarLatidoActivo() {
   const activeUserId = localStorage.getItem('active_user_id');
   if (activeUserId) {
@@ -697,15 +736,11 @@ function enviarLatidoActivo() {
   }
 }
 
-// Enviar el primer latido al cargar y luego cada 10 segundos
 document.addEventListener('DOMContentLoaded', () => {
   enviarLatidoActivo();
   setInterval(enviarLatidoActivo, 10000);
 });
 
-// ==========================================
-// CAPTURA DEL PARÁMETRO ?REF= AL CARGAR LA PÁGINA
-// ==========================================
 window.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const refCode = urlParams.get('ref');
@@ -716,9 +751,6 @@ window.addEventListener('DOMContentLoaded', () => {
     }
 });
 
-// ==========================================
-// FUNCIONES DEL MODAL DE REFERIDOS
-// ==========================================
 async function openReferralModal() {
   const modal = document.getElementById('referralModal');
   const bodyContainer = document.getElementById('referralModalBody');
@@ -737,7 +769,6 @@ async function openReferralModal() {
     const data = await response.json();
 
     if (data.success && data.unlocked) {
-      // Desbloqueado: Muestra el link y el progreso
       bodyContainer.innerHTML = `
         <div class="space-y-3">
           <p class="text-slate-300 text-xs">Comparte tu enlace único. Por cada 10 amigos que se registren y compren su primera barajita, ganarás <b>$5.00</b> de saldo.</p>
@@ -765,7 +796,6 @@ async function openReferralModal() {
         </div>
       `;
     } else {
-      // Bloqueado: No cumple el mínimo (100 barajitas)
       bodyContainer.innerHTML = `
         <div class="text-center space-y-3 py-2">
           <div class="w-12 h-12 mx-auto rounded-full bg-purple-900/50 border border-purple-500/40 flex items-center justify-center text-purple-400">
@@ -795,7 +825,7 @@ function copiarEnlaceReferido() {
   const input = document.getElementById('inputLinkRef');
   if (input) {
     input.select();
-    input.setSelectionRange(0, 99999); // Para móviles
+    input.setSelectionRange(0, 99999);
     navigator.clipboard.writeText(input.value).then(() => {
       showFloatingNotification("¡Enlace de referido copiado al portapapeles!");
     }).catch(() => {
