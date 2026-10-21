@@ -144,9 +144,10 @@ async function loadPlatformPaymentInfo() {
 async function submitPurchase(e) {
   e.preventDefault();
   const qty = parseInt(document.getElementById('stickerQty').value) || 0;
-  const phone = document.getElementById('phoneInput').value.trim();
-  const bank = document.getElementById('bankInput').value.trim();
-  const ref = document.getElementById('refInput').value.trim();
+  // 🛡️ Blindaje anti-XSS en los campos de texto del formulario de pago
+  const phone = escapeHTML(document.getElementById('phoneInput').value.trim());
+  const bank = escapeHTML(document.getElementById('bankInput').value.trim());
+  const ref = escapeHTML(document.getElementById('refInput').value.trim());
   const fechaPago = document.getElementById('dateInput').value;
   const btnSubmit = document.getElementById('btnSubmitPurchase');
 
@@ -204,4 +205,14 @@ async function submitPurchase(e) {
     btnSubmit.disabled = false;
     btnSubmit.innerText = "REPORTAR PAGO Y SOLICITAR BARAJITAS";
   }
+}
+// 🛡️ Función auxiliar anti-XSS
+function escapeHTML(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
