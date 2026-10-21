@@ -101,26 +101,26 @@ async function cargarFeedActividad() {
 
     if (data.status === 'success' && data.actividades && data.actividades.length > 0) {
       
-      // 🛡️ FILTRO DE UNICIDAD ESTRICTA: Cada usuario aparece una sola vez
-      const usuariosVistos = new Set();
+      // 🛡️ FILTRO ESTRICTO: Si el backend manda varias filas del mismo usuario, solo dejamos la más reciente o la primera
+      const usuariosProcesados = new Set();
       const actividadesUnicas = [];
 
       data.actividades.forEach(act => {
-        const uid = act.usuario_id || 'Comunidad';
-        if (!usuariosVistos.has(uid)) {
-          usuariosVistos.add(uid);
+        const usuarioNombre = (act.usuario_id || 'Comunidad').trim();
+        
+        // Si este usuario ya lo metimos en la lista, lo ignoramos para que no se repita
+        if (!usuariosProcesados.has(usuarioNombre)) {
+          usuariosProcesados.add(usuarioNombre);
           actividadesUnicas.push(act);
         }
       });
 
-      // 🎲 Aplicar orden aleatorio a la rotación comunitaria
       feedActividadesGlobal = shuffleArray(actividadesUnicas);
       feedIndexActual = 0;
       
-      // Iniciar la rotación visual si no está activa
       if (!feedIntervalId) {
         mostrarSiguienteItemFeed();
-        feedIntervalId = setInterval(mostrarSiguienteItemFeed, 5000); // Cambia cada 5 segundos
+        feedIntervalId = setInterval(mostrarSiguienteItemFeed, 5000);
       }
     } else {
       tickerContainer.innerHTML = `<span class="text-slate-400">✨ ¡Sé el primero en unirte a la acción comunitaria del álbum!</span>`;
