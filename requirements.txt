@@ -4,4 +4,4 @@ gunicorn
 supabase
 httpx
 requests
-
+Flask-Limiter
