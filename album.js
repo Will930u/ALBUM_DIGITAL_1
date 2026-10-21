@@ -164,8 +164,9 @@ function mostrarSiguienteItemFeed() {
   }
 
   const item = feedActividadesGlobal[feedIndexActual];
-  const usuario = item.usuario_id || 'Comunidad';
-  const detalle = item.detalle || 'actividad en el álbum';
+  // 🛡️ Aplicamos escapeHTML para evitar cualquier inyección maliciosa
+  const usuario = escapeHTML(item.usuario_id || 'Comunidad');
+  const detalle = escapeHTML(item.detalle || 'actividad en el álbum');
   const monto = item.monto_bs || 0;
   const esRetiro = item.tipo === 'retiro';
 
@@ -843,4 +844,14 @@ function copiarEnlaceReferido() {
       showFloatingNotification("¡Enlace copiado!");
     });
   }
+}
+// 🛡️ Función auxiliar anti-XSS
+function escapeHTML(str) {
+  if (!str) return "";
+  return String(str)
+    .replace(/&/g, "&amp;")
+    .replace(/</g, "&lt;")
+    .replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;")
+    .replace(/'/g, "&#039;");
 }
