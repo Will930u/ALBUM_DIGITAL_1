@@ -59,10 +59,14 @@ async function fetchBcvRate() {
 // 🛡️ CARGAR PROGRESO DEL USUARIO Y LIMITAR COMPRA MÁXIMA A 1000 BARAJITAS
 async function loadUserAlbumProgress() {
   try {
+    const sessionToken = localStorage.getItem('session_token'); // 🛡️ Token de seguridad
     const res = await fetch(`${API_URL}/api/usuario/info`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usuario_id: STATE.userId })
+      body: JSON.stringify({ 
+        usuario_id: STATE.userId,
+        session_token: sessionToken 
+      })
     });
     const data = await res.json();
 
@@ -167,11 +171,13 @@ async function submitPurchase(e) {
   btnSubmit.innerText = "REPORTANDO...";
 
   try {
+    const sessionToken = localStorage.getItem('session_token'); // 🛡️ Token de seguridad
     const res = await fetch(`${API_URL}/api/notificar-compra`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         usuario_id: STATE.userId,
+        session_token: sessionToken, // 🛡️ Blindaje contra manipulación externa
         barajitas_qty: qty,
         monto_bs: totalBs,
         monto_usd: totalUSD,
