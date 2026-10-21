@@ -8,6 +8,16 @@ from flask import Flask, request, jsonify
 from flask_cors import CORS
 from supabase import create_client, Client
 from datetime import datetime, timedelta, timezone
+from flask_limiter import Limiter
+from flask_limiter.util import get_remote_address
+
+# Configuración del limitador de velocidad
+limiter = Limiter(
+    get_remote_address,
+    app=app,
+    default_limits=["200 per day", "50 per hour"],
+    storage_uri="memory://"
+)
 
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
@@ -210,7 +220,9 @@ def api_feed_actividad():
         return jsonify({"status": "error", "message": str(e)}), 500
 
 @app.route("/api/login", methods=["POST"])
+@limiter.limit("5 per minute")
 def api_login():
+    # ... (el código interno permanece idéntico)
     data = request.get_json(silent=True) or {}
     username = str(data.get("username", "")).strip()
     password = str(data.get("password", "")).strip()
@@ -693,7 +705,9 @@ def admin_purgar():
         return jsonify({"error": str(e)}), 500
 
 @app.route("/api/notificar-compra", methods=["POST"])
+@limiter.limit("3 per 5 minutes")
 def notificar_compra():
+    # ... (el código interno permanece idéntico)
     data = request.get_json(silent=True) or {}
     usuario_id = data.get("usuario_id")
     session_token = data.get("session_token")
@@ -814,7 +828,9 @@ def procesar_compra_admin():
     return jsonify({"status": "error", "message": "Sin conexión a BD"}), 500
 
 @app.route("/api/notificar-retiro", methods=["POST"])
+@limiter.limit("2 per 10 minutes")
 def notificar_retiro():
+    # ... (el código interno permanece idéntico)
     data = request.get_json(silent=True) or {}
     usuario_id = data.get("usuario_id")
     session_token = data.get("session_token")
