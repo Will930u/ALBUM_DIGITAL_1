@@ -737,11 +737,15 @@ setInterval(async () => {
 
 function enviarLatidoActivo() {
   const activeUserId = localStorage.getItem('active_user_id');
+  const sessionToken = localStorage.getItem('session_token'); // 🛡️ Recuperamos el token
   if (activeUserId) {
     fetch(`${API_URL}/api/heartbeat`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usuario_id: activeUserId })
+      body: JSON.stringify({ 
+        usuario_id: activeUserId,
+        session_token: sessionToken // 👈 ¡Enviamos el token aquí también!
+      })
     }).catch(err => console.error("Error enviando latido:", err));
   }
 }
