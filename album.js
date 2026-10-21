@@ -305,10 +305,14 @@ async function fetchBcvRate() {
 
 async function loadUserDataFromDB() {
   try {
+    const sessionToken = localStorage.getItem('session_token'); // 🛡️ Recuperamos el token
     const res = await fetch(`${API_URL}/api/usuario/info`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usuario_id: STATE.userId })
+      body: JSON.stringify({ 
+        usuario_id: STATE.userId,
+        session_token: sessionToken // 👈 ¡Enviamos el token para autenticar!
+      })
     });
 
     // 🔒 CAPA DE SEGURIDAD: Validar si la cuenta fue bloqueada (Estado 403)
@@ -319,6 +323,7 @@ async function loadUserDataFromDB() {
     }
 
     const data = await res.json();
+    // ... resto de tu código igual
     
     const previousStickersCount = STATE.userStickersCount;
 
