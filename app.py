@@ -11,16 +11,17 @@ from datetime import datetime, timedelta, timezone
 from flask_limiter import Limiter
 from flask_limiter.util import get_remote_address
 
-# Configuración del limitador de velocidad
+# 1️⃣ Primero se crea la aplicación Flask
+app = Flask(__name__)
+CORS(app, resources={r"/*": {"origins": "*"}})
+
+# 2️⃣ Después se inicializa el limitador usando la aplicación ya creada
 limiter = Limiter(
     get_remote_address,
     app=app,
     default_limits=["200 per day", "50 per hour"],
     storage_uri="memory://"
 )
-
-app = Flask(__name__)
-CORS(app, resources={r"/*": {"origins": "*"}})
 
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "").strip()
 SUPABASE_KEY = os.environ.get("SUPABASE_SERVICE_ROLE_KEY", "").strip() or os.environ.get("SUPABASE_KEY", "").strip()
