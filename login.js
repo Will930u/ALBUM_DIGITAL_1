@@ -263,6 +263,7 @@ function closePrivacyModal() {
   const modal = document.getElementById('privacyModal');
   if (modal) modal.classList.add('hidden');
 }
+
 function togglePassword(inputId, iconId) {
   const input = document.getElementById(inputId);
   const icon = document.getElementById(iconId);
@@ -277,7 +278,7 @@ function togglePassword(inputId, iconId) {
     icon.setAttribute('data-lucide', 'eye');
   }
   
-  // Renderiza el nuevo ícono de Lucide al instante
+  // Refresca el ícono visualmente
   if (typeof lucide !== 'undefined') {
     lucide.createIcons();
   }
