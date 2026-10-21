@@ -154,7 +154,7 @@ async function handleRegister(event) {
       if (data.session_token) {
         localStorage.setItem('session_token', data.session_token);
         
-        // 🕒 NUEVO: Guardar el sello de tiempo de expiración (1 hora) al registrarse
+        // Sello de tiempo de expiración (1 hora) al registrarse
         const now = new Date().getTime();
         const tokenData = {
           token: data.session_token,
@@ -163,7 +163,6 @@ async function handleRegister(event) {
         localStorage.setItem('session_token_data', JSON.stringify(tokenData));
       }
       window.location.href = 'album.html';
-    }
     } else {
       if (errorMsgEl) {
         errorMsgEl.innerText = data.error || "Error al registrar el usuario.";
