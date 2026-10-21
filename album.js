@@ -27,10 +27,13 @@ let currentModalIndex = 0;
 let allPageStickers = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
-  if (!STATE.userId) {
+  // 🔒 Validar si el usuario existe y si su sesión no ha expirado (1 hora)
+  if (!STATE.userId || !verificarYRenovarSesion()) {
+    alert("⏳ Tu sesión ha expirado por 1 hora de inactividad o seguridad. Por favor, inicia sesión nuevamente.");
     window.location.href = 'index.html';
     return;
   }
+
   try {
     lucide.createIcons();
     setupLogoClickCounter();
@@ -48,6 +51,33 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error("Error al inicializar el álbum:", err);
   }
 });
+// 🕒 Verificación y renovación automática de sesión por inactividad (1 hora)
+function verificarYRenovarSesion() {
+  const tokenDataString = localStorage.getItem('session_token_data');
+  if (!tokenDataString) return false;
+
+  try {
+    const tokenData = JSON.parse(tokenDataString);
+    const now = new Date().getTime();
+
+    // Si el tiempo actual es mayor a la fecha de expiración, el token caducó
+    if (now > tokenData.expiry) {
+      localStorage.removeItem('session_token_data');
+      localStorage.removeItem('active_user_id');
+      localStorage.removeItem('session_token');
+      return false; 
+    }
+
+    // 🔄 RENOVACIÓN AUTOMÁTICA POR ACTIVIDAD: 
+    // Si el token es válido, extendemos la expiración 1 hora más por cada interacción
+    tokenData.expiry = now + (60 * 60 * 1000);
+    localStorage.setItem('session_token_data', JSON.stringify(tokenData));
+    
+    return true;
+  } catch (e) {
+    return false;
+  }
+}
 
 async function logoutUser() {
   const activeUserId = localStorage.getItem('active_user_id');
