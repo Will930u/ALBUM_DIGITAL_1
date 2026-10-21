@@ -194,19 +194,23 @@ def api_feed_actividad():
         # Ordenar globalmente por fecha descendente (más reciente primero)
         actividades_raw.sort(key=lambda x: x["fecha"] or "", reverse=True)
 
-        # 🛡️ FILTRO: Evitar que el mismo usuario se repita. Solo se muestra su actividad más reciente.
+        # 🛡️ FILTRO ESTRICTO: Normalizar el identificador del usuario para evitar que se repita en el carrusel
         usuarios_vistos = set()
         actividades_filtradas = []
+        
         for act in actividades_raw:
-            uid = act["usuario_id"]
-            if uid not in usuarios_vistos:
-                usuarios_vistos.add(uid)
-                actividades_filtradas.append(act)
+            raw_uid = act.get("usuario_id")
+            if raw_uid:
+                uid_normalizado = str(raw_uid).strip().upper()
+                if uid_normalizado not in usuarios_vistos:
+                    usuarios_vistos.add(uid_normalizado)
+                    actividades_filtradas.append(act)
 
         return jsonify({"status": "success", "actividades": actividades_filtradas[:15]}), 200
     except Exception as e:
         print(f"Error en /api/feed-actividad: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
 @app.route("/api/login", methods=["POST"])
 def api_login():
     data = request.get_json(silent=True) or {}
