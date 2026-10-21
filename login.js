@@ -85,12 +85,13 @@ async function handleLogin(event) {
     });
 
     const data = await res.json();
-if (res.ok && data.success) {
+
+    if (res.ok && data.success) {
       localStorage.setItem('active_user_id', data.user_id);
       if (data.session_token) {
         localStorage.setItem('session_token', data.session_token);
         
-        // 🕒 NUEVO: Guardar el sello de tiempo de expiración (1 hora)
+        // Sello de tiempo de expiración (1 hora)
         const now = new Date().getTime();
         const tokenData = {
           token: data.session_token,
@@ -99,29 +100,16 @@ if (res.ok && data.success) {
         localStorage.setItem('session_token_data', JSON.stringify(tokenData));
       }
 
-      // Notificar login al backend de forma asíncrona
-      fetch(`${API_URL}/api/notificar-login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuario_id: data.user_id })
-      }).catch(err => console.error("Error notificando login:", err));
-
       window.location.href = 'album.html';
-    }
     } else {
-      if (data.bloqueado) {
-        alert("Tu cuenta se encuentra bloqueada por seguridad.");
-      } else {
-        alert(data.message || "Usuario o contraseña incorrectos.");
-      }
+      alert(data.message || "Usuario o contraseña incorrectos.");
       if (submitBtn) submitBtn.disabled = false;
     }
-  } catch (err) {
+  } catch (err) { // 👈 ESTO ES LO QUE DEBE ESTAR PRESENTE
     console.error("Error en el inicio de sesión:", err);
     alert("Error de conexión con el servidor backend.");
     if (submitBtn) submitBtn.disabled = false;
   }
-}
 
 // ==========================================
 // MANEJADOR DE REGISTRO
