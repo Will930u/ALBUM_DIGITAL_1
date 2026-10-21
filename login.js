@@ -263,3 +263,22 @@ function closePrivacyModal() {
   const modal = document.getElementById('privacyModal');
   if (modal) modal.classList.add('hidden');
 }
+function togglePassword(inputId, iconId) {
+  const input = document.getElementById(inputId);
+  const icon = document.getElementById(iconId);
+  
+  if (!input || !icon) return;
+
+  if (input.type === 'password') {
+    input.type = 'text';
+    icon.setAttribute('data-lucide', 'eye-off');
+  } else {
+    input.type = 'password';
+    icon.setAttribute('data-lucide', 'eye');
+  }
+  
+  // Renderiza el nuevo ícono de Lucide al instante
+  if (typeof lucide !== 'undefined') {
+    lucide.createIcons();
+  }
+}
