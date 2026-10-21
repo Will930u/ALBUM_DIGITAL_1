@@ -135,7 +135,7 @@ def verificar_y_sumar_referido(usuario_comprador_id):
 
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "4.1.0"}), 200
+    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "4.1.1-secure"}), 200
 
 @app.route("/api/bcv", methods=["GET"])
 def get_bcv_rate():
@@ -191,10 +191,8 @@ def api_feed_actividad():
                 "fecha": r.get("created_at")
             })
 
-        # Ordenar globalmente por fecha descendente (más reciente primero)
         actividades_raw.sort(key=lambda x: x["fecha"] or "", reverse=True)
 
-        # 🛡️ FILTRO ESTRICTO: Normalizar el identificador del usuario para evitar que se repita en el carrusel
         usuarios_vistos = set()
         actividades_filtradas = []
         
@@ -312,13 +310,15 @@ def api_register():
         }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
 @app.route("/api/referidos/obtener-link", methods=["POST"])
 def obtener_link_referido():
     data = request.get_json(silent=True) or {}
     user_id = str(data.get("usuario_id", "")).strip()
+    session_token = str(data.get("session_token", "")).strip()
     
-    if not user_id or not supabase_client:
-        return jsonify({"success": False, "message": "ID de usuario requerido"}), 400
+    if not validar_token_sesion(user_id, session_token):
+        return jsonify({"success": False, "message": "Sesión inválida o expirada"}), 401
         
     try:
         res = supabase_client.table("usuarios").select("cantidad_barajitas, codigo_referido, referidos_activos_mes, bonos_referidos_mes, ultimo_mes_bono").eq("id", user_id).execute()
@@ -410,9 +410,10 @@ def solicitar_recuperacion():
 def api_usuario_info():
     data = request.get_json(silent=True) or {}
     usuario_id = str(data.get("usuario_id", "")).strip()
+    session_token = str(data.get("session_token", "")).strip()
 
-    if not supabase_client or not usuario_id:
-        return jsonify({"error": "Datos incompletos"}), 400
+    if not validar_token_sesion(usuario_id, session_token):
+        return jsonify({"error": "Sesión inválida o expirada"}), 401
 
     try:
         user_res = supabase_client.table("usuarios").select("*").eq("id", usuario_id).execute()
@@ -435,8 +436,11 @@ def api_usuario_info():
 def api_heartbeat():
     data = request.get_json(silent=True) or {}
     usuario_id = str(data.get("usuario_id", "")).strip()
-    if not usuario_id or not supabase_client:
-        return jsonify({"success": False}), 400
+    session_token = str(data.get("session_token", "")).strip()
+    
+    if not validar_token_sesion(usuario_id, session_token):
+        return jsonify({"success": False, "error": "Sesión inválida"}), 401
+        
     try:
         supabase_client.table("usuarios").update({
             "ultimo_latido": datetime.now(timezone.utc).isoformat()
@@ -503,7 +507,6 @@ def notificar_logout():
 
     return jsonify({"status": "success"}), 200
 
-# 🛡️ VERIFICACIÓN ESTRICTA Y EXPULSIÓN DE USUARIOS NO AUTORIZADOS
 @app.route("/api/verificar-admin", methods=["POST"])
 def verificar_admin():
     data = request.get_json(silent=True) or {}
@@ -511,11 +514,9 @@ def verificar_admin():
 
     client_ip, user_agent = obtener_datos_cliente(request)
 
-    # 1. SI ES EL ADMINISTRADOR OFICIAL (DEFINIDO EN RENDER) -> LUZ VERDE DIRECTA
     if usuario_id.upper() == ADMIN_USER_ID.upper():
         return jsonify({"status": "authorized"}), 200
 
-    # 2. SI NO ES EL ADMINISTRADOR, ES UN USUARIO COMÚN TRATANDO DE ACCEDER -> DENEGAR Y EXPULSAR
     if supabase_client:
         try:
             usr_res = supabase_client.table("usuarios").select("*").eq("id", usuario_id).execute()
@@ -690,10 +691,17 @@ def admin_purgar():
         return jsonify({"success": True}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 @app.route("/api/notificar-compra", methods=["POST"])
 def notificar_compra():
     data = request.get_json(silent=True) or {}
     usuario_id = data.get("usuario_id")
+    session_token = data.get("session_token")
+    
+    # 🛡️ BLINDAJE: Validar token de sesión en la compra
+    if not validar_token_sesion(usuario_id, session_token):
+        return jsonify({"status": "error", "message": "Sesión inválida o expirada. Vuelve a iniciar sesión."}), 401
+
     barajitas_qty = data.get("barajitas_qty")
     monto_bs = data.get("monto_bs")
     monto_usd = data.get("monto_usd", 0.62)
@@ -756,7 +764,7 @@ def notificar_compra():
 def procesar_compra_admin():
     data = request.get_json(silent=True) or {}
     tx_id = data.get("tx_id")
-    accion = data.get("accion") # "aprobar" o "rechazar"
+    accion = data.get("accion")
     
     if tx_id is None or not accion:
         return jsonify({"status": "error", "message": "Datos incompletos"}), 400
@@ -769,7 +777,6 @@ def procesar_compra_admin():
             
             tx = tx_res.data[0]
             
-            # 🛡️ Validación web de doble ejecución
             if tx.get("estado") != "pendiente":
                 return jsonify({"status": "error", "message": "Esta transacción ya fue procesada anteriormente."}), 400
 
@@ -799,8 +806,6 @@ def procesar_compra_admin():
                     verificar_y_sumar_referido(tx["usuario_id"])
 
             estado_texto = "✅ APROBADO DESDE LA WEB" if accion == "aprobar" else "❌ RECHAZADO DESDE LA WEB"
-            
-            # Notificar al chat del admin con confirmación clara
             send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, f"📢 <b>Actualización de Compra [ID:{tx_id}]</b>\nEstado cambiado a: <b>{estado_texto}</b>")
 
             return jsonify({"status": "success"}), 200
@@ -812,6 +817,12 @@ def procesar_compra_admin():
 def notificar_retiro():
     data = request.get_json(silent=True) or {}
     usuario_id = data.get("usuario_id")
+    session_token = data.get("session_token")
+    
+    # 🛡️ BLINDAJE: Validar token de sesión en el retiro
+    if not validar_token_sesion(usuario_id, session_token):
+        return jsonify({"status": "error", "message": "Sesión inválida o expirada."}), 401
+
     tipo = data.get("tipo", "hito_parcial")
     milestone = int(data.get("milestone", 0))
     monto_bs = data.get("monto_bs")
@@ -872,7 +883,6 @@ def procesar_retiro_admin():
                         nuevo_saldo = max(0.0, (usr.get("saldo_bs") or 0.0) - float(w["monto_bs"]))
                         supabase_client.table("usuarios").update({"saldo_bs": nuevo_saldo}).eq("id", w["usuario_id"]).execute()
 
-            # 🔄 🔔 NOTIFICAR A TELEGRAM SOBRE EL RETIRO PROCESADO EN LA WEB
             estado_texto = f"✅ APROBADO (Ref: {referencia})" if accion == "aprobar" else "❌ RECHAZADO"
             send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, f"🏆 <b>Actualización de Retiro/Hito [ID:{w_id}]</b>\nEstado cambiado a: <b>{estado_texto}</b>")
 
@@ -881,7 +891,6 @@ def procesar_retiro_admin():
             return jsonify({"status": "error", "message": str(e)}), 500
     return jsonify({"status": "error", "message": "Sin conexión"}), 500
 
-# 🤖 WEBHOOK BLINDADO DE TELEGRAM (CORREGIDO Y OPTIMIZADO)
 @app.route("/api/telegram-webhook", methods=["POST"])
 def telegram_webhook():
     data = request.get_json(silent=True) or {}
@@ -895,7 +904,6 @@ def telegram_webhook():
     if chat_id_remitente and TELEGRAM_ADMIN_CHAT_ID and chat_id_remitente != TELEGRAM_ADMIN_CHAT_ID:
         return jsonify({"status": "ignored", "reason": "Unauthorized chat"}), 200
 
-    # 1. MANEJO DE RESPUESTAS POR TEXTO (REPLY PARA RETIROS)
     message = data.get("message")
     if message and message.get("text"):
         reply_to = message.get("reply_to_message")
@@ -939,7 +947,6 @@ def telegram_webhook():
                     except Exception as e:
                         print(f"Error procesando texto en webhook: {e}")
 
-    # 2. MANEJO DE CLICS EN BOTONES INLINE (CALLBACK QUERIES)
     callback_query = data.get("callback_query")
     if not callback_query:
         return jsonify({"status": "ok"}), 200
@@ -951,7 +958,6 @@ def telegram_webhook():
     message_id = message_cb.get("message_id")
     texto_original = message_cb.get("text", "Solicitud")
 
-    # ⚡ 1. RESPONDER A TELEGRAM AL INSTANTE PARA EVITAR EL TIMEOUT (CODE 400)
     try:
         requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/answerCallbackQuery", json={
             "callback_query_id": query_id,
@@ -979,7 +985,6 @@ def telegram_webhook():
 
     if supabase_client:
         try:
-            # Acciones directas de configuración
             if data_str == "bloquear_pago":
                 supabase_client.table("configuracion").update({"pago_bloqueado": True}).eq("id", 1).execute()
                 requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
@@ -998,7 +1003,6 @@ def telegram_webhook():
                 }, timeout=5)
                 return jsonify({"status": "ok"}), 200
 
-            # Acciones de bloqueo / desbloquear usuario
             if data_str.startswith("bloquear_") or data_str.startswith("desbloquear_"):
                 partes_usr = data_str.split("_", 1)
                 accion_usr = partes_usr[0]
@@ -1019,20 +1023,18 @@ def telegram_webhook():
                 }, timeout=5)
                 return jsonify({"status": "ok"}), 200
 
-            # Acciones de Compra y Retiro (ej: compra_aprobar_ID o compra_rechazar_ID)
             if data_str.startswith("compra_") or data_str.startswith("retiro_"):
                 segmentos = data_str.split("_")
                 if len(segmentos) >= 3:
-                    tipo_entidad = segmentos[0] # "compra" o "retiro"
-                    accion_tipo = segmentos[1]   # "aprobar" o "rechazar"
-                    item_id = "_".join(segmentos[2:]) # ID de la transacción o retiro
+                    tipo_entidad = segmentos[0]
+                    accion_tipo = segmentos[1]
+                    item_id = "_".join(segmentos[2:])
 
                     if tipo_entidad == "compra":
                         tx_res = supabase_client.table("transacciones").select("*").eq("id", item_id).execute()
                         if tx_res.data:
                             tx = tx_res.data[0]
                             
-                            # 🛡️ VALIDACIÓN ESTRICTA: Si ya fue procesada, no hacer nada más
                             if tx.get("estado") != "pendiente":
                                 requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
                                     "chat_id": chat_id,
