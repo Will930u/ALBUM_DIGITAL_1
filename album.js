@@ -709,15 +709,19 @@ function handleSwipeGesture() {
   }
 }
 
-// 💓 ENVÍO SILENCIOSO DE LATIDO CADA 30 SEGUNDOS
+// 💓 ENVÍO SILENCIOSO DE LATIDO CADA 10 SEGUNDOS
 setInterval(async () => {
   const activeUserId = localStorage.getItem('active_user_id');
+  const sessionToken = localStorage.getItem('session_token'); // 🛡️ Token de sesión
   if (activeUserId) {
     try {
       await fetch(`${API_URL}/api/heartbeat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ usuario_id: activeUserId })
+        body: JSON.stringify({ 
+          usuario_id: activeUserId,
+          session_token: sessionToken 
+        })
       });
     } catch (e) {
       console.error("Error al enviar latido:", e);
@@ -760,10 +764,16 @@ async function openReferralModal() {
   bodyContainer.innerHTML = `<p class="text-center text-purple-300 animate-pulse">Verificando estado de tu cuenta...</p>`;
 
   try {
+    // 🛡️ Agregamos el session_token para cumplir con el blindaje del backend
+    const sessionToken = localStorage.getItem('session_token');
+
     const response = await fetch(`${API_URL}/api/referidos/obtener-link`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usuario_id: STATE.userId })
+      body: JSON.stringify({ 
+        usuario_id: STATE.userId,
+        session_token: sessionToken 
+      })
     });
 
     const data = await response.json();
