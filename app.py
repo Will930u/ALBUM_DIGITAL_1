@@ -310,6 +310,10 @@ def api_register():
     if not all([username, email, password]):
         return jsonify({"error": "Faltan campos obligatorios"}), 400
 
+    # 🛡️ VALIDACIÓN DE LONGITUD DE CONTRASEÑA (Máximo 12 caracteres)
+    if len(password) > 12:
+        return jsonify({"error": "La contraseña no puede tener más de 12 caracteres."}), 400
+
     user_id = f"USR-{username.upper()}"
 
     if not supabase_client:
@@ -361,7 +365,6 @@ def api_register():
         }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
-
 @app.route("/api/referidos/obtener-link", methods=["POST"])
 def obtener_link_referido():
     data = request.get_json(silent=True) or {}
