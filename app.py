@@ -61,6 +61,18 @@ def send_telegram_message(chat_id: str, text: str, reply_markup=None):
     thread.start()
     return True
 
+# 🎛️ FUNCIÓN PARA VERIFICAR SI EL SISTEMA ESTÁ ACTIVO
+def verificar_sistema_activo():
+    if not supabase_client:
+        return True
+    try:
+        res = supabase_client.table("system_config").select("value").eq("key", "is_online").execute()
+        if res.data and len(res.data) > 0:
+            return res.data[0].get("value", True)
+    except Exception as e:
+        print(f"Error verificando estado del sistema: {e}")
+    return True
+
 def obtener_datos_cliente(req):
     ip = req.headers.get("X-Forwarded-For", req.remote_addr)
     if ip and "," in ip:
@@ -146,7 +158,18 @@ def verificar_y_sumar_referido(usuario_comprador_id):
 
 @app.route("/", methods=["GET"])
 def index():
-    return jsonify({"status": "online", "service": "Álbum Digital Backend", "version": "4.1.1-secure"}), 200
+    is_active = verificar_sistema_activo()
+    return jsonify({
+        "status": "online" if is_active else "maintenance", 
+        "service": "Álbum Digital Backend", 
+        "version": "4.1.1-secure",
+        "is_online": is_active
+    }), 200
+
+@app.route("/api/system-status", methods=["GET"])
+def api_system_status():
+    is_active = verificar_sistema_activo()
+    return jsonify({"is_online": is_active}), 200
 
 @app.route("/api/bcv", methods=["GET"])
 def get_bcv_rate():
@@ -223,7 +246,9 @@ def api_feed_actividad():
 @app.route("/api/login", methods=["POST"])
 @limiter.limit("5 per minute")
 def api_login():
-    # ... (el código interno permanece idéntico)
+    if not verificar_sistema_activo():
+        return jsonify({"success": False, "message": "La plataforma se encuentra apagada temporalmente."}), 403
+
     data = request.get_json(silent=True) or {}
     username = str(data.get("username", "")).strip()
     password = str(data.get("password", "")).strip()
@@ -260,6 +285,9 @@ def api_login():
 
 @app.route("/api/register", methods=["POST"])
 def api_register():
+    if not verificar_sistema_activo():
+        return jsonify({"error": "La plataforma se encuentra apagada temporalmente."}), 403
+
     data = request.get_json(silent=True) or {}
     username = str(data.get("username", "")).strip()
     email = str(data.get("email", "")).strip()
@@ -479,6 +507,10 @@ def notificar_login():
         )
         keyboard_admin = {
             "inline_keyboard": [
+                [
+                    {"text": "🟢 ENCENDER", "callback_data": "system_on"},
+                    {"text": "🔴 APAGAR", "callback_data": "system_off"}
+                ],
                 [
                     {"text": "🚨 Bloquear / Expulsar", "callback_data": f"bloquear_{usuario_id}"},
                     {"text": "🔓 Desbloquear", "callback_data": f"desbloquear_{usuario_id}"}
@@ -708,12 +740,13 @@ def admin_purgar():
 @app.route("/api/notificar-compra", methods=["POST"])
 @limiter.limit("3 per 5 minutes")
 def notificar_compra():
-    # ... (el código interno permanece idéntico)
+    if not verificar_sistema_activo():
+        return jsonify({"status": "error", "message": "La plataforma está apagada temporalmente."}), 403
+
     data = request.get_json(silent=True) or {}
     usuario_id = data.get("usuario_id")
     session_token = data.get("session_token")
     
-    # 🛡️ BLINDAJE: Validar token de sesión en la compra
     if not validar_token_sesion(usuario_id, session_token):
         return jsonify({"status": "error", "message": "Sesión inválida o expirada. Vuelve a iniciar sesión."}), 401
 
@@ -831,12 +864,13 @@ def procesar_compra_admin():
 @app.route("/api/notificar-retiro", methods=["POST"])
 @limiter.limit("2 per 10 minutes")
 def notificar_retiro():
-    # ... (el código interno permanece idéntico)
+    if not verificar_sistema_activo():
+        return jsonify({"status": "error", "message": "La plataforma está apagada temporalmente."}), 403
+
     data = request.get_json(silent=True) or {}
     usuario_id = data.get("usuario_id")
     session_token = data.get("session_token")
     
-    # 🛡️ BLINDAJE: Validar token de sesión en el retiro
     if not validar_token_sesion(usuario_id, session_token):
         return jsonify({"status": "error", "message": "Sesión inválida o expirada."}), 401
 
@@ -987,6 +1021,10 @@ def telegram_webhook():
     keyboard_admin = {
         "inline_keyboard": [
             [
+                {"text": "🟢 ENCENDER", "callback_data": "system_on"},
+                {"text": "🔴 APAGAR", "callback_data": "system_off"}
+            ],
+            [
                 {"text": "🚨 Bloquear / Expulsar", "callback_data": f"bloquear_{ADMIN_USER_ID}"},
                 {"text": "🔓 Desbloquear", "callback_data": f"desbloquear_{ADMIN_USER_ID}"}
             ],
@@ -1002,6 +1040,19 @@ def telegram_webhook():
 
     if supabase_client:
         try:
+            # 🎛️ MANEJO DE LOS BOTONES DE ENCENDIDO / APAGADO DE LA PLATAFORMA
+            if data_str in ["system_on", "system_off"]:
+                new_status = True if data_str == "system_on" else False
+                supabase_client.table("system_config").upsert({"key": "is_online", "value": new_status}).execute()
+                
+                estado_txt = "🟢 PLATAFORMA ENCENDIDA Y OPERATIVA" if new_status else "🔴 PLATAFORMA APAGADA (MANTENIMIENTO)"
+                requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
+                    "chat_id": chat_id, "message_id": message_id,
+                    "text": f"{texto_original}\n\n<b>ESTADO DEL SISTEMA: {estado_txt}</b>",
+                    "parse_mode": "HTML", "reply_markup": keyboard_admin
+                }, timeout=5)
+                return jsonify({"status": "ok"}), 200
+
             if data_str == "bloquear_pago":
                 supabase_client.table("configuracion").update({"pago_bloqueado": True}).eq("id", 1).execute()
                 requests.post(f"https://api.telegram.org/bot{TELEGRAM_BOT_TOKEN}/editMessageText", json={
