@@ -12,7 +12,7 @@
 </head>
 <body class="flex flex-col min-h-screen relative overflow-x-hidden text-slate-100 bg-transparent">
 
-  <!-- 🎬 VIDEO DE HUMO FIJO GLOBAL (Fuera de cualquier contenedor dinámico) -->
+  <!-- 🎬 VIDEO DE HUMO FIJO GLOBAL -->
   <video class="bg-smoke-video" autoplay loop muted playsinline>
     <source src="smoke.mp4" type="video/mp4">
   </video>
@@ -20,14 +20,6 @@
   <!-- 🌑 CAPA OSCURA GLOBAL -->
   <div class="fixed inset-0 bg-[#080314]/75 pointer-events-none z-[-1]"></div>
 
-  <!-- CONTENEDOR PRINCIPAL DE TU APLICACIÓN (Aquí cambia el contenido de Álbum / Tienda) -->
-  <div id="appContainer" class="relative z-10 flex flex-col flex-1 w-full">
-    <!-- Tu header, navegación y pestañas dinámicas -->
-  </div>
-
-</body>
-
-  <!-- Resto de tu HTML -->
   <!-- CABECERA DE NAVEGACIÓN -->
   <header class="sticky top-0 z-40 metal-card rounded-none px-3 py-2.5 md:px-6 md:py-3 flex flex-col gap-3 shadow-xl">
     
@@ -93,6 +85,7 @@
     <nav class="hidden md:flex items-center justify-center gap-2 w-full pt-2 border-t border-purple-500/20">
       <a href="album.html" class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-purple-600/30 text-purple-200 border border-purple-500/30">Álbum</a>
       <a href="tienda.html" class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-slate-800 text-slate-300 hover:bg-purple-600/30">Tienda</a>
+      <button onclick="openRulesModal()" class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-amber-500/20 text-amber-300 border border-amber-500/30 hover:bg-amber-500/30 transition">Reglas</button>
       <button onclick="logoutUser()" class="px-3 py-1.5 rounded-lg text-sm font-semibold bg-red-900/40 text-red-200">Salir</button>
     </nav>
 
@@ -100,14 +93,18 @@
 
   <!-- BARRA DE NAVEGACIÓN INFERIOR PARA MÓVILES -->
   <div class="md:hidden fixed bottom-3 left-3 right-3 z-50 bg-slate-950/90 backdrop-blur-md border border-purple-500/40 rounded-2xl p-2 flex justify-around items-center shadow-2xl">
-    <a href="album.html" class="flex flex-col items-center text-purple-300 text-[10px] font-semibold py-1 px-4 rounded-xl bg-purple-600/30 border border-purple-500/40">
+    <a href="album.html" class="flex flex-col items-center text-purple-300 text-[10px] font-semibold py-1 px-3 rounded-xl bg-purple-600/30 border border-purple-500/40">
       <i data-lucide="book-open" class="w-4 h-4 mb-0.5"></i>
       <span>Álbum</span>
     </a>
-    <a href="tienda.html" class="flex flex-col items-center text-slate-400 text-[10px] font-semibold py-1 px-4 rounded-xl hover:bg-slate-800">
+    <a href="tienda.html" class="flex flex-col items-center text-slate-400 text-[10px] font-semibold py-1 px-3 rounded-xl hover:bg-slate-800">
       <i data-lucide="shopping-bag" class="w-4 h-4 mb-0.5"></i>
       <span>Tienda</span>
     </a>
+    <button onclick="openRulesModal()" class="flex flex-col items-center justify-center text-amber-400 text-[10px] font-semibold py-1 px-3 rounded-xl hover:bg-slate-800 transition">
+      <i data-lucide="book-marked" class="w-4 h-4 mb-0.5"></i>
+      <span>Reglas</span>
+    </button>
   </div>
 
   <!-- CONTENIDO PRINCIPAL -->
@@ -169,6 +166,55 @@
     </div>
   </div>
 
+  <!-- MODAL DE REGLAS DEL ÁLBUM -->
+  <div id="rulesModal" class="fixed inset-0 bg-slate-950/80 backdrop-blur-md z-50 flex items-center justify-center p-4 hidden">
+    <div class="bg-slate-900 border border-purple-500/40 rounded-2xl max-w-lg w-full p-6 shadow-2xl relative max-h-[85vh] flex flex-col">
+      <!-- Encabezado -->
+      <div class="flex items-center justify-between border-b border-purple-500/20 pb-3 mb-4">
+        <div class="flex items-center gap-2 text-amber-400">
+          <i data-lucide="book-open" class="w-6 h-6"></i>
+          <h3 class="font-bold text-lg text-white">Reglas del Juego</h3>
+        </div>
+        <button onclick="closeRulesModal()" class="text-slate-400 hover:text-white font-bold text-xl">&times;</button>
+      </div>
+
+      <!-- Contenido Scrollable -->
+      <div class="overflow-y-auto pr-2 space-y-4 text-xs text-slate-300 leading-relaxed custom-scrollbar">
+        <div>
+          <h4 class="font-bold text-amber-300 text-sm mb-1">1. Dinámica de Colección</h4>
+          <p>El álbum consta de <b>1,000 barajitas coleccionables</b> divididas en 40 páginas. Las barajitas adquiridas se guardan de forma permanente en tu cuenta personal.</p>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-amber-300 text-sm mb-1">2. Premios por Hitos ($100 USD)</h4>
+          <p>Al alcanzar los hitos de <b>250, 500, 750 y 1,000 barajitas</b>, podrás solicitar tu recompensa de $100.00 USD (calculada a la tasa oficial del BCV). Debes tener registrados tus datos de pago (Banco, Cédula y Teléfono).</p>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-amber-300 text-sm mb-1">3. Liquidación Total y Reinicio</h4>
+          <p>Al completar el ciclo entero (#1000) y aprobarse el pago, el saldo se transferirá y el álbum se reiniciará para comenzar una nueva colección.</p>
+        </div>
+
+        <div>
+          <h4 class="font-bold text-amber-300 text-sm mb-1">4. Sistema de Referidos</h4>
+          <p>Gana comisiones invitando a tus amigos con tu enlace personal una vez desbloqueado. Aplican límites mensuales de cobro de bonificaciones.</p>
+        </div>
+
+        <div class="p-3 rounded-xl bg-purple-950/40 border border-purple-500/30">
+          <h4 class="font-bold text-red-400 text-sm mb-1">5. Juego Limpio y Seguridad</h4>
+          <p>Cualquier intento de fraude, uso de bots, multicuentas o ataques al sistema causará el <b>bloqueo y expulsión inmediata e irreversible</b> de la cuenta sin derecho a reclamo.</p>
+        </div>
+      </div>
+
+      <!-- Botón Entendido -->
+      <div class="mt-5 pt-3 border-t border-purple-500/20 text-center">
+        <button onclick="closeRulesModal()" class="w-full py-2.5 bg-purple-600 hover:bg-purple-500 text-white font-bold rounded-xl text-xs transition">
+          ¡Entendido y Acepto!
+        </button>
+      </div>
+    </div>
+  </div>
+
   <!-- VISOR LIGHTBOX -->
   <div id="stickerModal" class="hidden fixed inset-0 z-50 bg-black/95 backdrop-blur-md flex flex-col items-center justify-center p-2 md:p-6">
     <button onclick="closeStickerModal()" class="absolute top-4 right-4 z-50 bg-red-600/80 hover:bg-red-600 text-white p-3 rounded-full shadow-lg transition flex items-center justify-center">
@@ -193,7 +239,7 @@
       <span id="modalStickerTitle" class="text-purple-300 font-bold text-base md:text-xl tracking-wider">Barajita #0</span>
     </div>
   </div>
-  
+
   <script>
     document.addEventListener("DOMContentLoaded", () => {
       if (typeof lucide !== 'undefined') {
