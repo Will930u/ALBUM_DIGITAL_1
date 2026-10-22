@@ -913,3 +913,43 @@ function closeRulesModal() {
     modal.classList.add('hidden');
   }
 }
+// ==========================================
+// 🛡️ VERIFICADOR DE ESTADO MAESTRO (KILL-SWITCH)
+// ==========================================
+async function verificarEstadoPlataforma() {
+  try {
+    // Realizamos una petición a tu backend en Flask para consultar el estado
+    const response = await fetch('https://tu-backend-en-render.onrender.com/api/system-status'); // O usa la ruta relativa si está en el mismo dominio
+    const data = await response.json();
+
+    if (data.is_online === false) {
+      mostrarPantallaMantenimiento();
+    }
+  } catch (err) {
+    console.error("Error al verificar el estado del sistema:", err);
+  }
+}
+
+function mostrarPantallaMantenimiento() {
+  document.body.innerHTML = `
+    <div class="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 text-center">
+      <div class="metal-card max-w-md w-full p-8 rounded-2xl border border-purple-500/40 shadow-2xl space-y-4 bg-slate-900">
+        <div class="w-16 h-16 bg-red-950/50 rounded-full flex items-center justify-center mx-auto text-red-400 border border-red-500/40">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+        </div>
+        <h2 class="text-xl font-bold text-white">Plataforma Temporalmente Cerrada</h2>
+        <p class="text-xs text-purple-200 leading-relaxed">
+          El administrador ha suspendido temporalmente las operaciones del álbum por mantenimiento o revisión.
+        </p>
+        <p class="text-[11px] text-slate-400">
+          Por favor, intenta ingresar más tarde. ¡Gracias por tu comprensión!
+        </p>
+      </div>
+    </div>
+  `;
+}
+
+// Ejecutar la revisión de estado al cargar el álbum
+document.addEventListener("DOMContentLoaded", () => {
+  verificarEstadoPlataforma();
+});
