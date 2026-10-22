@@ -20,9 +20,11 @@
   <!-- CABECERA DE ADMINISTRACIÓN -->
   <header class="sticky top-0 z-40 metal-card rounded-none px-6 py-4 flex justify-between items-center shadow-xl">
     <div class="flex items-center space-x-3 cursor-pointer select-none group" onclick="window.location.href='album.html'">
-      <div class="w-10 h-10 rounded-xl overflow-hidden shadow-lg border-2 border-red-500/80 group-hover:border-purple-400 transition shrink-0 bg-slate-900">
-        <img src="logo-album.jpg" alt="Logo Admin" class="w-full h-full object-cover">
-      </div>
+      <!-- LOGO ANIMADO DENTRO DEL ÁLBUM -->
+        <div class="w-12 h-12 md:w-16 md:h-16 rounded-xl overflow-hidden shadow-lg border border-purple-500/60 bg-slate-900 shrink-0">
+          <video autoplay muted loop playsinline class="w-full h-full object-cover">
+            <source src="logo-animado.mp4" type="video/mp4">
+          </video>
       <div>
         <h1 class="text-lg font-bold glow-text leading-none">PANEL ADMIN</h1>
         <span class="text-xs text-red-300">Gestión General del Sistema (1000 Barajitas)</span>
