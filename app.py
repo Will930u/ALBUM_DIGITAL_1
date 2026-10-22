@@ -247,7 +247,7 @@ def api_feed_actividad():
 @limiter.limit("5 per minute")
 def api_login():
     if not verificar_sistema_activo():
-        return jsonify({"success": False, "message": "La plataforma se encuentra apagada temporalmente."}), 403
+        return jsonify({"success": False, "message": "La plataforma se encuentra en mantenimiento temporalmente."}), 403
 
     data = request.get_json(silent=True) or {}
     username = str(data.get("username", "")).strip()
