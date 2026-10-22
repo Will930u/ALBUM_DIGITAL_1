@@ -894,3 +894,22 @@ function escapeHTML(str) {
     .replace(/"/g, "&quot;")
     .replace(/'/g, "&#039;");
 }
+// ==========================================
+// MODAL DE REGLAS DEL ÁLBUM
+// ==========================================
+function openRulesModal() {
+  const modal = document.getElementById('rulesModal');
+  if (modal) {
+    modal.classList.remove('hidden');
+    if (typeof lucide !== 'undefined') {
+      lucide.createIcons();
+    }
+  }
+}
+
+function closeRulesModal() {
+  const modal = document.getElementById('rulesModal');
+  if (modal) {
+    modal.classList.add('hidden');
+  }
+}
