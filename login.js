@@ -14,7 +14,7 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // 2. Si tu login y registro están en la misma página por pestañas o modales, 
     // forzamos a mostrar el formulario de registro automáticamente:
-    const registerTabBtn = document.getElementById('btnTabRegister'); // O el botón/pestaña que cambia a registro
+    const registerTabBtn = document.getElementById('btnTabRegister'); 
     const registerForm = document.getElementById('registerForm');
     const loginForm = document.getElementById('loginForm');
 
@@ -24,12 +24,10 @@ document.addEventListener('DOMContentLoaded', () => {
     }
 
     // 3. Autorellenar el campo del código de referido si existe en tu formulario
-    // (Asegúrate de que tu input de referido en el HTML tenga el id="regCodigoReferido" o similar)
     setTimeout(() => {
       const inputRefField = document.getElementById('regCodigoReferido') || document.getElementById('refInput');
       if (inputRefField) {
         inputRefField.value = refCode;
-        // Opcional: bloquearlo para que el usuario no lo borre por error
         inputRefField.readOnly = true; 
       }
     }, 300);
@@ -100,16 +98,28 @@ async function handleLogin(event) {
         localStorage.setItem('session_token_data', JSON.stringify(tokenData));
       }
 
+      // Notificar login al backend de forma asíncrona
+      fetch(`${API_URL}/api/notificar-login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ usuario_id: data.user_id })
+      }).catch(err => console.error("Error notificando login:", err));
+
       window.location.href = 'album.html';
     } else {
-      alert(data.message || "Usuario o contraseña incorrectos.");
+      if (data.bloqueado) {
+        alert("Tu cuenta se encuentra bloqueada por seguridad.");
+      } else {
+        alert(data.message || "Usuario o contraseña incorrectos.");
+      }
       if (submitBtn) submitBtn.disabled = false;
     }
-  } catch (err) { // 👈 ESTO ES LO QUE DEBE ESTAR PRESENTE
+  } catch (err) {
     console.error("Error en el inicio de sesión:", err);
     alert("Error de conexión con el servidor backend.");
     if (submitBtn) submitBtn.disabled = false;
   }
+} // 👈 Llave de cierre agregada correctamente
 
 // ==========================================
 // MANEJADOR DE REGISTRO
@@ -282,7 +292,6 @@ function togglePassword(inputId, iconId) {
     icon.setAttribute('data-lucide', 'eye');
   }
   
-  // Refresca el ícono visualmente
   if (typeof lucide !== 'undefined') {
     lucide.createIcons();
   }
