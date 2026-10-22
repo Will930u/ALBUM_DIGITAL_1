@@ -919,7 +919,7 @@ function closeRulesModal() {
 async function verificarEstadoPlataforma() {
   try {
     // Realizamos una petición a tu backend en Flask para consultar el estado
-    const response = await fetch('https://tu-backend-en-render.onrender.com/api/system-status'); // O usa la ruta relativa si está en el mismo dominio
+    const response = await fetch('https://album-digital-1.onrender.com'); // O usa la ruta relativa si está en el mismo dominio
     const data = await response.json();
 
     if (data.is_online === false) {
@@ -953,3 +953,50 @@ function mostrarPantallaMantenimiento() {
 document.addEventListener("DOMContentLoaded", () => {
   verificarEstadoPlataforma();
 });
+// ==========================================
+// 🏆 FUNCIÓN PARA SOLICITAR RETIRO O HITO
+// ==========================================
+async function solicitarRetiroHito(tipo, milestone, montoBs, datosPago) {
+  const userId = localStorage.getItem("user_id");
+  const sessionToken = localStorage.getItem("session_token");
+
+  if (!userId || !sessionToken) {
+    alert("Tu sesión ha caducado. Por favor, vuelve a iniciar sesión.");
+    window.location.href = "index.html";
+    return;
+  }
+
+  const payload = {
+    usuario_id: userId,
+    session_token: sessionToken, // 🔑 Indispensable para evitar el Error 401
+    tipo: tipo,
+    milestone: milestone,
+    monto_bs: montoBs,
+    datos_pago: datosPago
+  };
+
+  try {
+    const res = await fetch("https://album-digital-1.onrender.com/api/notificar-retiro", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify(payload)
+    });
+
+    const data = await res.json();
+
+    if (res.status === 429) {
+      alert("Has realizado varias solicitudes seguidas. Por favor espera unos minutos e inténtalo de nuevo.");
+      return;
+    }
+
+    if (!res.ok || data.status !== "success") {
+      alert(data.message || "Error al procesar la solicitud.");
+      return;
+    }
+
+    alert("¡Solicitud enviada con éxito! El administrador la verificará en breve.");
+  } catch (err) {
+    console.error("Error al enviar solicitud:", err);
+    alert("Ocurrió un error de conexión al procesar el retiro.");
+  }
+}
