@@ -124,21 +124,34 @@ async function handleLogin(event) {
 // ==========================================
 // MANEJADOR DE REGISTRO
 // ==========================================
+// ==========================================
+// MANEJADOR DE REGISTRO CORREGIDO
+// ==========================================
 async function handleRegister(event) {
   event.preventDefault();
 
-  const username = document.getElementById('regUsername').value.trim();
-  const email = document.getElementById('regEmail').value.trim();
-  const password = document.getElementById('regPassword').value.trim();
-  const banco = document.getElementById('regBanco').value.trim();
-  const cedula = document.getElementById('regCedula').value.trim();
-  const telefono = document.getElementById('regTelefono').value.trim();
+  const usernameEl = document.getElementById('regUsername');
+  const emailEl = document.getElementById('regEmail');
+  const passwordEl = document.getElementById('passwordRegister'); // 👈 ID corregido
+  const bancoEl = document.getElementById('regBanco');
+  const cedulaEl = document.getElementById('regCedula');
+  const telefonoEl = document.getElementById('regTelefono');
+  const refInputEl = document.getElementById('regCodigoReferido'); // 👈 Captura el input manual
   const errorMsgEl = document.getElementById('regErrorMsg');
   const submitBtn = event.submitter || document.querySelector('#registerForm button[type="submit"]');
 
   if (errorMsgEl) errorMsgEl.innerText = "";
 
-  const codigoReferidoInvitacion = sessionStorage.getItem('codigo_referido_invitacion') || "";
+  // Obtener valores de forma segura
+  const username = usernameEl ? usernameEl.value.trim() : "";
+  const email = emailEl ? emailEl.value.trim() : "";
+  const password = passwordEl ? passwordEl.value.trim() : "";
+  const banco = bancoEl ? bancoEl.value.trim() : "";
+  const cedula = cedulaEl ? cedulaEl.value.trim() : "";
+  const telefono = telefonoEl ? telefonoEl.value.trim() : "";
+  
+  // Prioriza lo escrito en el input, luego el sessionStorage de la URL
+  const codigoReferidoInvitacion = (refInputEl ? refInputEl.value.trim() : "") || sessionStorage.getItem('codigo_referido_invitacion') || "";
 
   try {
     if (submitBtn) submitBtn.disabled = true;
@@ -164,7 +177,6 @@ async function handleRegister(event) {
       if (data.session_token) {
         localStorage.setItem('session_token', data.session_token);
         
-        // Sello de tiempo de expiración (1 hora) al registrarse
         const now = new Date().getTime();
         const tokenData = {
           token: data.session_token,
