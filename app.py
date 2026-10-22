@@ -15,6 +15,16 @@ from flask_limiter.util import get_remote_address
 app = Flask(__name__)
 CORS(app, resources={r"/*": {"origins": "*"}})
 
+# 🛡️ MANEJADOR GLOBAL PARA PREFLIGHT REQUESTS (CORS + OPTIONS)
+@app.before_request
+def handle_preflight():
+    if request.method == "OPTIONS":
+        response = jsonify({"status": "ok"})
+        response.headers.add("Access-Control-Allow-Origin", "*")
+        response.headers.add("Access-Control-Allow-Headers", "Content-Type, Authorization")
+        response.headers.add("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        return response, 200
+
 # 2️⃣ Después se inicializa el limitador usando la aplicación ya creada
 limiter = Limiter(
     get_remote_address,
