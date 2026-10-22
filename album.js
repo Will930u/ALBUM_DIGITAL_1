@@ -51,6 +51,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error("Error al inicializar el álbum:", err);
   }
 });
+
 // 🕒 Verificación y renovación automática de sesión por inactividad (1 hora)
 function verificarYRenovarSesion() {
   const tokenDataString = localStorage.getItem('session_token_data');
@@ -60,7 +61,6 @@ function verificarYRenovarSesion() {
     const tokenData = JSON.parse(tokenDataString);
     const now = new Date().getTime();
 
-    // Si el tiempo actual es mayor a la fecha de expiración, el token caducó
     if (now > tokenData.expiry) {
       localStorage.removeItem('session_token_data');
       localStorage.removeItem('active_user_id');
@@ -68,11 +68,8 @@ function verificarYRenovarSesion() {
       return false; 
     }
 
-    // 🔄 RENOVACIÓN AUTOMÁTICA POR ACTIVIDAD: 
-    // Si el token es válido, extendemos la expiración 1 hora más por cada interacción
     tokenData.expiry = now + (60 * 60 * 1000);
     localStorage.setItem('session_token_data', JSON.stringify(tokenData));
-    
     return true;
   } catch (e) {
     return false;
@@ -99,20 +96,18 @@ async function logoutUser() {
 }
 
 // ----------------------------------------------------
-// CARRUSEL / TICKER DE ACTIVIDAD EN TIEMPO REAL (ALEATORIO + PRIORIDAD DE COMPRA)
+// CARRUSEL / TICKER DE ACTIVIDAD EN TIEMPO REAL
 // ----------------------------------------------------
 let feedActividadesGlobal = [];
 let feedIndexActual = 0;
 let feedIntervalId = null;
-let prioridadCompraActiva = false; // Bandera para interrumpir con compras recientes
+let prioridadCompraActiva = false;
 
 async function initActivityTicker() {
   await cargarFeedActividad();
-  // Actualizar los datos desde el servidor cada 30 segundos
   setInterval(cargarFeedActividad, 30000);
 }
 
-// Función auxiliar para barajar un array de forma aleatoria (Fisher-Yates)
 function shuffleArray(array) {
   for (let i = array.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
@@ -130,15 +125,11 @@ async function cargarFeedActividad() {
     const data = await res.json();
 
     if (data.status === 'success' && data.actividades && data.actividades.length > 0) {
-      
-      // 🛡️ FILTRO ESTRICTO: Si el backend manda varias filas del mismo usuario, solo dejamos la más reciente o la primera
       const usuariosProcesados = new Set();
       const actividadesUnicas = [];
 
       data.actividades.forEach(act => {
         const usuarioNombre = (act.usuario_id || 'Comunidad').trim();
-        
-        // Si este usuario ya lo metimos en la lista, lo ignoramos para que no se repita
         if (!usuariosProcesados.has(usuarioNombre)) {
           usuariosProcesados.add(usuarioNombre);
           actividadesUnicas.push(act);
@@ -160,7 +151,6 @@ async function cargarFeedActividad() {
   }
 }
 
-// ⚡ Función para inyectar y dar protagonismo inmediato a una compra reciente
 function destacarCompraEnTicker(usuario, detalle, monto) {
   const tickerContainer = document.getElementById('tickerContent');
   if (!tickerContainer) return;
@@ -175,26 +165,23 @@ function destacarCompraEnTicker(usuario, detalle, monto) {
     </div>
   `;
 
-  // Después de 8 segundos de protagonismo, regresa a la rotación aleatoria normal
   setTimeout(() => {
     prioridadCompraActiva = false;
   }, 8000);
 }
 
 function mostrarSiguienteItemFeed() {
-  if (prioridadCompraActiva) return; // Si hay una compra prioritaria en pantalla, pausar el ciclo momentáneamente
+  if (prioridadCompraActiva) return;
 
   const tickerContainer = document.getElementById('tickerContent');
   if (!tickerContainer || feedActividadesGlobal.length === 0) return;
 
   if (feedIndexActual >= feedActividadesGlobal.length) {
     feedIndexActual = 0;
-    // Volver a barajar al terminar una vuelta completa para mantenerlo 100% aleatorio
     feedActividadesGlobal = shuffleArray(feedActividadesGlobal);
   }
 
   const item = feedActividadesGlobal[feedIndexActual];
-  // 🛡️ Aplicamos escapeHTML para evitar cualquier inyección maliciosa
   const usuario = escapeHTML(item.usuario_id || 'Comunidad');
   const detalle = escapeHTML(item.detalle || 'actividad en el álbum');
   const monto = item.monto_bs || 0;
@@ -213,7 +200,6 @@ function mostrarSiguienteItemFeed() {
 
   feedIndexActual++;
 }
-
 // ----------------------------------------------------
 // SISTEMA DE NOTIFICACIONES FLOTANTES EN TIEMPO REAL
 // ----------------------------------------------------
@@ -271,7 +257,7 @@ function renderAlbumPage() {
 
     for (let i = startIndex; i <= endIndex; i++) {
       const isUnlocked = i <= STATE.userStickersCount;
-      const isMilestone = (i % 250 === 0); // Ajustado a hitos cada 250 barajitas (250, 500, 750, 1000)
+      const isMilestone = (i % 250 === 0); // Hitos cada 250 barajitas (250, 500, 750, 1000)
       const slot = document.createElement('div');
       slot.className = `metal-slot sticker-card aspect-[2.5/3.5] w-full rounded-xl flex flex-col items-center justify-center p-2 relative overflow-hidden cursor-pointer ${isUnlocked ? 'filled' : ''} ${isMilestone ? 'milestone-slot' : ''}`;
       
@@ -335,17 +321,16 @@ async function fetchBcvRate() {
 
 async function loadUserDataFromDB() {
   try {
-    const sessionToken = localStorage.getItem('session_token'); // 🛡️ Recuperamos el token
+    const sessionToken = localStorage.getItem('session_token');
     const res = await fetch(`${API_URL}/api/usuario/info`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         usuario_id: STATE.userId,
-        session_token: sessionToken // 👈 ¡Enviamos el token para autenticar!
+        session_token: sessionToken 
       })
     });
 
-    // 🔒 CAPA DE SEGURIDAD: Validar si la cuenta fue bloqueada (Estado 403)
     if (res.status === 403) {
       alert("🚨 Tu cuenta ha sido bloqueada o suspendida por el administrador.");
       logoutUser();
@@ -353,12 +338,9 @@ async function loadUserDataFromDB() {
     }
 
     const data = await res.json();
-    // ... resto de tu código igual
-    
     const previousStickersCount = STATE.userStickersCount;
 
     if (data && data.user) {
-      // 🔒 CAPA DE SEGURIDAD: Validar si el campo booleano 'bloqueado' está activo en la BD
       if (data.user.bloqueado === true) {
         alert("🚨 Acceso revocado. Has sido expulsado del sistema.");
         logoutUser();
@@ -367,7 +349,6 @@ async function loadUserDataFromDB() {
 
       STATE.userStickersCount = data.user.cantidad_barajitas || 0;
       STATE.userBalanceBs = data.user.saldo_bs || 0;
-      // Capturar los datos de pago precargados de Supabase
       STATE.userBanco = data.user.banco || '';
       STATE.userCedula = data.user.cedula || '';
       STATE.userTelefono = data.user.telefono || '';
@@ -384,10 +365,7 @@ async function loadUserDataFromDB() {
             STATE.notifiedTransactions.add(tx.id);
             if (!STATE.isInitialLoad) {
               showFloatingNotification(`¡Pago verificado con éxito! Se han acreditado ${tx.barajitas_qty} barajitas en tu álbum.`);
-              
-              // 🛒 ¡Aquí activamos la prioridad en el carrusel cuando se aprueba una compra!
               destacarCompraEnTicker(STATE.userId, `compró ${tx.barajitas_qty} barajitas`, tx.monto_bs || 0);
-
               renderAlbumPage();
             }
           }
@@ -464,16 +442,15 @@ function updateUIHeader() {
     return;
   }
 
-  const milestoneBsValue = 100 * STATE.bcvRate; // Ajustado a $100 USD por hito
+  const milestoneBsValue = 100 * STATE.bcvRate;
   const hasAvailableMilestone = [250, 500, 750, 1000].some(m =>
     STATE.userStickersCount >= m && !STATE.claimedMilestones.includes(m) && STATE.userBalanceBs >= milestoneBsValue
   );
   if(btnMilestone) btnMilestone.disabled = !hasAvailableMilestone;
   if(btnLiq) btnLiq.disabled = STATE.userBalanceBs <= 0;
 }
-
 // ----------------------------------------------------
-// GESTIÓN DE PREMIOS CON DATOS PRECARGADOS DE SUPABASE ($100 USD)
+// GESTIÓN DE PREMIOS Y RETIROS (HITOS Y LIQUIDACIÓN TOTAL)
 // ----------------------------------------------------
 function openWithdrawModal() {
   if (STATE.isProcessingWithdrawal) return alert('Tienes una solicitud de retiro activa.');
@@ -518,7 +495,6 @@ function openWithdrawModal() {
     container.appendChild(btn);
   });
 
-  // Mostrar datos precargados en el modal
   const infoDatos = document.getElementById('infoDatosPrecargados');
   if (infoDatos) {
     infoDatos.innerHTML = `💳 <b>Datos de Pago:</b> Banco: ${STATE.userBanco} | Tel: ${STATE.userTelefono} | Cédula: ${STATE.userCedula}`;
@@ -541,27 +517,41 @@ async function ejecutarSolicitudPremio(milestoneVal, tipoRetiro) {
     return alert('Error: Faltan los datos de pago del usuario en el sistema.');
   }
 
-  const bsVal = (100 * STATE.bcvRate).toFixed(2); // Ajustado a $100 USD
+  const sessionToken = localStorage.getItem('session_token');
+  const bsVal = (100 * STATE.bcvRate).toFixed(2);
 
-  const res = await fetch(`${API_URL}/api/notificar-retiro`, {
-    method: 'POST', 
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ 
-      usuario_id: STATE.userId, 
-      tipo: tipoRetiro, 
-      milestone: milestoneVal, 
-      monto_bs: bsVal, 
-      monto_usd: 100.00, 
-      datos_pago: `${STATE.userBanco} | ${STATE.userTelefono} | ${STATE.userCedula}` 
-    })
-  });
+  try {
+    const res = await fetch(`${API_URL}/api/notificar-retiro`, {
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        usuario_id: STATE.userId, 
+        session_token: sessionToken, // 🔑 Token de sesión seguro
+        tipo: tipoRetiro, 
+        milestone: milestoneVal, 
+        monto_bs: bsVal, 
+        monto_usd: 100.00, 
+        datos_pago: `${STATE.userBanco} | ${STATE.userTelefono} | ${STATE.userCedula}` 
+      })
+    });
 
-  if (res.ok) {
-    alert('¡Solicitud enviada con éxito con tus datos guardados! Queda pendiente de verificación.');
-    closeWithdrawModal();
-    loadUserDataFromDB();
-  } else {
-    alert('Error al enviar la solicitud.');
+    const data = await res.json();
+
+    if (res.status === 429) {
+      alert("Has realizado demasiadas solicitudes seguidas. Espera unos minutos.");
+      return;
+    }
+
+    if (res.ok && data.status === 'success') {
+      alert('¡Solicitud enviada con éxito con tus datos guardados! Queda pendiente de verificación.');
+      closeWithdrawModal();
+      loadUserDataFromDB();
+    } else {
+      alert(data.message || 'Error al enviar la solicitud.');
+    }
+  } catch (err) {
+    console.error("Error al enviar solicitud de premio:", err);
+    alert('Error de conexión al procesar el retiro.');
   }
 }
 
@@ -580,30 +570,47 @@ async function confirmTotalLiquidate() {
   
   if (!aceptarLiquidacion) return;
 
+  const sessionToken = localStorage.getItem('session_token');
   const bsVal = STATE.userBalanceBs;
   const usdVal = STATE.bcvRate > 0 ? (bsVal / STATE.bcvRate).toFixed(2) : 0;
 
-  const res = await fetch(`${API_URL}/api/notificar-retiro`, {
-    method: 'POST', 
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ 
-      usuario_id: STATE.userId, 
-      tipo: 'liquidacion_total', 
-      milestone: 0, 
-      monto_bs: bsVal.toFixed(2), 
-      monto_usd: usdVal, 
-      datos_pago: `${STATE.userBanco} | ${STATE.userTelefono} | ${STATE.userCedula}` 
-    })
-  });
+  try {
+    const res = await fetch(`${API_URL}/api/notificar-retiro`, {
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ 
+        usuario_id: STATE.userId, 
+        session_token: sessionToken, // 🔑 Token de sesión seguro
+        tipo: 'liquidacion_total', 
+        milestone: 0, 
+        monto_bs: bsVal.toFixed(2), 
+        monto_usd: usdVal, 
+        datos_pago: `${STATE.userBanco} | ${STATE.userTelefono} | ${STATE.userCedula}` 
+      })
+    });
 
-  if (res.ok) {
-    alert('¡Liquidación total solicitada con éxito con tus datos guardados! Al aprobarse, tu progreso se reiniciará.');
-    loadUserDataFromDB();
-  } else {
-    alert('Error al solicitar liquidación.');
+    const data = await res.json();
+
+    if (res.status === 429) {
+      alert("Has realizado demasiadas solicitudes seguidas. Espera unos minutos.");
+      return;
+    }
+
+    if (res.ok && data.status === 'success') {
+      alert('¡Liquidación total solicitada con éxito! Al aprobarse, tu progreso se reiniciará.');
+      loadUserDataFromDB();
+    } else {
+      alert(data.message || 'Error al solicitar liquidación.');
+    }
+  } catch (err) {
+    console.error("Error al solicitar liquidación total:", err);
+    alert('Error de conexión al solicitar liquidación.');
   }
 }
 
+// ----------------------------------------------------
+// ADMINISTRADOR OCULTO Y GESTOS
+// ----------------------------------------------------
 function setupLogoClickCounter() {
   const logo = document.getElementById('appLogo');
   if (logo) {
@@ -622,10 +629,11 @@ function setupLogoClickCounter() {
 
 async function verificarAccesoAdminOculto() {
   try {
+    const sessionToken = localStorage.getItem('session_token');
     const res = await fetch(`${API_URL}/api/verificar-admin`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ usuario_id: STATE.userId })
+      body: JSON.stringify({ usuario_id: STATE.userId, session_token: sessionToken })
     });
     const data = await res.json();
 
@@ -637,9 +645,7 @@ async function verificarAccesoAdminOculto() {
     } 
     else if (res.status === 403 || data.status === 'blocked') {
       showFloatingNotification("🚨 ¡Cuenta bloqueada permanentemente por intentos de acceso no autorizado!", "error");
-      setTimeout(() => {
-        logoutUser();
-      }, 3500);
+      setTimeout(() => { logoutUser(); }, 3500);
     } 
     else {
       showFloatingNotification("⚠️ Acceso denegado.", "error");
@@ -652,25 +658,20 @@ async function verificarAccesoAdminOculto() {
 
 function initUserPollingNotifications(usuarioId) {
   if (!usuarioId) return;
-
   setInterval(async () => {
     if (!STATE.userId) return;
-    try {
-      await loadUserDataFromDB();
-    } catch (e) {}
+    try { await loadUserDataFromDB(); } catch (e) {}
   }, 5000);
 }
 
 function triggerStickerAnimation(cardElement) {
   cardElement.classList.add('rotate-360');
-  setTimeout(() => {
-    cardElement.classList.remove('rotate-360');
-  }, 600);
+  setTimeout(() => { cardElement.classList.remove('rotate-360'); }, 600);
 }
 
-// ==========================================
-// VISOR DE BARAJITAS A PANTALLA COMPLETA (LIGHTBOX)
-// ==========================================
+// ----------------------------------------------------
+// VISOR DE BARAJITAS (LIGHTBOX) Y SWIPE
+// ----------------------------------------------------
 function openStickerModal(imgSrc, titleText, index) {
   const modal = document.getElementById('stickerModal');
   const modalImg = document.getElementById('modalStickerImg');
@@ -685,24 +686,19 @@ function openStickerModal(imgSrc, titleText, index) {
 
   if (modalTitle) modalTitle.textContent = titleText;
   currentModalIndex = index;
-
   modal.classList.remove('hidden');
   
-  if (typeof lucide !== 'undefined') {
-    lucide.createIcons();
-  }
+  if (typeof lucide !== 'undefined') { lucide.createIcons(); }
 }
+
 function closeStickerModal() {
   const modal = document.getElementById('stickerModal');
-  if (modal) {
-    modal.classList.add('hidden');
-  }
+  if (modal) { modal.classList.add('hidden'); }
 }
 
 function navigateStickerModal(direction) {
   if (allPageStickers.length > 0) {
     currentModalIndex += direction;
-    
     if (currentModalIndex < 0) currentModalIndex = allPageStickers.length - 1;
     if (currentModalIndex >= allPageStickers.length) currentModalIndex = 0;
 
@@ -713,9 +709,6 @@ function navigateStickerModal(direction) {
   }
 }
 
-// ==========================================
-// DETECCIÓN DE GESTOS TÁCTILES (SWIPE EN MÓVIL)
-// ==========================================
 let touchStartX = 0;
 let touchEndX = 0;
 
@@ -735,63 +728,32 @@ function setupSwipeGestures() {
 
 function handleSwipeGesture() {
   const swipeThreshold = 50;
-
-  if (touchStartX - touchEndX > swipeThreshold) {
-    changePage(1);
-  }
-  
-  if (touchEndX - touchStartX > swipeThreshold) {
-    changePage(-1);
-  }
+  if (touchStartX - touchEndX > swipeThreshold) { changePage(1); }
+  if (touchEndX - touchStartX > swipeThreshold) { changePage(-1); }
 }
 
-// 💓 ENVÍO SILENCIOSO DE LATIDO CADA 10 SEGUNDOS
+// ----------------------------------------------------
+// LATIDOS Y REFERIDOS
+// ----------------------------------------------------
 setInterval(async () => {
   const activeUserId = localStorage.getItem('active_user_id');
-  const sessionToken = localStorage.getItem('session_token'); // 🛡️ Token de sesión
+  const sessionToken = localStorage.getItem('session_token');
   if (activeUserId) {
     try {
       await fetch(`${API_URL}/api/heartbeat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
-          usuario_id: activeUserId,
-          session_token: sessionToken 
-        })
+        body: JSON.stringify({ usuario_id: activeUserId, session_token: sessionToken })
       });
-    } catch (e) {
-      console.error("Error al enviar latido:", e);
-    }
+    } catch (e) {}
   }
 }, 10000);
-
-function enviarLatidoActivo() {
-  const activeUserId = localStorage.getItem('active_user_id');
-  const sessionToken = localStorage.getItem('session_token'); // 🛡️ Recuperamos el token
-  if (activeUserId) {
-    fetch(`${API_URL}/api/heartbeat`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        usuario_id: activeUserId,
-        session_token: sessionToken // 👈 ¡Enviamos el token aquí también!
-      })
-    }).catch(err => console.error("Error enviando latido:", err));
-  }
-}
-
-document.addEventListener('DOMContentLoaded', () => {
-  enviarLatidoActivo();
-  setInterval(enviarLatidoActivo, 10000);
-});
 
 window.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const refCode = urlParams.get('ref');
-    
     if (refCode) {
         sessionStorage.setItem('codigo_referido_invitacion', refCode);
-        console.log("🔗 Invitado por código de referido:", refCode);
     }
 });
 
@@ -804,16 +766,11 @@ async function openReferralModal() {
   bodyContainer.innerHTML = `<p class="text-center text-purple-300 animate-pulse">Verificando estado de tu cuenta...</p>`;
 
   try {
-    // 🛡️ Agregamos el session_token para cumplir con el blindaje del backend
     const sessionToken = localStorage.getItem('session_token');
-
     const response = await fetch(`${API_URL}/api/referidos/obtener-link`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        usuario_id: STATE.userId,
-        session_token: sessionToken 
-      })
+      body: JSON.stringify({ usuario_id: STATE.userId, session_token: sessionToken })
     });
 
     const data = await response.json();
@@ -822,7 +779,6 @@ async function openReferralModal() {
       bodyContainer.innerHTML = `
         <div class="space-y-3">
           <p class="text-slate-300 text-xs">Comparte tu enlace único. Por cada 10 amigos que se registren y compren su primera barajita, ganarás <b>$5.00</b> de saldo.</p>
-          
           <div class="space-y-1">
             <label class="text-[11px] font-bold text-purple-300">Tu Enlace Personal:</label>
             <div class="flex gap-2">
@@ -832,7 +788,6 @@ async function openReferralModal() {
               </button>
             </div>
           </div>
-
           <div class="p-3 rounded-xl bg-purple-950/50 border border-purple-500/30 space-y-1.5">
             <div class="flex justify-between text-xs">
               <span class="text-slate-400">📊 Referidos activos este mes:</span>
@@ -841,7 +796,7 @@ async function openReferralModal() {
             <div class="w-full bg-slate-900 rounded-full h-2 overflow-hidden border border-purple-500/20">
               <div class="bg-cyan-500 h-full transition-all duration-500" style="width: ${(data.referidos_mes / 10) * 100}%"></div>
             </div>
-            <p class="text-[10px] text-slate-400 pt-1">💰 Bonos cobrados este mes: <strong class="text-emerald-400">${data.bonos_cobrados_mes} / 1</strong> (Límite mensual)</p>
+            <p class="text-[10px] text-slate-400 pt-1">💰 Bonos cobrados este mes: <strong class="text-emerald-400">${data.bonos_cobrados_mes} / 1</strong></p>
           </div>
         </div>
       `;
@@ -856,13 +811,9 @@ async function openReferralModal() {
         </div>
       `;
     }
-
-    if (typeof lucide !== 'undefined') {
-      lucide.createIcons();
-    }
+    if (typeof lucide !== 'undefined') { lucide.createIcons(); }
   } catch (err) {
-    console.error("Error al obtener link de referido:", err);
-    bodyContainer.innerHTML = `<p class="text-center text-red-400 text-xs">Error de conexión al cargar el sistema de referidos.</p>`;
+    bodyContainer.innerHTML = `<p class="text-center text-red-400 text-xs">Error de conexión al cargar referidos.</p>`;
   }
 }
 
@@ -875,53 +826,36 @@ function copiarEnlaceReferido() {
   const input = document.getElementById('inputLinkRef');
   if (input) {
     input.select();
-    input.setSelectionRange(0, 99999);
     navigator.clipboard.writeText(input.value).then(() => {
       showFloatingNotification("¡Enlace de referido copiado al portapapeles!");
-    }).catch(() => {
-      document.execCommand('copy');
-      showFloatingNotification("¡Enlace copiado!");
     });
   }
 }
-// 🛡️ Función auxiliar anti-XSS
+
 function escapeHTML(str) {
   if (!str) return "";
   return String(str)
-    .replace(/&/g, "&amp;")
-    .replace(/</g, "&lt;")
-    .replace(/>/g, "&gt;")
-    .replace(/"/g, "&quot;")
-    .replace(/'/g, "&#039;");
+    .replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;")
+    .replace(/"/g, "&quot;").replace(/'/g, "&#039;");
 }
-// ==========================================
-// MODAL DE REGLAS DEL ÁLBUM
-// ==========================================
+
 function openRulesModal() {
   const modal = document.getElementById('rulesModal');
-  if (modal) {
-    modal.classList.remove('hidden');
-    if (typeof lucide !== 'undefined') {
-      lucide.createIcons();
-    }
-  }
+  if (modal) { modal.classList.remove('hidden'); if (typeof lucide !== 'undefined') { lucide.createIcons(); } }
 }
 
 function closeRulesModal() {
   const modal = document.getElementById('rulesModal');
-  if (modal) {
-    modal.classList.add('hidden');
-  }
+  if (modal) { modal.classList.add('hidden'); }
 }
-// ==========================================
+
+// ----------------------------------------------------
 // 🛡️ VERIFICADOR DE ESTADO MAESTRO (KILL-SWITCH)
-// ==========================================
+// ----------------------------------------------------
 async function verificarEstadoPlataforma() {
   try {
-    // Realizamos una petición a tu backend en Flask para consultar el estado
-    const response = await fetch('https://album-digital-1.onrender.com'); // O usa la ruta relativa si está en el mismo dominio
+    const response = await fetch(`${API_URL}/api/system-status`);
     const data = await response.json();
-
     if (data.is_online === false) {
       mostrarPantallaMantenimiento();
     }
@@ -935,68 +869,17 @@ function mostrarPantallaMantenimiento() {
     <div class="min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4 text-center">
       <div class="metal-card max-w-md w-full p-8 rounded-2xl border border-purple-500/40 shadow-2xl space-y-4 bg-slate-900">
         <div class="w-16 h-16 bg-red-950/50 rounded-full flex items-center justify-center mx-auto text-red-400 border border-red-500/40">
-          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-8 h-8" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
         </div>
         <h2 class="text-xl font-bold text-white">Plataforma Temporalmente Cerrada</h2>
         <p class="text-xs text-purple-200 leading-relaxed">
           El administrador ha suspendido temporalmente las operaciones del álbum por mantenimiento o revisión.
-        </p>
-        <p class="text-[11px] text-slate-400">
-          Por favor, intenta ingresar más tarde. ¡Gracias por tu comprensión!
         </p>
       </div>
     </div>
   `;
 }
 
-// Ejecutar la revisión de estado al cargar el álbum
 document.addEventListener("DOMContentLoaded", () => {
   verificarEstadoPlataforma();
 });
-// ==========================================
-// 🏆 FUNCIÓN PARA SOLICITAR RETIRO O HITO
-// ==========================================
-async function solicitarRetiroHito(tipo, milestone, montoBs, datosPago) {
-  const userId = localStorage.getItem("user_id");
-  const sessionToken = localStorage.getItem("session_token");
-
-  if (!userId || !sessionToken) {
-    alert("Tu sesión ha caducado. Por favor, vuelve a iniciar sesión.");
-    window.location.href = "index.html";
-    return;
-  }
-
-  const payload = {
-    usuario_id: userId,
-    session_token: sessionToken, // 🔑 Indispensable para evitar el Error 401
-    tipo: tipo,
-    milestone: milestone,
-    monto_bs: montoBs,
-    datos_pago: datosPago
-  };
-
-  try {
-    const res = await fetch("https://album-digital-1.onrender.com/api/notificar-retiro", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify(payload)
-    });
-
-    const data = await res.json();
-
-    if (res.status === 429) {
-      alert("Has realizado varias solicitudes seguidas. Por favor espera unos minutos e inténtalo de nuevo.");
-      return;
-    }
-
-    if (!res.ok || data.status !== "success") {
-      alert(data.message || "Error al procesar la solicitud.");
-      return;
-    }
-
-    alert("¡Solicitud enviada con éxito! El administrador la verificará en breve.");
-  } catch (err) {
-    console.error("Error al enviar solicitud:", err);
-    alert("Ocurrió un error de conexión al procesar el retiro.");
-  }
-}
