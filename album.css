@@ -80,7 +80,7 @@ div[class*="bg-slate-950"] {
 }
 
 .animate-fade-ticker {
-  animation: fadeInOut 4s ease-in-out infinite;
+  animation: fadeInOut 5s ease-in-out infinite;
 }
 
 /* ==========================================
