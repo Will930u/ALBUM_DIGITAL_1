@@ -27,8 +27,11 @@
     <!-- Fila 1: Logo, Título Principal y Carrusel en Vivo -->
     <div class="flex justify-between items-center w-full gap-2">
       <div class="flex items-center space-x-2.5 cursor-pointer select-none group shrink-0" id="appLogo" onclick="window.location.href='album.html'">
-        <div class="w-9 h-9 md:w-10 md:h-10 rounded-xl overflow-hidden shadow-lg border-2 border-purple-500/80 group-hover:border-cyan-400 transition shrink-0 bg-slate-900">
-          <img src="logo-album.jpg" alt="Logo Álbum" class="w-full h-full object-cover">
+        <!-- LOGO ANIMADO DENTRO DEL ÁLBUM -->
+        <div class="w-16 h-16 rounded-xl overflow-hidden shadow-lg border border-purple-500/60 bg-slate-900">
+          <video autoplay muted loop playsinline class="w-full h-full object-cover">
+            <source src="logo-animado.mp4" type="video/mp4">
+          </video>
         </div>
         <div class="hidden sm:block">
           <h1 class="text-sm md:text-lg font-bold glow-text leading-tight">ÁLBUM DIGITAL</h1>
