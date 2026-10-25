@@ -19,7 +19,7 @@
     <video id="introVideo" playsinline>
       <source src="logo-animado.mp4" type="video/mp4">
       </video>
-    <div class="absolute inset-0 bg-gradient-to-t from-black via-slate-950/80 to-black z-10 opacity-70"></div>
+    <div id="darkOverlay" class="absolute inset-0 bg-gradient-to-t from-black via-slate-950/80 to-black z-10 opacity-70 transition-opacity duration-1000"></div>
     <div class="intro-content z-20 space-y-6">
       <div id="playContainer">
         <button onclick="startIntroExperience()" class="metal-button px-8 py-4 rounded-2xl font-extrabold text-white text-base shadow-2xl flex items-center gap-3 mx-auto border border-purple-500/50 hover:scale-105 transition-transform">
