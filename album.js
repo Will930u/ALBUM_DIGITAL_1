@@ -1,14 +1,13 @@
 const API_URL = "https://album-digital-1.onrender.com";
 const STATE = {
   currentPage: 1, 
-  totalPages: 40, // Ajustado a 40 páginas para 1000 barajitas
+  totalPages: 40, 
   stickersPerPage: 25, 
-  totalStickers: 1000, // Ajustado a 1000 barajitas
+  totalStickers: 1000, 
   bcvRate: 36.5, 
   userId: localStorage.getItem('active_user_id') || null,
   userStickersCount: 0, 
   userBalanceBs: 0, 
-  // Datos de pago precargados desde la tabla de usuarios de Supabase
   userBanco: '', 
   userCedula: '', 
   userTelefono: '',
@@ -22,12 +21,10 @@ const STATE = {
   isInitialLoad: true
 };
 
-// Variables globales para el visor de pantalla completa (Lightbox)
 let currentModalIndex = 0;
 let allPageStickers = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
-  // 🔒 Validar si el usuario existe y si su sesión no ha expirado (1 hora)
   if (!STATE.userId || !verificarYRenovarSesion()) {
     alert("⏳ Tu sesión ha expirado por 1 hora de inactividad o seguridad. Por favor, inicia sesión nuevamente.");
     window.location.href = 'index.html';
@@ -42,15 +39,9 @@ document.addEventListener('DOMContentLoaded', async () => {
     renderAlbumPage();
     setupSwipeGestures();
     
-    // Iniciar el carrusel de actividad en tiempo real con rotación aleatoria
     initActivityTicker();
-    
-    // Iniciar verificación periódica en tiempo real (cada 5 segundos)
     initUserPollingNotifications(STATE.userId);
 
-    // ==========================================
-    // 🎵 CONTROL DE MÚSICA DE FONDO CONTINUA (ALBUM)
-    // ==========================================
     const bgMusic = document.getElementById('bgMusic');
     const shouldPlay = localStorage.getItem('playMusic');
     const savedTime = localStorage.getItem('audioTime');
@@ -69,14 +60,11 @@ document.addEventListener('DOMContentLoaded', async () => {
         localStorage.setItem('audioTime', bgMusic.currentTime);
       };
     }
-    // ==========================================
-
   } catch (err) {
     console.error("Error al inicializar el álbum:", err);
   }
 });
 
-// 🕒 Verificación y renovación automática de sesión por inactividad (1 hora)
 function verificarYRenovarSesion() {
   const tokenDataString = localStorage.getItem('session_token_data');
   if (!tokenDataString) return false;
@@ -102,7 +90,6 @@ function verificarYRenovarSesion() {
 
 async function logoutUser() {
   const activeUserId = localStorage.getItem('active_user_id');
-  
   if (activeUserId) {
     try {
       await fetch(`${API_URL}/api/notificar-logout`, {
@@ -114,14 +101,9 @@ async function logoutUser() {
       console.error('Error al notificar cierre de sesión:', err);
     }
   }
-
   localStorage.removeItem('active_user_id');
   window.location.href = 'index.html';
 }
-
-// ----------------------------------------------------
-// CARRUSEL / TICKER DE ACTIVIDAD EN TIEMPO REAL
-// ----------------------------------------------------
 let feedActividadesGlobal = [];
 let feedIndexActual = 0;
 let feedIntervalId = null;
@@ -180,7 +162,6 @@ function destacarCompraEnTicker(usuario, detalle, monto) {
   if (!tickerContainer) return;
 
   prioridadCompraActiva = true;
-
   tickerContainer.innerHTML = `
     <div class="animate-fade-ticker flex items-center justify-center space-x-1.5 text-center w-full bg-purple-900/40 border border-purple-500/40 rounded-lg px-2 py-0.5">
       <span class="text-amber-400 font-bold animate-pulse">🛒 <b>${usuario}</b></span>
@@ -188,10 +169,7 @@ function destacarCompraEnTicker(usuario, detalle, monto) {
       <span class="text-emerald-400 text-[10px]">(Bs. ${parseFloat(monto).toFixed(2)})</span>
     </div>
   `;
-
-  setTimeout(() => {
-    prioridadCompraActiva = false;
-  }, 8000);
+  setTimeout(() => { prioridadCompraActiva = false; }, 8000);
 }
 
 function mostrarSiguienteItemFeed() {
@@ -221,12 +199,9 @@ function mostrarSiguienteItemFeed() {
       <span class="text-emerald-400 text-[10px]">(Bs. ${parseFloat(monto).toFixed(2)})</span>
     </div>
   `;
-
   feedIndexActual++;
 }
-// ----------------------------------------------------
-// SISTEMA DE NOTIFICACIONES FLOTANTES EN TIEMPO REAL
-// ----------------------------------------------------
+
 function showFloatingNotification(message, type = 'success') {
   let container = document.getElementById('floatingNotificationsContainer');
   if (!container) {
@@ -238,11 +213,8 @@ function showFloatingNotification(message, type = 'success') {
 
   const notif = document.createElement('div');
   notif.className = `pointer-events-auto p-4 rounded-2xl shadow-2xl border backdrop-blur-md transition-all transform translate-y-[-20px] opacity-0 flex items-start gap-3 ${
-    type === 'success' 
-      ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200' 
-      : 'bg-purple-950/90 border-purple-500/50 text-purple-200'
+    type === 'success' ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200' : 'bg-purple-950/90 border-purple-500/50 text-purple-200'
   }`;
-
   notif.innerHTML = `
     <div class="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 mt-0.5">
       <i data-lucide="${type === 'success' ? 'check-circle-2' : 'bell'}" class="w-5 h-5"></i>
@@ -253,14 +225,10 @@ function showFloatingNotification(message, type = 'success') {
     </div>
     <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white text-sm font-bold">&times;</button>
   `;
-
   container.appendChild(notif);
   lucide.createIcons();
 
-  setTimeout(() => {
-    notif.classList.remove('translate-y-[-20px]', 'opacity-0');
-  }, 50);
-
+  setTimeout(() => { notif.classList.remove('translate-y-[-20px]', 'opacity-0'); }, 50);
   setTimeout(() => {
     notif.classList.add('translate-y-[-20px]', 'opacity-0');
     setTimeout(() => notif.remove(), 300);
@@ -281,17 +249,13 @@ function renderAlbumPage() {
 
     for (let i = startIndex; i <= endIndex; i++) {
       const isUnlocked = i <= STATE.userStickersCount;
-      const isMilestone = (i % 250 === 0); // Hitos cada 250 barajitas (250, 500, 750, 1000)
+      const isMilestone = (i % 250 === 0);
       const slot = document.createElement('div');
       slot.className = `metal-slot sticker-card aspect-[2.5/3.5] w-full rounded-xl flex flex-col items-center justify-center p-2 relative overflow-hidden cursor-pointer ${isUnlocked ? 'filled' : ''} ${isMilestone ? 'milestone-slot' : ''}`;
       
       if (isUnlocked) {
         const imgUrl = `https://dxicbitnnesjsqzxisea.supabase.co/storage/v1/object/public/barajitas/${i}.jpg?t=${Date.now()}`;
-        
-        const stickerObj = {
-          image: imgUrl,
-          title: `Barajita #${i}`
-        };
+        const stickerObj = { image: imgUrl, title: `Barajita #${i}` };
         allPageStickers.push(stickerObj);
         const currentIndexInPage = allPageStickers.length - 1;
 
@@ -323,7 +287,6 @@ function changePage(delta) {
     renderAlbumPage();
   }
 }
-
 async function fetchBcvRate() {
   try {
     const res = await fetch(`${API_URL}/api/bcv`);
@@ -473,9 +436,7 @@ function updateUIHeader() {
   if(btnMilestone) btnMilestone.disabled = !hasAvailableMilestone;
   if(btnLiq) btnLiq.disabled = STATE.userBalanceBs <= 0;
 }
-// ----------------------------------------------------
-// GESTIÓN DE PREMIOS Y RETIROS (HITOS Y LIQUIDACIÓN TOTAL)
-// ----------------------------------------------------
+
 function openWithdrawModal() {
   if (STATE.isProcessingWithdrawal) return alert('Tienes una solicitud de retiro activa.');
   
@@ -550,7 +511,7 @@ async function ejecutarSolicitudPremio(milestoneVal, tipoRetiro) {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         usuario_id: STATE.userId, 
-        session_token: sessionToken, // 🔑 Token de sesión seguro
+        session_token: sessionToken, 
         tipo: tipoRetiro, 
         milestone: milestoneVal, 
         monto_bs: bsVal, 
@@ -560,7 +521,6 @@ async function ejecutarSolicitudPremio(milestoneVal, tipoRetiro) {
     });
 
     const data = await res.json();
-
     if (res.status === 429) {
       alert("Has realizado demasiadas solicitudes seguidas. Espera unos minutos.");
       return;
@@ -604,7 +564,7 @@ async function confirmTotalLiquidate() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ 
         usuario_id: STATE.userId, 
-        session_token: sessionToken, // 🔑 Token de sesión seguro
+        session_token: sessionToken, 
         tipo: 'liquidacion_total', 
         milestone: 0, 
         monto_bs: bsVal.toFixed(2), 
@@ -614,7 +574,6 @@ async function confirmTotalLiquidate() {
     });
 
     const data = await res.json();
-
     if (res.status === 429) {
       alert("Has realizado demasiadas solicitudes seguidas. Espera unos minutos.");
       return;
@@ -631,10 +590,6 @@ async function confirmTotalLiquidate() {
     alert('Error de conexión al solicitar liquidación.');
   }
 }
-
-// ----------------------------------------------------
-// ADMINISTRADOR OCULTO Y GESTOS
-// ----------------------------------------------------
 function setupLogoClickCounter() {
   const logo = document.getElementById('appLogo');
   if (logo) {
@@ -680,12 +635,13 @@ async function verificarAccesoAdminOculto() {
   }
 }
 
+// 🛡️ Polling corregido a 30 segundos para evitar error 429 Too Many Requests
 function initUserPollingNotifications(usuarioId) {
   if (!usuarioId) return;
   setInterval(async () => {
     if (!STATE.userId) return;
     try { await loadUserDataFromDB(); } catch (e) {}
-  }, 5000);
+  }, 30000); 
 }
 
 function triggerStickerAnimation(cardElement) {
@@ -693,9 +649,6 @@ function triggerStickerAnimation(cardElement) {
   setTimeout(() => { cardElement.classList.remove('rotate-360'); }, 600);
 }
 
-// ----------------------------------------------------
-// VISOR DE BARAJITAS (LIGHTBOX) Y SWIPE
-// ----------------------------------------------------
 function openStickerModal(imgSrc, titleText, index) {
   const modal = document.getElementById('stickerModal');
   const modalImg = document.getElementById('modalStickerImg');
@@ -756,9 +709,6 @@ function handleSwipeGesture() {
   if (touchEndX - touchStartX > swipeThreshold) { changePage(-1); }
 }
 
-// ----------------------------------------------------
-// LATIDOS Y REFERIDOS
-// ----------------------------------------------------
 setInterval(async () => {
   const activeUserId = localStorage.getItem('active_user_id');
   const sessionToken = localStorage.getItem('session_token');
@@ -771,7 +721,7 @@ setInterval(async () => {
       });
     } catch (e) {}
   }
-}, 10000);
+}, 15000);
 
 window.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
@@ -873,9 +823,6 @@ function closeRulesModal() {
   if (modal) { modal.classList.add('hidden'); }
 }
 
-// ----------------------------------------------------
-// 🛡️ VERIFICADOR DE ESTADO MAESTRO (KILL-SWITCH)
-// ----------------------------------------------------
 async function verificarEstadoPlataforma() {
   try {
     const response = await fetch(`${API_URL}/api/system-status`);
