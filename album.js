@@ -398,11 +398,10 @@ function updateUIHeader() {
   // 💰 REGULACIÓN POR VALOR NETO: $100 USD al cambio oficial BCV
   const milestoneBsValue = 100 * STATE.bcvRate;
 
-  // Se habilita si cumple barajitas, no se ha cobrado antes Y el Saldo Neto es >= al costo del hito ($100 USD en Bs)
+  // Se habilita si cumple barajitas y no se ha cobrado antes
   const hasAvailableMilestone = [250, 500, 750, 1000].some(m =>
     STATE.userStickersCount >= m && 
-    !STATE.claimedMilestones.includes(m) && 
-    STATE.userBalanceBs >= milestoneBsValue
+    !STATE.claimedMilestones.includes(m)
   );
 
   if(btnMilestone) btnMilestone.disabled = !hasAvailableMilestone;
