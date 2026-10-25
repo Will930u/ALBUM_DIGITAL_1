@@ -407,12 +407,14 @@ async function loadUserDataFromDB() {
       
     STATE.isProcessingWithdrawal = hasActiveOrPending;
     updateUIHeader();
-    STATE.isInitialLoad = false;
+
   } catch (err) {
     console.error("Error al cargar datos del usuario desde el backend:", err);
+  } finally {
+    // 🔑 Bloque finally: Garantiza que la carga inicial termine siempre, liberando las notificaciones flotantes
+    STATE.isInitialLoad = false;
   }
 }
-
 function updateUIHeader() {
   const balanceUSD = STATE.bcvRate > 0 ? (STATE.userBalanceBs / STATE.bcvRate).toFixed(2) : '0.00';
   document.getElementById('userBalanceBs').innerText = `Bs. ${STATE.userBalanceBs.toFixed(2)} ($${balanceUSD})`;
