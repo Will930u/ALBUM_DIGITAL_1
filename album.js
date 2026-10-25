@@ -434,10 +434,12 @@ function updateUIHeader() {
     return;
   }
 
-  const milestoneBsValue = 100 * STATE.bcvRate;
+  // 🔑 MODIFICACIÓN: Validamos exclusivamente que tenga las barajitas del hito y no lo haya reclamado antes.
+  // Ya no exigimos obligatoriamente tener los $100 USD netos en saldo para habilitar el botón del hito.
   const hasAvailableMilestone = [250, 500, 750, 1000].some(m =>
-    STATE.userStickersCount >= m && !STATE.claimedMilestones.includes(m) && STATE.userBalanceBs >= milestoneBsValue
+    STATE.userStickersCount >= m && !STATE.claimedMilestones.includes(m)
   );
+
   if(btnMilestone) btnMilestone.disabled = !hasAvailableMilestone;
   if(btnLiq) btnLiq.disabled = STATE.userBalanceBs <= 0;
 }
