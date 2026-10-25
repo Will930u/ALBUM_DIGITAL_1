@@ -20,11 +20,34 @@ document.addEventListener('DOMContentLoaded', async () => {
     const today = new Date().toISOString().split('T')[0];
     const dateField = document.getElementById('dateInput');
     if (dateField) dateField.value = today;
+
+    // ==========================================
+    // 🎵 CONTROL DE MÚSICA DE FONDO CONTINUA (TIENDA)
+    // ==========================================
+    const bgMusic = document.getElementById('bgMusic');
+    const shouldPlay = localStorage.getItem('playMusic');
+    const savedTime = localStorage.getItem('audioTime');
+
+    if (bgMusic && shouldPlay === 'true') {
+      if (savedTime) {
+        bgMusic.currentTime = parseFloat(savedTime);
+      }
+      
+      bgMusic.volume = 0.4;
+      bgMusic.play().catch(err => {
+        console.log("El navegador bloqueó el autoplay o requiere interacción:", err);
+      });
+
+      bgMusic.ontimeupdate = () => {
+        localStorage.setItem('audioTime', bgMusic.currentTime);
+      };
+    }
+    // ==========================================
+
   } catch (err) {
     console.error("Error al inicializar la tienda:", err);
   }
 });
-
 function logoutUser() {
   localStorage.removeItem('active_user_id');
   window.location.href = 'index.html';
