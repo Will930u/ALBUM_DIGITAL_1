@@ -901,9 +901,28 @@ def notificar_retiro():
     if not all([usuario_id, monto_bs, datos_pago]):
         return jsonify({"status": "error", "message": "Campos incompletos"}), 400
 
-    w_id = None
     if supabase_client:
         try:
+            # 1️⃣ Verificar el estado actual del usuario en la base de datos
+            usr_res = supabase_client.table("usuarios").select("cantidad_barajitas").eq("id", usuario_id).execute()
+            if not usr_res.data:
+                return jsonify({"status": "error", "message": "Usuario no encontrado."}), 404
+            
+            user_barajitas = int(usr_res.data[0].get("cantidad_barajitas", 0) or 0)
+
+            # 2️⃣ Validar que el usuario realmente posea las barajitas del hito que intenta reclamar
+            if milestone > 0 and milestone < 1000 and user_barajitas < milestone:
+                return jsonify({"status": "error", "message": f"No cumples con las barajitas requeridas para este hito ({user_barajitas}/{milestone})."}), 400
+
+            # 3️⃣ Evitar duplicados: Verificar si ya existe una solicitud pendiente o aprobada para este mismo hito
+            if milestone > 0 and milestone < 1000:
+                ret_existente = supabase_client.table("retiros").select("id, estado").eq("usuario_id", str(usuario_id)).eq("milestone", milestone).execute()
+                if ret_existente.data:
+                    for r in ret_existente.data:
+                        if r.get("estado") in ["pendiente", "aprobado"]:
+                            return jsonify({"status": "error", "message": f"Ya tienes una solicitud para el Hito #{milestone} en estado '{r.get('estado')}'."}), 400
+
+            # 4️⃣ Insertar la solicitud de retiro de forma segura
             res_insert = supabase_client.table("retiros").insert({
                 "usuario_id": str(usuario_id),
                 "tipo": str(tipo),
@@ -913,8 +932,9 @@ def notificar_retiro():
                 "datos_pago": str(datos_pago),
                 "estado": "pendiente"
             }).execute()
-            if res_insert.data and len(res_insert.data) > 0:
-                w_id = res_insert.data[0].get("id")
+
+            w_id = res_insert.data[0].get("id") if res_insert.data else None
+
         except Exception as e:
             return jsonify({"status": "error", "message": str(e)}), 500
 
