@@ -11,14 +11,20 @@
   <link rel="stylesheet" href="login.css">
 </head>
 <body class="flex items-center justify-center min-h-screen p-4 bg-slate-950">
+  <!-- Audio de fondo continuo para toda la página -->
+<audio id="bgMusic" loop>
+  <source src="musica-fondo.mp3" type="audio/mpeg">
+  Tu navegador no soporta audio.
+</audio>
   <!-- ========================================== -->
   <!-- PANTALLA DE BIENVENIDA / INTRO CINEMÁTICA -->
   <!-- ========================================== -->
   <div id="introOverlay">
-    <video id="introVideo" playsinline>
-      <source src="logo-animado.mp4" type="video/mp4">
-      </video>
-    <div id="darkOverlay" class="absolute inset-0 bg-gradient-to-t from-black via-slate-950/80 to-black z-10 opacity-70 transition-opacity duration-1000"></div>
+    <video id="introVideo" muted playsinline>
+      <source src="logo-animado.mp" type="video/mp4">
+      Tu navegador no soporta video.
+    </video>
+        <div id="darkOverlay" class="absolute inset-0 bg-gradient-to-t from-black via-slate-950/80 to-black z-10 opacity-70 transition-opacity duration-1000"></div>
     <div class="intro-content z-20 space-y-6">
       <div id="playContainer">
         <button onclick="startIntroExperience()" class="metal-button px-8 py-4 rounded-2xl font-extrabold text-white text-base shadow-2xl flex items-center gap-3 mx-auto border border-purple-500/50 hover:scale-105 transition-transform">
@@ -156,10 +162,11 @@
 
     const rulesTextContent = "• Colecciona las 1,000 barajitas digitales de forma inteligente.\n• Alcanza las metas de hitos en 250, 500, 750 y 1,000 barajitas.\n• Obtén ganancias reales pagadas directamente por Pago Móvil.\n• Completa el ciclo y actívalo de nuevo de forma infinita.";
 
-    function startIntroExperience() {
+   function startIntroExperience() {
       const btnContainer = document.getElementById('playContainer');
       const video = document.getElementById('introVideo');
-      const darkOverlay = document.getElementById('darkOverlay'); // 👈 Capturamos la capa oscura
+      const darkOverlay = document.getElementById('darkOverlay');
+      const bgMusic = document.getElementById('bgMusic');
       
       // Ocultamos el botón de inicio
       btnContainer.classList.add('fade-out');
@@ -170,9 +177,16 @@
         darkOverlay.style.opacity = '0';
       }
 
-      // Activamos el audio y reproducimos el video
-      video.muted = false;
+      // Reproducimos el video (en silencio para que no choque con la música)
       video.play();
+
+      // 🎵 Activamos la música de fondo para toda la página
+      if (bgMusic) {
+        bgMusic.volume = 0.4; // Ajusta el volumen a tu gusto (de 0.0 a 1.0)
+        bgMusic.play().catch(error => {
+          console.log("El navegador requirió interacción para el audio:", error);
+        });
+      }
 
       // Control para desvanecer el video al final (los últimos 1.5 segundos)
       video.ontimeupdate = () => {
@@ -182,7 +196,7 @@
         }
       };
 
-      // Cuando termina, muestra las reglas
+      // Cuando termina el video, muestra las reglas
       video.onended = () => {
         showRulesWithTypingEffect();
       };
