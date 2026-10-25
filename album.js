@@ -26,8 +26,8 @@ let allPageStickers = [];
 
 document.addEventListener('DOMContentLoaded', async () => {
   if (!STATE.userId || !verificarYRenovarSesion()) {
-    alert("⏳ Tu sesión ha expirado por 1 hora de inactividad o seguridad. Por favor, inicia sesión nuevamente.");
-    window.location.href = 'index.html';
+    showFloatingNotification("⏳ Tu sesión ha expirado por 1 hora de inactividad o seguridad. Por favor, inicia sesión nuevamente.", "error");
+    setTimeout(() => { window.location.href = 'index.html'; }, 2000);
     return;
   }
 
@@ -104,6 +104,7 @@ async function logoutUser() {
   localStorage.removeItem('active_user_id');
   window.location.href = 'index.html';
 }
+
 let feedActividadesGlobal = [];
 let feedIndexActual = 0;
 let feedIntervalId = null;
@@ -211,16 +212,17 @@ function showFloatingNotification(message, type = 'success') {
     document.body.appendChild(container);
   }
 
+  const isSuccess = type === 'success';
   const notif = document.createElement('div');
   notif.className = `pointer-events-auto p-4 rounded-2xl shadow-2xl border backdrop-blur-md transition-all transform translate-y-[-20px] opacity-0 flex items-start gap-3 ${
-    type === 'success' ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200' : 'bg-purple-950/90 border-purple-500/50 text-purple-200'
+    isSuccess ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200' : 'bg-red-950/90 border-red-500/50 text-red-200'
   }`;
   notif.innerHTML = `
-    <div class="p-2 rounded-xl bg-emerald-500/20 text-emerald-400 mt-0.5">
-      <i data-lucide="${type === 'success' ? 'check-circle-2' : 'bell'}" class="w-5 h-5"></i>
+    <div class="p-2 rounded-xl ${isSuccess ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'} mt-0.5">
+      <i data-lucide="${isSuccess ? 'check-circle-2' : 'alert-triangle'}" class="w-5 h-5"></i>
     </div>
     <div class="flex-1">
-      <h4 class="font-bold text-sm text-white">¡Actualización en tu Álbum!</h4>
+      <h4 class="font-bold text-sm text-white">${isSuccess ? '¡Actualización en tu Álbum!' : 'Atención'}</h4>
       <p class="text-xs mt-0.5 leading-relaxed">${message}</p>
     </div>
     <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white text-sm font-bold">&times;</button>
@@ -287,6 +289,7 @@ function changePage(delta) {
     renderAlbumPage();
   }
 }
+
 async function fetchBcvRate() {
   try {
     const res = await fetch(`${API_URL}/api/bcv`);
@@ -319,8 +322,8 @@ async function loadUserDataFromDB() {
     });
 
     if (res.status === 403) {
-      alert("🚨 Tu cuenta ha sido bloqueada o suspendida por el administrador.");
-      logoutUser();
+      showFloatingNotification("🚨 Tu cuenta ha sido bloqueada o suspendida por el administrador.", "error");
+      setTimeout(() => { logoutUser(); }, 2500);
       return;
     }
 
@@ -329,8 +332,8 @@ async function loadUserDataFromDB() {
 
     if (data && data.user) {
       if (data.user.bloqueado === true) {
-        alert("🚨 Acceso revocado. Has sido expulsado del sistema.");
-        logoutUser();
+        showFloatingNotification("🚨 Acceso revocado. Has sido expulsado del sistema.", "error");
+        setTimeout(() => { logoutUser(); }, 2500);
         return;
       }
 
@@ -411,10 +414,10 @@ async function loadUserDataFromDB() {
   } catch (err) {
     console.error("Error al cargar datos del usuario desde el backend:", err);
   } finally {
-    // 🔑 Bloque finally: Garantiza que la carga inicial termine siempre, liberando las notificaciones flotantes
     STATE.isInitialLoad = false;
   }
 }
+
 function updateUIHeader() {
   const balanceUSD = STATE.bcvRate > 0 ? (STATE.userBalanceBs / STATE.bcvRate).toFixed(2) : '0.00';
   document.getElementById('userBalanceBs').innerText = `Bs. ${STATE.userBalanceBs.toFixed(2)} ($${balanceUSD})`;
@@ -440,10 +443,13 @@ function updateUIHeader() {
 }
 
 function openWithdrawModal() {
-  if (STATE.isProcessingWithdrawal) return alert('Tienes una solicitud de retiro activa.');
+  if (STATE.isProcessingWithdrawal) {
+    showFloatingNotification('Tienes una solicitud de retiro activa.', 'error');
+    return;
+  }
   
   if (!STATE.userBanco || !STATE.userTelefono || !STATE.userCedula) {
-    alert("⚠️ No tienes configurados tus datos de pago (Banco, Cédula y Teléfono) en tu perfil.");
+    showFloatingNotification("⚠️ No tienes configurados tus datos de pago (Banco, Cédula y Teléfono) en tu perfil.", 'error');
     return;
   }
 
@@ -495,13 +501,17 @@ function closeWithdrawModal() {
 }
 
 async function submitWithdrawalRequest() {
-  if (!STATE.selectedMilestone) return alert('Selecciona un hito primero.');
+  if (!STATE.selectedMilestone) {
+    showFloatingNotification('Selecciona un hito primero.', 'error');
+    return;
+  }
   ejecutarSolicitudPremio(STATE.selectedMilestone, STATE.selectedMilestone === 1000 ? 'ciclo_completo' : 'hito_parcial');
 }
 
 async function ejecutarSolicitudPremio(milestoneVal, tipoRetiro) {
   if (!STATE.userBanco || !STATE.userTelefono || !STATE.userCedula) {
-    return alert('Error: Faltan los datos de pago del usuario en el sistema.');
+    showFloatingNotification('Error: Faltan los datos de pago del usuario en el sistema.', 'error');
+    return;
   }
 
   const sessionToken = localStorage.getItem('session_token');
@@ -524,28 +534,32 @@ async function ejecutarSolicitudPremio(milestoneVal, tipoRetiro) {
 
     const data = await res.json();
     if (res.status === 429) {
-      alert("Has realizado demasiadas solicitudes seguidas. Espera unos minutos.");
+      showFloatingNotification("Has realizado demasiadas solicitudes seguidas. Espera unos minutos.", 'error');
       return;
     }
 
     if (res.ok && data.status === 'success') {
-      alert('¡Solicitud enviada con éxito con tus datos guardados! Queda pendiente de verificación.');
+      showFloatingNotification('¡Solicitud enviada con éxito con tus datos guardados! Queda pendiente de verificación.');
       closeWithdrawModal();
       loadUserDataFromDB();
     } else {
-      alert(data.message || 'Error al enviar la solicitud.');
+      showFloatingNotification(data.message || 'Error al enviar la solicitud.', 'error');
     }
   } catch (err) {
     console.error("Error al enviar solicitud de premio:", err);
-    alert('Error de conexión al procesar el retiro.');
+    showFloatingNotification('Error de conexión al procesar el retiro.', 'error');
   }
 }
 
 async function confirmTotalLiquidate() {
-  if (STATE.userBalanceBs <= 0) return alert('Sin saldo neto para liquidar.');
+  if (STATE.userBalanceBs <= 0) {
+    showFloatingNotification('Sin saldo neto para liquidar.', 'error');
+    return;
+  }
   
   if (!STATE.userBanco || !STATE.userTelefono || !STATE.userCedula) {
-    return alert('⚠️ No tienes tus datos de pago registrados en la base de datos.');
+    showFloatingNotification('⚠️ No tienes tus datos de pago registrados en la base de datos.', 'error');
+    return;
   }
 
   const aceptarLiquidacion = confirm(
@@ -577,21 +591,22 @@ async function confirmTotalLiquidate() {
 
     const data = await res.json();
     if (res.status === 429) {
-      alert("Has realizado demasiadas solicitudes seguidas. Espera unos minutos.");
+      showFloatingNotification("Has realizado demasiadas solicitudes seguidas. Espera unos minutos.", 'error');
       return;
     }
 
     if (res.ok && data.status === 'success') {
-      alert('¡Liquidación total solicitada con éxito! Al aprobarse, tu progreso se reiniciará.');
+      showFloatingNotification('¡Liquidación total solicitada con éxito! Al aprobarse, tu progreso se reiniciará.');
       loadUserDataFromDB();
     } else {
-      alert(data.message || 'Error al solicitar liquidación.');
+      showFloatingNotification(data.message || 'Error al solicitar liquidación.', 'error');
     }
   } catch (err) {
     console.error("Error al solicitar liquidación total:", err);
-    alert('Error de conexión al solicitar liquidación.');
+    showFloatingNotification('Error de conexión al solicitar liquidación.', 'error');
   }
 }
+
 function setupLogoClickCounter() {
   const logo = document.getElementById('appLogo');
   if (logo) {
@@ -637,7 +652,6 @@ async function verificarAccesoAdminOculto() {
   }
 }
 
-// 🛡️ Polling corregido a 30 segundos para evitar error 429 Too Many Requests
 function initUserPollingNotifications(usuarioId) {
   if (!usuarioId) return;
   setInterval(async () => {
@@ -754,8 +768,7 @@ async function openReferralModal() {
     if (data.success && data.unlocked) {
       bodyContainer.innerHTML = `
         <div class="space-y-3">
-          // Cambia esto dentro de openReferralModal en album.js:
-<p class="text-slate-300 text-xs">Comparte tu enlace único. Por cada 10 amigos que se registren y compren sus primeras <b>05 barajitas</b>, ganarás <b>$5.00</b> de saldo.</p>
+          <p class="text-slate-300 text-xs">Comparte tu enlace único. Por cada 10 amigos que se registren y compren sus primeras <b>05 barajitas</b>, ganarás <b>$5.00</b> de saldo.</p>
           <div class="space-y-1">
             <label class="text-[11px] font-bold text-purple-300">Tu Enlace Personal:</label>
             <div class="flex gap-2">
