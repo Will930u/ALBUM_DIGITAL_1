@@ -167,6 +167,15 @@
       video.muted = false;
       video.play();
 
+      // Control para desvanecer el video 1.5 segundos antes de que termine
+      video.ontimeupdate = () => {
+        if (video.duration && (video.duration - video.currentTime <= 1.5)) {
+          video.style.opacity = '0'; // Empieza a difuminarse suavemente
+          video.ontimeupdate = null; // Evita que se ejecute repetidamente
+        }
+      };
+
+      // Cuando termina por completo, muestra las reglas
       video.onended = () => {
         showRulesWithTypingEffect();
       };
