@@ -752,7 +752,8 @@ async function openReferralModal() {
     if (data.success && data.unlocked) {
       bodyContainer.innerHTML = `
         <div class="space-y-3">
-          <p class="text-slate-300 text-xs">Comparte tu enlace único. Por cada 10 amigos que se registren y compren su primera barajita, ganarás <b>$5.00</b> de saldo.</p>
+          // Cambia esto dentro de openReferralModal en album.js:
+<p class="text-slate-300 text-xs">Comparte tu enlace único. Por cada 10 amigos que se registren y compren sus primeras <b>05 barajitas</b>, ganarás <b>$5.00</b> de saldo.</p>
           <div class="space-y-1">
             <label class="text-[11px] font-bold text-purple-300">Tu Enlace Personal:</label>
             <div class="flex gap-2">
