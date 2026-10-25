@@ -47,18 +47,10 @@ document.addEventListener('DOMContentLoaded', async () => {
     const savedTime = localStorage.getItem('audioTime');
 
     if (bgMusic && shouldPlay === 'true') {
-      if (savedTime) {
-        bgMusic.currentTime = parseFloat(savedTime);
-      }
-      
+      if (savedTime) bgMusic.currentTime = parseFloat(savedTime);
       bgMusic.volume = 0.4;
-      bgMusic.play().catch(err => {
-        console.log("El navegador bloqueó el autoplay o requiere interacción:", err);
-      });
-
-      bgMusic.ontimeupdate = () => {
-        localStorage.setItem('audioTime', bgMusic.currentTime);
-      };
+      bgMusic.play().catch(err => console.log("Autoplay bloqueado:", err));
+      bgMusic.ontimeupdate = () => localStorage.setItem('audioTime', bgMusic.currentTime);
     }
   } catch (err) {
     console.error("Error al inicializar el álbum:", err);
@@ -68,24 +60,19 @@ document.addEventListener('DOMContentLoaded', async () => {
 function verificarYRenovarSesion() {
   const tokenDataString = localStorage.getItem('session_token_data');
   if (!tokenDataString) return false;
-
   try {
     const tokenData = JSON.parse(tokenDataString);
     const now = new Date().getTime();
-
     if (now > tokenData.expiry) {
       localStorage.removeItem('session_token_data');
       localStorage.removeItem('active_user_id');
       localStorage.removeItem('session_token');
       return false; 
     }
-
     tokenData.expiry = now + (60 * 60 * 1000);
     localStorage.setItem('session_token_data', JSON.stringify(tokenData));
     return true;
-  } catch (e) {
-    return false;
-  }
+  } catch (e) { return false; }
 }
 
 async function logoutUser() {
@@ -97,9 +84,7 @@ async function logoutUser() {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ usuario_id: activeUserId })
       });
-    } catch (err) {
-      console.error('Error al notificar cierre de sesión:', err);
-    }
+    } catch (err) {}
   }
   localStorage.removeItem('active_user_id');
   window.location.href = 'index.html';
@@ -126,15 +111,12 @@ function shuffleArray(array) {
 async function cargarFeedActividad() {
   const tickerContainer = document.getElementById('tickerContent');
   if (!tickerContainer) return;
-
   try {
     const res = await fetch(`${API_URL}/api/feed-actividad`);
     const data = await res.json();
-
     if (data.status === 'success' && data.actividades && data.actividades.length > 0) {
       const usuariosProcesados = new Set();
       const actividadesUnicas = [];
-
       data.actividades.forEach(act => {
         const usuarioNombre = (act.usuario_id || 'Comunidad').trim();
         if (!usuariosProcesados.has(usuarioNombre)) {
@@ -142,10 +124,8 @@ async function cargarFeedActividad() {
           actividadesUnicas.push(act);
         }
       });
-
       feedActividadesGlobal = shuffleArray(actividadesUnicas);
       feedIndexActual = 0;
-      
       if (!feedIntervalId) {
         mostrarSiguienteItemFeed();
         feedIntervalId = setInterval(mostrarSiguienteItemFeed, 5000);
@@ -153,15 +133,12 @@ async function cargarFeedActividad() {
     } else {
       tickerContainer.innerHTML = `<span class="text-slate-400">✨ ¡Sé el primero en unirte a la acción comunitaria del álbum!</span>`;
     }
-  } catch (err) {
-    console.error("Error al cargar feed de actividad:", err);
-  }
+  } catch (err) {}
 }
 
 function destacarCompraEnTicker(usuario, detalle, monto) {
   const tickerContainer = document.getElementById('tickerContent');
   if (!tickerContainer) return;
-
   prioridadCompraActiva = true;
   tickerContainer.innerHTML = `
     <div class="animate-fade-ticker flex items-center justify-center space-x-1.5 text-center w-full bg-purple-900/40 border border-purple-500/40 rounded-lg px-2 py-0.5">
@@ -175,24 +152,19 @@ function destacarCompraEnTicker(usuario, detalle, monto) {
 
 function mostrarSiguienteItemFeed() {
   if (prioridadCompraActiva) return;
-
   const tickerContainer = document.getElementById('tickerContent');
   if (!tickerContainer || feedActividadesGlobal.length === 0) return;
-
   if (feedIndexActual >= feedActividadesGlobal.length) {
     feedIndexActual = 0;
     feedActividadesGlobal = shuffleArray(feedActividadesGlobal);
   }
-
   const item = feedActividadesGlobal[feedIndexActual];
   const usuario = escapeHTML(item.usuario_id || 'Comunidad');
   const detalle = escapeHTML(item.detalle || 'actividad en el álbum');
   const monto = item.monto_bs || 0;
   const esRetiro = item.tipo === 'retiro';
-
   const icono = esRetiro ? '🏆' : '🛒';
   const colorClase = esRetiro ? 'text-amber-300 font-bold' : 'text-amber-400 font-bold';
-
   tickerContainer.innerHTML = `
     <div class="animate-fade-ticker flex items-center justify-center space-x-1.5 text-center w-full">
       <span class="${colorClase}">${icono} <b>${usuario}</b></span>
@@ -211,7 +183,6 @@ function showFloatingNotification(message, type = 'success') {
     container.className = 'fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-md w-full px-4 pointer-events-none';
     document.body.appendChild(container);
   }
-
   const isSuccess = type === 'success';
   const notif = document.createElement('div');
   notif.className = `pointer-events-auto p-4 rounded-2xl shadow-2xl border backdrop-blur-md transition-all transform translate-y-[-20px] opacity-0 flex items-start gap-3 ${
@@ -229,24 +200,20 @@ function showFloatingNotification(message, type = 'success') {
   `;
   container.appendChild(notif);
   lucide.createIcons();
-
   setTimeout(() => { notif.classList.remove('translate-y-[-20px]', 'opacity-0'); }, 50);
   setTimeout(() => {
     notif.classList.add('translate-y-[-20px]', 'opacity-0');
     setTimeout(() => notif.remove(), 300);
   }, 8000);
 }
-
 function renderAlbumPage() {
   const grid = document.getElementById('stickersGrid');
   if (!grid) return;
   grid.style.opacity = '0';
-  
   setTimeout(() => {
     grid.innerHTML = '';
     const startIndex = (STATE.currentPage - 1) * STATE.stickersPerPage + 1;
     const endIndex = startIndex + STATE.stickersPerPage - 1;
-
     allPageStickers = [];
 
     for (let i = startIndex; i <= endIndex; i++) {
@@ -299,13 +266,10 @@ async function fetchBcvRate() {
       return;
     }
   } catch (e) {}
-
   try {
     const res = await fetch('https://ve.dolarapi.com/v1/dolares/oficial');
     const data = await res.json();
-    if (data.promedio) {
-      STATE.bcvRate = data.promedio;
-    }
+    if (data.promedio) STATE.bcvRate = data.promedio;
   } catch (e) {}
 }
 
@@ -315,10 +279,7 @@ async function loadUserDataFromDB() {
     const res = await fetch(`${API_URL}/api/usuario/info`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ 
-        usuario_id: STATE.userId,
-        session_token: sessionToken 
-      })
+      body: JSON.stringify({ usuario_id: STATE.userId, session_token: sessionToken })
     });
 
     if (res.status === 403) {
@@ -336,7 +297,6 @@ async function loadUserDataFromDB() {
         setTimeout(() => { logoutUser(); }, 2500);
         return;
       }
-
       STATE.userStickersCount = data.user.cantidad_barajitas || 0;
       STATE.userBalanceBs = data.user.saldo_bs || 0;
       STATE.userBanco = data.user.banco || '';
@@ -412,7 +372,7 @@ async function loadUserDataFromDB() {
     updateUIHeader();
 
   } catch (err) {
-    console.error("Error al cargar datos del usuario desde el backend:", err);
+    console.error("Error al cargar datos del usuario:", err);
   } finally {
     STATE.isInitialLoad = false;
   }
@@ -434,8 +394,7 @@ function updateUIHeader() {
     return;
   }
 
-  // 🔑 MODIFICACIÓN: Validamos exclusivamente que tenga las barajitas del hito y no lo haya reclamado antes.
-  // Ya no exigimos obligatoriamente tener los $100 USD netos en saldo para habilitar el botón del hito.
+  // Validación de hito flexible (se activa al tener las barajitas y no haberlo reclamado)
   const hasAvailableMilestone = [250, 500, 750, 1000].some(m =>
     STATE.userStickersCount >= m && !STATE.claimedMilestones.includes(m)
   );
@@ -443,7 +402,6 @@ function updateUIHeader() {
   if(btnMilestone) btnMilestone.disabled = !hasAvailableMilestone;
   if(btnLiq) btnLiq.disabled = STATE.userBalanceBs <= 0;
 }
-
 function openWithdrawModal() {
   if (STATE.isProcessingWithdrawal) {
     showFloatingNotification('Tienes una solicitud de retiro activa.', 'error');
@@ -451,14 +409,14 @@ function openWithdrawModal() {
   }
   
   if (!STATE.userBanco || !STATE.userTelefono || !STATE.userCedula) {
-    showFloatingNotification("⚠️ No tienes configurados tus datos de pago (Banco, Cédula y Teléfono) en tu perfil.", 'error');
+    showFloatingNotification("⚠️ No tienes configurados tus datos de pago en tu perfil.", 'error');
     return;
   }
 
   if (STATE.userStickersCount >= 1000 && !STATE.claimedMilestones.includes(1000)) {
     const confirmarCiclo = confirm(
       "🌟 ¡FELICIDADES Y GRACIAS POR COMPLETAR EL ÁLBUM! 🌟\n\n" +
-      "Has completado las 1000 barajitas (Ciclo Completo). Tu solicitud de pago se enviará automáticamente con tus datos registrados:\n" +
+      "Has completado las 1000 barajitas (Ciclo Completo). Tu solicitud de pago se enviará automáticamente con tus datos:\n" +
       `🏦 Banco: ${STATE.userBanco}\n📱 Teléfono: ${STATE.userTelefono}\n🆔 Cédula: ${STATE.userCedula}\n\n¿Deseas proceder?`
     );
     if (confirmarCiclo) {
@@ -512,7 +470,7 @@ async function submitWithdrawalRequest() {
 
 async function ejecutarSolicitudPremio(milestoneVal, tipoRetiro) {
   if (!STATE.userBanco || !STATE.userTelefono || !STATE.userCedula) {
-    showFloatingNotification('Error: Faltan los datos de pago del usuario en el sistema.', 'error');
+    showFloatingNotification('Error: Faltan los datos de pago del usuario.', 'error');
     return;
   }
 
@@ -541,7 +499,7 @@ async function ejecutarSolicitudPremio(milestoneVal, tipoRetiro) {
     }
 
     if (res.ok && data.status === 'success') {
-      showFloatingNotification('¡Solicitud enviada con éxito con tus datos guardados! Queda pendiente de verificación.');
+      showFloatingNotification('¡Solicitud enviada con éxito! Queda pendiente de verificación.');
       closeWithdrawModal();
       loadUserDataFromDB();
     } else {
@@ -560,14 +518,14 @@ async function confirmTotalLiquidate() {
   }
   
   if (!STATE.userBanco || !STATE.userTelefono || !STATE.userCedula) {
-    showFloatingNotification('⚠️ No tienes tus datos de pago registrados en la base de datos.', 'error');
+    showFloatingNotification('⚠️ No tienes tus datos de pago registrados.', 'error');
     return;
   }
 
   const aceptarLiquidacion = confirm(
     "⚠️ ADVERTENCIA DE LIQUIDACIÓN TOTAL ⚠️\n\n" +
-    `Se procesará tu pago a los siguientes datos guardados:\n🏦 Banco: ${STATE.userBanco}\n📱 Teléfono: ${STATE.userTelefono}\n🆔 Cédula: ${STATE.userCedula}\n\n` +
-    "Al aceptar, el saldo será enviado y **el álbum se reiniciará por completo**.\n\n¿Estás seguro de que deseas aceptar y liquidar tu saldo?"
+    `Se procesará tu pago a:\n🏦 Banco: ${STATE.userBanco}\n📱 Teléfono: ${STATE.userTelefono}\n🆔 Cédula: ${STATE.userCedula}\n\n` +
+    "Al aceptar, el saldo será enviado y **el álbum se reiniciará por completo**.\n\n¿Estás seguro?"
   );
   
   if (!aceptarLiquidacion) return;
@@ -598,7 +556,7 @@ async function confirmTotalLiquidate() {
     }
 
     if (res.ok && data.status === 'success') {
-      showFloatingNotification('¡Liquidación total solicitada con éxito! Al aprobarse, tu progreso se reiniciará.');
+      showFloatingNotification('¡Liquidación total solicitada con éxito!');
       loadUserDataFromDB();
     } else {
       showFloatingNotification(data.message || 'Error al solicitar liquidación.', 'error');
@@ -608,7 +566,6 @@ async function confirmTotalLiquidate() {
     showFloatingNotification('Error de conexión al solicitar liquidación.', 'error');
   }
 }
-
 function setupLogoClickCounter() {
   const logo = document.getElementById('appLogo');
   if (logo) {
@@ -637,19 +594,15 @@ async function verificarAccesoAdminOculto() {
 
     if (res.status === 200 && data.status === 'authorized') {
       window.location.href = 'admin.html';
-    } 
-    else if (data.status === 'warning') {
+    } else if (data.status === 'warning') {
       showFloatingNotification(`⚠️ Advertencia de Seguridad (${data.intentos}/3): Intento de acceso no autorizado registrado.`);
-    } 
-    else if (res.status === 403 || data.status === 'blocked') {
-      showFloatingNotification("🚨 ¡Cuenta bloqueada permanentemente por intentos de acceso no autorizado!", "error");
+    } else if (res.status === 403 || data.status === 'blocked') {
+      showFloatingNotification("🚨 ¡Cuenta bloqueada permanentemente!", "error");
       setTimeout(() => { logoutUser(); }, 3500);
-    } 
-    else {
+    } else {
       showFloatingNotification("⚠️ Acceso denegado.", "error");
     }
   } catch (err) {
-    console.error("Error al verificar permisos:", err);
     showFloatingNotification("Error de conexión al verificar permisos.", "error");
   }
 }
@@ -671,18 +624,14 @@ function openStickerModal(imgSrc, titleText, index) {
   const modal = document.getElementById('stickerModal');
   const modalImg = document.getElementById('modalStickerImg');
   const modalTitle = document.getElementById('modalStickerTitle');
-
   if (!modal || !modalImg) return;
-
   modalImg.src = imgSrc;
   modalImg.onerror = function() {
     this.src = `https://via.placeholder.com/400x560/1e1b4b/a855f7?text=${encodeURIComponent(titleText)}`;
   };
-
   if (modalTitle) modalTitle.textContent = titleText;
   currentModalIndex = index;
   modal.classList.remove('hidden');
-  
   if (typeof lucide !== 'undefined') { lucide.createIcons(); }
 }
 
@@ -696,7 +645,6 @@ function navigateStickerModal(direction) {
     currentModalIndex += direction;
     if (currentModalIndex < 0) currentModalIndex = allPageStickers.length - 1;
     if (currentModalIndex >= allPageStickers.length) currentModalIndex = 0;
-
     const targetSticker = allPageStickers[currentModalIndex];
     if (targetSticker) {
       openStickerModal(targetSticker.image, targetSticker.title, currentModalIndex);
@@ -710,15 +658,8 @@ let touchEndX = 0;
 function setupSwipeGestures() {
   const grid = document.getElementById('stickersGrid');
   if (!grid) return;
-
-  grid.addEventListener('touchstart', (e) => {
-    touchStartX = e.changedTouches[0].screenX;
-  }, { passive: true });
-
-  grid.addEventListener('touchend', (e) => {
-    touchEndX = e.changedTouches[0].screenX;
-    handleSwipeGesture();
-  }, { passive: true });
+  grid.addEventListener('touchstart', (e) => { touchStartX = e.changedTouches[0].screenX; }, { passive: true });
+  grid.addEventListener('touchend', (e) => { touchEndX = e.changedTouches[0].screenX; handleSwipeGesture(); }, { passive: true });
 }
 
 function handleSwipeGesture() {
@@ -744,19 +685,15 @@ setInterval(async () => {
 window.addEventListener('DOMContentLoaded', () => {
     const urlParams = new URLSearchParams(window.location.search);
     const refCode = urlParams.get('ref');
-    if (refCode) {
-        sessionStorage.setItem('codigo_referido_invitacion', refCode);
-    }
+    if (refCode) sessionStorage.setItem('codigo_referido_invitacion', refCode);
 });
 
 async function openReferralModal() {
   const modal = document.getElementById('referralModal');
   const bodyContainer = document.getElementById('referralModalBody');
   if (!modal || !bodyContainer) return;
-
   modal.classList.remove('hidden');
   bodyContainer.innerHTML = `<p class="text-center text-purple-300 animate-pulse">Verificando estado de tu cuenta...</p>`;
-
   try {
     const sessionToken = localStorage.getItem('session_token');
     const response = await fetch(`${API_URL}/api/referidos/obtener-link`, {
@@ -764,9 +701,7 @@ async function openReferralModal() {
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ usuario_id: STATE.userId, session_token: sessionToken })
     });
-
     const data = await response.json();
-
     if (data.success && data.unlocked) {
       bodyContainer.innerHTML = `
         <div class="space-y-3">
@@ -845,12 +780,8 @@ async function verificarEstadoPlataforma() {
   try {
     const response = await fetch(`${API_URL}/api/system-status`);
     const data = await response.json();
-    if (data.is_online === false) {
-      mostrarPantallaMantenimiento();
-    }
-  } catch (err) {
-    console.error("Error al verificar el estado del sistema:", err);
-  }
+    if (data.is_online === false) { mostrarPantallaMantenimiento(); }
+  } catch (err) {}
 }
 
 function mostrarPantallaMantenimiento() {
@@ -869,6 +800,4 @@ function mostrarPantallaMantenimiento() {
   `;
 }
 
-document.addEventListener("DOMContentLoaded", () => {
-  verificarEstadoPlataforma();
-});
+document.addEventListener("DOMContentLoaded", () => { verificarEstadoPlataforma(); });
