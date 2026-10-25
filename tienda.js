@@ -48,6 +48,7 @@ document.addEventListener('DOMContentLoaded', async () => {
     console.error("Error al inicializar la tienda:", err);
   }
 });
+
 function logoutUser() {
   localStorage.removeItem('active_user_id');
   window.location.href = 'index.html';
@@ -82,7 +83,7 @@ async function fetchBcvRate() {
 // 🛡️ CARGAR PROGRESO DEL USUARIO Y LIMITAR COMPRA MÁXIMA A 1000 BARAJITAS
 async function loadUserAlbumProgress() {
   try {
-    const sessionToken = localStorage.getItem('session_token'); // 🛡️ Token de seguridad
+    const sessionToken = localStorage.getItem('session_token');
     const res = await fetch(`${API_URL}/api/usuario/info`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -127,7 +128,6 @@ function calculateTotal() {
   const qtyInput = document.getElementById('stickerQty');
   let qty = parseInt(qtyInput.value) || 0;
 
-  // Evitar que el usuario compre más de lo permitido
   if (qty > STATE.maxAllowedToBuy) {
     qty = STATE.maxAllowedToBuy;
     qtyInput.value = qty;
@@ -167,7 +167,6 @@ async function loadPlatformPaymentInfo() {
 async function submitPurchase(e) {
   e.preventDefault();
   const qty = parseInt(document.getElementById('stickerQty').value) || 0;
-  // 🛡️ Blindaje anti-XSS en los campos de texto del formulario de pago
   const phone = escapeHTML(document.getElementById('phoneInput').value.trim());
   const bank = escapeHTML(document.getElementById('bankInput').value.trim());
   const ref = escapeHTML(document.getElementById('refInput').value.trim());
@@ -175,17 +174,17 @@ async function submitPurchase(e) {
   const btnSubmit = document.getElementById('btnSubmitPurchase');
 
   if (qty <= 0) {
-    alert('La cantidad de barajitas debe ser mayor a 0 o ya has completado el álbum.');
+    showFloatingNotification('La cantidad de barajitas debe ser mayor a 0 o ya has completado el álbum.', 'error');
     return;
   }
 
   if (qty > STATE.maxAllowedToBuy) {
-    alert(`No puedes comprar esa cantidad. Solo te faltan ${STATE.maxAllowedToBuy} barajitas para completar el álbum.`);
+    showFloatingNotification(`No puedes comprar esa cantidad. Solo te faltan ${STATE.maxAllowedToBuy} barajitas para completar el álbum.`, 'error');
     return;
   }
 
   if (!phone || !bank || !ref || !fechaPago) {
-    alert('Por favor completa todos los campos del formulario de pago.');
+    showFloatingNotification('Por favor completa todos los campos del formulario de pago.', 'error');
     return;
   }
 
@@ -195,13 +194,13 @@ async function submitPurchase(e) {
   btnSubmit.innerText = "REPORTANDO...";
 
   try {
-    const sessionToken = localStorage.getItem('session_token'); // 🛡️ Token de seguridad
+    const sessionToken = localStorage.getItem('session_token');
     const res = await fetch(`${API_URL}/api/notificar-compra`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         usuario_id: STATE.userId,
-        session_token: sessionToken, // 🛡️ Blindaje contra manipulación externa
+        session_token: sessionToken,
         barajitas_qty: qty,
         monto_bs: totalBs,
         monto_usd: totalUSD,
@@ -214,21 +213,69 @@ async function submitPurchase(e) {
 
     const data = await res.json();
     if (!res.ok) {
-      alert('Error: ' + (data.message || 'No se pudo reportar el pago'));
+      showFloatingNotification('Error: ' + (data.message || 'No se pudo reportar el pago'), 'error');
       btnSubmit.disabled = false;
       btnSubmit.innerText = "REPORTAR PAGO Y SOLICITAR BARAJITAS";
       return;
     }
 
-    alert('¡Pago reportado con éxito! En revisión por el administrador.');
-    window.location.href = 'album.html';
+    showFloatingNotification('¡Pago reportado con éxito! En revisión por el administrador.', 'success');
+    
+    // Retraso de 1.5s para que el usuario alcance a ver la notificación antes de cambiar de página
+    setTimeout(() => {
+      window.location.href = 'album.html';
+    }, 1500);
+
   } catch (err) {
     console.error(err);
-    alert('Error de conexión con el servidor.');
+    showFloatingNotification('Error de conexión con el servidor.', 'error');
     btnSubmit.disabled = false;
     btnSubmit.innerText = "REPORTAR PAGO Y SOLICITAR BARAJITAS";
   }
 }
+
+// 🔔 SISTEMA DE NOTIFICACIONES FLOTANTES (TOAST)
+function showFloatingNotification(message, type = 'success') {
+  let container = document.getElementById('floatingNotificationsContainer');
+  if (!container) {
+    container = document.createElement('div');
+    container.id = 'floatingNotificationsContainer';
+    container.className = 'fixed top-5 right-5 z-50 flex flex-col gap-3 max-w-md w-full px-4 pointer-events-none';
+    document.body.appendChild(container);
+  }
+
+  const isSuccess = type === 'success';
+  const notif = document.createElement('div');
+  notif.className = `pointer-events-auto p-4 rounded-2xl shadow-2xl border backdrop-blur-md transition-all transform translate-y-[-20px] opacity-0 flex items-start gap-3 ${
+    isSuccess 
+      ? 'bg-emerald-950/90 border-emerald-500/50 text-emerald-200' 
+      : 'bg-red-950/90 border-red-500/50 text-red-200'
+  }`;
+
+  notif.innerHTML = `
+    <div class="p-2 rounded-xl ${isSuccess ? 'bg-emerald-500/20 text-emerald-400' : 'bg-red-500/20 text-red-400'} mt-0.5">
+      <i data-lucide="${isSuccess ? 'check-circle-2' : 'alert-triangle'}" class="w-5 h-5"></i>
+    </div>
+    <div class="flex-1">
+      <h4 class="font-bold text-sm text-white">${isSuccess ? '¡Operación Exitosa!' : 'Atención'}</h4>
+      <p class="text-xs mt-0.5 leading-relaxed">${message}</p>
+    </div>
+    <button onclick="this.parentElement.remove()" class="text-slate-400 hover:text-white text-sm font-bold">&times;</button>
+  `;
+
+  container.appendChild(notif);
+  if (typeof lucide !== 'undefined') { lucide.createIcons(); }
+
+  setTimeout(() => {
+    notif.classList.remove('translate-y-[-20px]', 'opacity-0');
+  }, 50);
+
+  setTimeout(() => {
+    notif.classList.add('translate-y-[-20px]', 'opacity-0');
+    setTimeout(() => notif.remove(), 300);
+  }, 5000);
+}
+
 // 🛡️ Función auxiliar anti-XSS
 function escapeHTML(str) {
   if (!str) return "";
