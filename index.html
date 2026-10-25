@@ -168,27 +168,30 @@
       const darkOverlay = document.getElementById('darkOverlay');
       const bgMusic = document.getElementById('bgMusic');
       
-      // Ocultamos el botón de inicio
       btnContainer.classList.add('fade-out');
       setTimeout(() => btnContainer.style.display = 'none', 500);
 
-      // Desvanecemos la capa oscura para que el video se vea normal y brillante
       if (darkOverlay) {
         darkOverlay.style.opacity = '0';
       }
 
-      // Reproducimos el video (en silencio para que no choque con la música)
       video.play();
 
-      // 🎵 Activamos la música de fondo para toda la página
       if (bgMusic) {
-        bgMusic.volume = 0.4; // Ajusta el volumen a tu gusto (de 0.0 a 1.0)
-        bgMusic.play().catch(error => {
-          console.log("El navegador requirió interacción para el audio:", error);
+        bgMusic.volume = 0.4;
+        bgMusic.play().then(() => {
+          // 💾 Guardamos en el navegador que la música está activa
+          localStorage.setItem('playMusic', 'true');
+        }).catch(error => {
+          console.log("Error de audio:", error);
         });
+
+        // Guardamos el segundo actual de la canción constantemente
+        bgMusic.ontimeupdate = () => {
+          localStorage.setItem('audioTime', bgMusic.currentTime);
+        };
       }
 
-      // Control para desvanecer el video al final (los últimos 1.5 segundos)
       video.ontimeupdate = () => {
         if (video.duration && (video.duration - video.currentTime <= 1.5)) {
           video.style.opacity = '0';
@@ -196,7 +199,6 @@
         }
       };
 
-      // Cuando termina el video, muestra las reglas
       video.onended = () => {
         showRulesWithTypingEffect();
       };
