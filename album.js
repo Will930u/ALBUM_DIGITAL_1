@@ -388,15 +388,21 @@ function updateUIHeader() {
   const btnLiq = document.getElementById('btnHeaderTotalLiquidate');
   const btnMilestone = document.getElementById('btnHeaderMilestone');
 
+  // Si hay una solicitud en proceso, bloqueamos ambos botones
   if (STATE.isProcessingWithdrawal) {
     if(btnLiq) btnLiq.disabled = true;
     if(btnMilestone) btnMilestone.disabled = true;
     return;
   }
 
-  // Validación de hito flexible (se activa al tener las barajitas y no haberlo reclamado)
+  // 💰 REGULACIÓN POR VALOR NETO: $100 USD al cambio oficial BCV
+  const milestoneBsValue = 100 * STATE.bcvRate;
+
+  // Se habilita si cumple barajitas, no se ha cobrado antes Y el Saldo Neto es >= al costo del hito ($100 USD en Bs)
   const hasAvailableMilestone = [250, 500, 750, 1000].some(m =>
-    STATE.userStickersCount >= m && !STATE.claimedMilestones.includes(m)
+    STATE.userStickersCount >= m && 
+    !STATE.claimedMilestones.includes(m) && 
+    STATE.userBalanceBs >= milestoneBsValue
   );
 
   if(btnMilestone) btnMilestone.disabled = !hasAvailableMilestone;
