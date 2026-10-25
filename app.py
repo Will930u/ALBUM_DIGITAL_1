@@ -123,15 +123,18 @@ def verificar_y_sumar_referido(usuario_comprador_id):
     if not supabase_client:
         return
     try:
-        res_comprador = supabase_client.table("usuarios").select("referido_por, primera_compra_referido_hecha").eq("id", usuario_comprador_id).execute()
+        # Consultamos también la cantidad de barajitas que posee el comprador
+        res_comprador = supabase_client.table("usuarios").select("referido_por, primera_compra_referido_hecha, cantidad_barajitas").eq("id", usuario_comprador_id).execute()
         if not res_comprador.data:
             return
             
         comprador = res_comprador.data[0]
         padrino_id = comprador.get("referido_por")
         ya_conto = comprador.get("primera_compra_referido_hecha", False)
+        cantidad_barajitas = int(comprador.get("cantidad_barajitas", 0) or 0)
         
-        if padrino_id and not ya_conto:
+        # 🔑 REGLA NUEVA: Solo cuenta si tiene al menos 5 barajitas y no ha sido contabilizado antes
+        if padrino_id and not ya_conto and cantidad_barajitas >= 5:
             supabase_client.table("usuarios").update({"primera_compra_referido_hecha": True}).eq("id", usuario_comprador_id).execute()
             
             res_padrino = supabase_client.table("usuarios").select("*").eq("id", padrino_id).execute()
@@ -150,6 +153,8 @@ def verificar_y_sumar_referido(usuario_comprador_id):
                 
                 if nuevos_referidos >= 10 and bonos_mes < 1:
                     saldo_actual_bs = float(padrino.get("saldo_bs") or 0.0)
+                    # Nota: El bono de $5.00 USD equivale en Bs según tu tasa actual o equivalente fijo. 
+                    # Mantenemos el cálculo de saldo que ya utilizabas:
                     nuevo_saldo_bs = saldo_actual_bs + 180.0
                     
                     supabase_client.table("usuarios").update({
