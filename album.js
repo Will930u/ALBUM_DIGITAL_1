@@ -35,22 +35,45 @@ document.addEventListener('DOMContentLoaded', async () => {
   }
 
   try {
-    lucide.createIcons();
-    setupLogoClickCounter();
-    await fetchBcvRate();
-    await loadUserDataFromDB();
-    renderAlbumPage();
-    setupSwipeGestures();
-    
-    // Iniciar el carrusel de actividad en tiempo real con rotación aleatoria
-    initActivityTicker();
-    
-    // Iniciar verificación periódica en tiempo real (cada 5 segundos)
-    initUserPollingNotifications(STATE.userId);
-  } catch (err) {
-    console.error("Error al inicializar el álbum:", err);
-  }
-});
+      lucide.createIcons();
+      setupLogoClickCounter();
+      await fetchBcvRate();
+      await loadUserDataFromDB();
+      renderAlbumPage();
+      setupSwipeGestures();
+      
+      // Iniciar el carrusel de actividad en tiempo real con rotación aleatoria
+      initActivityTicker();
+      
+      // Iniciar verificación periódica en tiempo real (cada 5 segundos)
+      initUserPollingNotifications(STATE.userId);
+
+      // ==========================================
+      // 🎵 CONTROL DE MÚSICA DE FONDO CONTINUA
+      // ==========================================
+      const bgMusic = document.getElementById('bgMusic');
+      const shouldPlay = localStorage.getItem('playMusic');
+      const savedTime = localStorage.getItem('audioTime');
+
+      if (bgMusic && shouldPlay === 'true') {
+        if (savedTime) {
+          bgMusic.currentTime = parseFloat(savedTime);
+        }
+        
+        bgMusic.volume = 0.4;
+        bgMusic.play().catch(err => {
+          console.log("El navegador bloqueó el autoplay o requiere interacción:", err);
+        });
+
+        bgMusic.ontimeupdate = () => {
+          localStorage.setItem('audioTime', bgMusic.currentTime);
+        };
+      }
+      // ==========================================
+
+    } catch (err) {
+      console.error("Error al inicializar el álbum:", err);
+    }
 
 // 🕒 Verificación y renovación automática de sesión por inactividad (1 hora)
 function verificarYRenovarSesion() {
