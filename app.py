@@ -280,8 +280,8 @@ def api_feed_actividad():
                  return jsonify({"success": False, "message": "La plataforma se encuentra en mantenimiento temporalmente."}), 403
                 
             data = request.get_json(silent=True) or {}
-             username = str(data.get("username", "")).strip()
-             password = str(data.get("password", "")).strip()
+            username = str(data.get("username", "")).strip()
+            password = str(data.get("password", "")).strip()
             
             if not username or not password or not supabase_client:
                  return jsonify({"success": False, "message": "Datos incompletos o sin BD"}), 400
