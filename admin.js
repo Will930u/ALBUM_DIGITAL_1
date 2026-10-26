@@ -393,6 +393,7 @@ function renderTasaBcvChart(historialTasas = []) {
   });
 }
 
+
 async function renderFinancialMetrics() {
   try {
     // 1️⃣ Cargar Métricas Operativas Generales
