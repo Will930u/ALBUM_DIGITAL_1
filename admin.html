@@ -12,19 +12,19 @@
   <link rel="stylesheet" href="admin.css">
 </head>
 <body class="flex flex-col min-h-screen bg-[#080314] text-slate-100">
-     <!-- VIDEO DE HUMO GENERAL DE FONDO -->
- <video autoplay muted loop playsinline class="bg-smoke-video">
-  <source src="smoke.mp4" type="video/mp4">
-</video>
+  <!-- VIDEO DE HUMO GENERAL DE FONDO -->
+  <video autoplay muted loop playsinline class="bg-smoke-video">
+    <source src="smoke.mp4" type="video/mp4">
+  </video>
 
   <!-- CABECERA DE ADMINISTRACIÓN -->
   <header class="sticky top-0 z-40 metal-card rounded-none px-6 py-4 flex justify-between items-center shadow-xl">
     <div class="flex items-center space-x-3 cursor-pointer select-none group" onclick="window.location.href='album.html'">
-      <!-- LOGO ANIMADO DENTRO DEL ÁLBUM -->
-        <div class="w-12 h-12 md:w-16 md:h-16 rounded-xl overflow-hidden shadow-lg border border-purple-500/60 bg-slate-900 shrink-0">
-          <video autoplay muted loop playsinline class="w-full h-full object-cover">
-            <source src="logo-animado.mp4" type="video/mp4">
-          </video>
+      <div class="w-12 h-12 md:w-16 md:h-16 rounded-xl overflow-hidden shadow-lg border border-purple-500/60 bg-slate-900 shrink-0">
+        <video autoplay muted loop playsinline class="w-full h-full object-cover">
+          <source src="logo-animado.mp4" type="video/mp4">
+        </video>
+      </div>
       <div>
         <h1 class="text-lg font-bold glow-text leading-none">PANEL ADMIN</h1>
         <span class="text-xs text-red-300">Gestión General del Sistema (1000 Barajitas)</span>
@@ -92,10 +92,10 @@
           </div>
         </div>
 
-        <!-- Sub-tab: Métricas y Caja Avanzadas (Doble Divisa + Gráfica de Movimientos) -->
+        <!-- Sub-tab: Métricas y Caja Avanzadas (Doble Divisa + Gráfica de Movimientos + P&L) -->
         <div id="adminContentMetricas" class="hidden space-y-6">
           
-          <!-- Tarjetas Estadísticas en Vivo (Usuarios Totales y Activos - INTACTAS) -->
+          <!-- Tarjetas Estadísticas en Vivo (Usuarios Totales y Activos) -->
           <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
             <div class="bg-slate-950/70 p-5 rounded-2xl border border-indigo-500/30 flex items-center justify-between shadow-lg">
               <div>
@@ -114,7 +114,7 @@
             </div>
           </div>
 
-          <!-- Tarjetas de Indicadores Financieros (KPIs) -->
+          <!-- Tarjetas de Indicadores Financieros (KPIs y P&L) -->
           <div class="grid grid-cols-1 md:grid-cols-3 gap-4 text-center">
             <div class="bg-slate-950/70 p-5 rounded-2xl border border-blue-500/30 space-y-2 shadow-lg">
               <span class="text-xs uppercase tracking-wider text-slate-400 font-semibold">Ventas Brutas Totales (100%)</span>
@@ -137,6 +137,25 @@
               <div>
                 <p id="metricUserNetValueBs" class="text-xl font-extrabold text-emerald-400">Bs. 0.00</p>
                 <p id="metricUserNetValueUsd" class="text-xs font-mono text-slate-300 mt-0.5">($0.00 USD)</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- MÓDULO P&L: PREMIOS PAGADOS Y GANANCIA NETA REAL -->
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4 text-center">
+            <div class="bg-slate-950/70 p-5 rounded-2xl border border-amber-500/30 space-y-2 shadow-lg">
+              <span class="text-xs uppercase tracking-wider text-amber-300 font-semibold">Total Premios Pagados ($)</span>
+              <div>
+                <p id="metricTotalPaidHitosUsd" class="text-2xl font-extrabold text-amber-400">$0.00 USD</p>
+                <span class="text-[10px] text-slate-400">Liquidado a usuarios por Hitos</span>
+              </div>
+            </div>
+
+            <div class="bg-slate-950/70 p-5 rounded-2xl border border-emerald-500/40 space-y-2 shadow-lg bg-emerald-950/10">
+              <span class="text-xs uppercase tracking-wider text-emerald-300 font-semibold">Ganancia Neta Real Plataforma ($)</span>
+              <div>
+                <p id="metricNetProfitRealUsd" class="text-2xl font-extrabold text-emerald-300">$0.00 USD</p>
+                <span class="text-[10px] text-slate-400">Margen del 30% con ajuste de devaluación</span>
               </div>
             </div>
           </div>
