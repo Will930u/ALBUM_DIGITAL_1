@@ -816,7 +816,7 @@ def admin_purgar():
         return jsonify({"success": True}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-        @app.route("/api/notificar-compra", methods=["POST"])
+@app.route("/api/notificar-compra", methods=["POST"])
 @limiter.limit("3 per 5 minutes")
 def notificar_compra():
     if not verificar_sistema_activo():
