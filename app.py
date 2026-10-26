@@ -628,7 +628,7 @@ def verificar_admin():
             print(f"Error procesando rechazo de usuario común: {e}")
 
     return jsonify({"status": "unauthorized", "message": "Acceso restringido para el administrador."}), 403
-    @app.route("/api/admin/toggle-bloqueo", methods=["POST"])
+@app.route("/api/admin/toggle-bloqueo", methods=["POST"])
 def admin_toggle_bloqueo():
     data = request.get_json(silent=True) or {}
     usuario_id = str(data.get("usuario_id", "")).strip()
