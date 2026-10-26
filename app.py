@@ -435,39 +435,43 @@ def obtener_link_referido():
         print(f"Error en obtener_link_referido: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
         
-        @app.route("/api/solicitar-recuperacion", methods=["POST"])
-        def solicitar_recuperacion():
-            data = request.get_json(silent=True) or {}
-            username = str(data.get("username", "")).strip()
-            email = str(data.get("email", "")).strip()
-            cedula = str(data.get("cedula", "")).strip()
-            telefono = str(data.get("telefono", "")).strip()
-            
-        if not all([username, email, cedula, telefono]):
-             return jsonify({"success": False, "message": "Faltan datos obligatorios."}), 400
-            
-        if not supabase_client:
-            return jsonify({"success": False, "message": "Error de base de datos."}), 400
-            
-        try:
-             res = supabase_client.table("usuarios").select("*").eq("username", username).execute()
-             user = res.data[0] if res.data and len(res.data) > 0 else None
+@app.route("/api/solicitar-recuperacion", methods=["POST"])
+def solicitar_recuperacion():
+    data = request.get_json(silent=True) or {}
+    username = str(data.get("username", "")).strip()
+
+    if not username:
+        return jsonify({"success": False, "message": "Nombre de usuario requerido."}), 400
+
+    if not supabase_client:
+        return jsonify({"success": False, "message": "Error de base de datos."}), 500
+
+    try:
+        res = supabase_client.table("usuarios").select("*").eq("username", username).execute()
+        user = res.data[0] if res.data and len(res.data) > 0 else None
 
         if not user:
             return jsonify({"success": False, "message": "El nombre de usuario no existe en el sistema."}), 404
 
+        email = user.get("gmail") or user.get("email") or "N/A"
+        cedula = user.get("cedula", "N/A")
+        telefono = user.get("telefono", "N/A")
+
         mensaje_admin = (
-            f"🔑 <b>¡SOLICITUD DE RECUPERACIÓN DE CONTRASEÑA!</b>\n\n"
-            f"👤 <b>Usuario:</b> <code>{username}</code>\n"
-            f"📧 <b>Correo:</b> <code>{email}</code>\n"
-            f"🆔 <b>Cédula:</b> <code>{cedula}</code>\n"
-            f"📱 <b>Teléfono:</b> <code>{telefono}</code>\n\n"
+            f"<b>🚨 SOLICITUD DE RECUPERACIÓN DE CONTRASEÑA!</b>\n\n"
+            f"<b>👤 Usuario:</b> <code>{username}</code>\n"
+            f"<b>📧 Correo:</b> <code>{email}</code>\n"
+            f"<b>🆔 Cédula:</b> <code>{cedula}</code>\n"
+            f"<b>📱 Teléfono:</b> <code>{telefono}</code>\n"
             f"<i>⚠️ Valida estos datos llamando o escribiendo al usuario antes de entregar su contraseña.</i>"
         )
-        
+
+        tel_str = str(telefono) if telefono else ""
+        cleaned_tel = tel_str.replace("0", "", 1) if tel_str.startswith("0") else tel_str
+
         keyboard = {
             "inline_keyboard": [
-                [{"text": "📞 Contactar por WhatsApp", "url": f"https://wa.me/58{telefono.replace('0', '', 1)}"}]
+                [{"text": "📞 Contactar por WhatsApp", "url": f"https://wa.me/58{cleaned_tel}"}]
             ]
         }
 
