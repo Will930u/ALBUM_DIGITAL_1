@@ -2,6 +2,7 @@ const API_URL = "https://album-digital-1.onrender.com";
 
 // Variable global para controlar el período activo de la gráfica de barras
 let currentChartPeriod = 'diario';
+let myTasaChart = null;
 
 // 🛡️ PANTALLA DE ÁREA RESTRINGIDA Y CIERRE DE SESIÓN
 function mostrarAreaRestringida(mensaje = "⛔ ACCESO DENEGADO: Área restringida exclusivamente para administradores.") {
@@ -328,13 +329,71 @@ async function clearOperationalMetrics() {
   }
 }
 
+// 📈 RENDERIZAR LA GRÁFICA DE EVOLUCIÓN E INCREMENTO DE LA TASA BCV
+function renderTasaBcvChart(historialTasas = []) {
+  const ctx = document.getElementById('chartTasaDolar');
+  if (!ctx) return;
+
+  const labels = historialTasas.map(item => {
+    const fecha = item.fecha ? new Date(item.fecha) : new Date();
+    return fecha.toLocaleDateString('es-VE', { day: '2-digit', month: '2-digit', hour: '2-digit', minute: '2-digit' });
+  });
+  const dataValores = historialTasas.map(item => parseFloat(item.tasa_bcv || item.tasa || 0));
+
+  if (myTasaChart) {
+    myTasaChart.destroy();
+  }
+
+  myTasaChart = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels: labels.length > 0 ? labels : ['Actual'],
+      datasets: [{
+        label: 'Tasa BCV (Bs.)',
+        data: dataValores.length > 0 ? dataValores : [0],
+        borderColor: '#00f3ff',
+        backgroundColor: 'rgba(0, 243, 255, 0.12)',
+        borderWidth: 2,
+        fill: true,
+        tension: 0.35,
+        pointBackgroundColor: '#00f3ff',
+        pointBorderColor: '#080314',
+        pointRadius: 4,
+        pointHoverRadius: 6
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false },
+        tooltip: {
+          callbacks: {
+            label: (context) => ` Tasa BCV: Bs. ${parseFloat(context.raw).toFixed(2)}`
+          }
+        }
+      },
+      scales: {
+        x: {
+          grid: { color: 'rgba(255, 255, 255, 0.05)' },
+          ticks: { color: '#94a3b8', font: { size: 10 } }
+        },
+        y: {
+          grid: { color: 'rgba(255, 255, 255, 0.05)' },
+          ticks: { color: '#94a3b8', font: { size: 10 } }
+        }
+      }
+    }
+  });
+}
+
 async function renderFinancialMetrics() {
   try {
     // 1️⃣ Cargar Métricas Operativas Generales
     const res = await fetch(`${API_URL}/api/admin/metricas`);
     const data = await res.json();
     
-    // 2️⃣ Cargar Métricas Financieras Avanzadas (P&L y Devaluación)
+    // 2️⃣ Cargar Métricas Financieras Avanzadas (P&L, Devaluación e Historial de Tasas)
     const resFin = await fetch(`${API_URL}/api/admin/metricas-financieras`);
     const dataFin = await resFin.json();
     const metricasPnl = dataFin.metricas || {};
@@ -390,11 +449,20 @@ async function renderFinancialMetrics() {
     const elCountApp = document.getElementById('metricCountApproved');
     const elStickers = document.getElementById('metricTotalStickersSold');
     const elBcv = document.getElementById('metricBcvReference');
+    const elTasaBadge = document.getElementById('tasa-actual-badge');
+
     if (elCountApp) elCountApp.innerText = approvedCount;
     if (elStickers) elStickers.innerText = stickersSold;
     if (elBcv) elBcv.innerText = `Bs. ${bcvRate.toFixed(2)}`;
+    if (elTasaBadge) elTasaBadge.innerText = `Tasa actual: Bs. ${bcvRate.toFixed(2)}`;
 
-    // 4️⃣ Configurar Gráfica de Movimientos
+    // 4️⃣ Dibuja o actualiza la gráfica del dólar con la lista que retorna la API
+    const historialTasas = dataFin.historial_tasas || data.historial_tasas || [
+      { fecha: new Date().toISOString(), tasa_bcv: bcvRate }
+    ];
+    renderTasaBcvChart(historialTasas);
+
+    // 5️⃣ Configurar Gráfica de Movimientos
     let chartLabels = [];
     let chartDataValues = [];
 
