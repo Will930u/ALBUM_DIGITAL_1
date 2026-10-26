@@ -340,10 +340,15 @@ function renderTasaBcvChart(historialTasas = []) {
   });
   const dataValores = historialTasas.map(item => parseFloat(item.tasa_bcv || item.tasa || 0));
 
+  // Si ya existe la gráfica, solo actualizamos sus datos suavemente sin recrearla
   if (myTasaChart) {
-    myTasaChart.destroy();
+    myTasaChart.data.labels = labels.length > 0 ? labels : ['Actual'];
+    myTasaChart.data.datasets[0].data = dataValores.length > 0 ? dataValores : [0];
+    myTasaChart.update('none'); // Actualización silenciosa sin animaciones molestas
+    return;
   }
 
+  // Si no existe, se crea por primera vez
   myTasaChart = new Chart(ctx, {
     type: 'line',
     data: {
@@ -365,6 +370,7 @@ function renderTasaBcvChart(historialTasas = []) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
+      animation: false, // Desactiva animaciones extrañas al refrescar
       plugins: {
         legend: { display: false },
         tooltip: {
