@@ -166,9 +166,9 @@ def verificar_y_sumar_referido(usuario_comprador_id):
                     }).eq("id", padrino_id).execute()
     except Exception as e:
         print(f"Error al procesar referido en compra: {e}")
-
+        
 # 📊 FUNCIÓN PARA REGISTRAR TASA DIARIA EN SUPABASE
-def registrar_tasa_diaria(tasa_actual):
+    def registrar_tasa_diaria(tasa_actual):
     if not supabase_client:
         return
     try:
@@ -182,24 +182,26 @@ def registrar_tasa_diaria(tasa_actual):
             print(f"[HISTORIAL] Tasa guardada para la fecha {hoy}: {tasa_actual} Bs.")
     except Exception as e:
         print(f"[HISTORIAL ERROR] No se pudo guardar la tasa diaria: {e}")
-        @app.route("/", methods=["GET"])
-def index():
-    is_active = verificar_sistema_activo()
-    return jsonify({
-        "status": "online" if is_active else "maintenance", 
-        "service": "Álbum Digital Backend", 
-        "version": "4.1.1-secure",
-        "is_online": is_active
-    }), 200
-
-@app.route("/api/system-status", methods=["GET"])
-def api_system_status():
+        
+        # 📄 Asegúrate de que comience exactamente al borde izquierdo (sin espacios antes de 'def'):
+    @app.route("/", methods=["GET"])
+    def index():
+        is_active = verificar_sistema_activo()
+        return jsonify({
+            "status": "online" if is_active else "maintenance",
+            "service": "Álbum Digital Backend",
+            "version": "4.1.1-secure",
+            "is_online": is_active
+            }), 200
+    
+    @app.route("/api/system-status", methods=["GET"])
+    def api_system_status():
     is_active = verificar_sistema_activo()
     return jsonify({"is_online": is_active}), 200
-
-@app.route("/api/bcv", methods=["GET"])
-def get_bcv_rate():
-    try:
+    
+    @app.route("/api/bcv", methods=["GET"])
+    def get_bcv_rate():
+        try:
         res = requests.get("https://ve.dolarapi.com/v1/dolares/oficial", timeout=5)
         if res.ok:
             data = res.json()
@@ -271,21 +273,21 @@ def api_feed_actividad():
     except Exception as e:
         print(f"Error en /api/feed-actividad: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
-
-@app.route("/api/login", methods=["POST"])
-@limiter.limit("5 per minute")
-def api_login():
-    if not verificar_sistema_activo():
-        return jsonify({"success": False, "message": "La plataforma se encuentra en mantenimiento temporalmente."}), 403
-
-    data = request.get_json(silent=True) or {}
-    username = str(data.get("username", "")).strip()
-    password = str(data.get("password", "")).strip()
-
-    if not username or not password or not supabase_client:
-        return jsonify({"success": False, "message": "Datos incompletos o sin BD"}), 400
-
-    try:
+        
+        @app.route("/api/login", methods=["POST"])
+        @limiter.limit("5 per minute")
+        def api_login():
+            if not verificar_sistema_activo():
+                 return jsonify({"success": False, "message": "La plataforma se encuentra en mantenimiento temporalmente."}), 403
+                
+            data = request.get_json(silent=True) or {}
+             username = str(data.get("username", "")).strip()
+             password = str(data.get("password", "")).strip()
+            
+            if not username or not password or not supabase_client:
+                 return jsonify({"success": False, "message": "Datos incompletos o sin BD"}), 400
+                
+            try:
         res = supabase_client.table("usuarios").select("*").eq("username", username).execute()
         user = res.data[0] if res.data and len(res.data) > 0 else None
 
