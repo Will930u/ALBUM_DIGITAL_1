@@ -3,6 +3,7 @@ const API_URL = "https://album-digital-1.onrender.com";
 // Variable global para controlar el período activo de la gráfica de barras
 let currentChartPeriod = 'diario';
 let myTasaChart = null;
+let myBarChart = null;
 
 // 🛡️ PANTALLA DE ÁREA RESTRINGIDA Y CIERRE DE SESIÓN
 function mostrarAreaRestringida(mensaje = "⛔ ACCESO DENEGADO: Área restringida exclusivamente para administradores.") {
@@ -329,7 +330,7 @@ async function clearOperationalMetrics() {
   }
 }
 
-// 📈 RENDERIZAR LA GRÁFICA DE EVOLUCIÓN E INCREMENTO DE LA TASA BCV
+// 📈 RENDERIZAR O ACTUALIZAR GRÁFICA TASA BCV (SIN PARPADEOS NI ANIMACIONES MOLESTAS)
 function renderTasaBcvChart(historialTasas = []) {
   const ctx = document.getElementById('chartTasaDolar');
   if (!ctx) return;
@@ -340,15 +341,15 @@ function renderTasaBcvChart(historialTasas = []) {
   });
   const dataValores = historialTasas.map(item => parseFloat(item.tasa_bcv || item.tasa || 0));
 
-  // Si ya existe la gráfica, solo actualizamos sus datos suavemente sin recrearla
+  // Si la gráfica ya existe, actualizamos sus datos silenciosamente sin destruirla
   if (myTasaChart) {
     myTasaChart.data.labels = labels.length > 0 ? labels : ['Actual'];
     myTasaChart.data.datasets[0].data = dataValores.length > 0 ? dataValores : [0];
-    myTasaChart.update('none'); // Actualización silenciosa sin animaciones molestas
+    myTasaChart.update('none'); // Actualización sin animaciones
     return;
   }
 
-  // Si no existe, se crea por primera vez
+  // Creación inicial si no existe
   myTasaChart = new Chart(ctx, {
     type: 'line',
     data: {
@@ -370,7 +371,7 @@ function renderTasaBcvChart(historialTasas = []) {
     options: {
       responsive: true,
       maintainAspectRatio: false,
-      animation: false, // Desactiva animaciones extrañas al refrescar
+      animation: false, // Desactiva animaciones de carga
       plugins: {
         legend: { display: false },
         tooltip: {
@@ -392,7 +393,6 @@ function renderTasaBcvChart(historialTasas = []) {
     }
   });
 }
-
 
 async function renderFinancialMetrics() {
   try {
@@ -463,13 +463,13 @@ async function renderFinancialMetrics() {
     if (elBcv) elBcv.innerText = `Bs. ${bcvRate.toFixed(2)}`;
     if (elTasaBadge) elTasaBadge.innerText = `Tasa actual: Bs. ${bcvRate.toFixed(2)}`;
 
-    // 4️⃣ Dibuja o actualiza la gráfica del dólar con la lista que retorna la API
+    // 4️⃣ Actualizar o renderizar la gráfica del dólar de forma fluida
     const historialTasas = dataFin.historial_tasas || data.historial_tasas || [
       { fecha: new Date().toISOString(), tasa_bcv: bcvRate }
     ];
     renderTasaBcvChart(historialTasas);
 
-    // 5️⃣ Configurar Gráfica de Movimientos
+    // 5️⃣ Configurar Gráfica de Barras de Transacciones
     let chartLabels = [];
     let chartDataValues = [];
 
@@ -524,39 +524,46 @@ async function renderFinancialMetrics() {
     const chartCanvas = document.getElementById('financialChart');
     if (chartCanvas) {
       const ctx = chartCanvas.getContext('2d');
-      if (window.myChart) window.myChart.destroy();
       
-      window.myChart = new Chart(ctx, {
-        type: 'bar',
-        data: {
-          labels: chartLabels,
-          datasets: [{
-            label: 'Transacciones Reales (Bs.)',
-            data: chartDataValues,
-            backgroundColor: 'rgba(168, 85, 247, 0.75)',
-            borderColor: '#a855f7',
-            borderWidth: 1,
-            borderRadius: 8
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: {
-            legend: { display: false }
+      // Si la gráfica de barras ya existe, actualizamos sus datos suavemente sin destruirla
+      if (myBarChart) {
+        myBarChart.data.labels = chartLabels;
+        myBarChart.data.datasets[0].data = chartDataValues;
+        myBarChart.update('none');
+      } else {
+        myBarChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: chartLabels,
+            datasets: [{
+              label: 'Transacciones Reales (Bs.)',
+              data: chartDataValues,
+              backgroundColor: 'rgba(168, 85, 247, 0.75)',
+              borderColor: '#a855f7',
+              borderWidth: 1,
+              borderRadius: 8
+            }]
           },
-          scales: {
-            x: {
-              grid: { color: 'rgba(255, 255, 255, 0.05)' },
-              ticks: { color: '#94a3b8', font: { size: 10 } }
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            animation: false, // Evita saltos y tirones visuales
+            plugins: {
+              legend: { display: false }
             },
-            y: {
-              grid: { color: 'rgba(255, 255, 255, 0.05)' },
-              ticks: { color: '#94a3b8', font: { size: 10 } }
+            scales: {
+              x: {
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                ticks: { color: '#94a3b8', font: { size: 10 } }
+              },
+              y: {
+                grid: { color: 'rgba(255, 255, 255, 0.05)' },
+                ticks: { color: '#94a3b8', font: { size: 10 } }
+              }
             }
           }
-        }
-      });
+        });
+      }
     }
 
   } catch (err) {
