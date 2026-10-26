@@ -193,14 +193,14 @@ def index():
         "is_online": is_active
     }), 200
     
-    @app.route("/api/system-status", methods=["GET"])
-    def api_system_status():
+@app.route("/api/system-status", methods=["GET"])
+def api_system_status():
     is_active = verificar_sistema_activo()
     return jsonify({"is_online": is_active}), 200
     
-    @app.route("/api/bcv", methods=["GET"])
-    def get_bcv_rate():
-        try:
+@app.route("/api/bcv", methods=["GET"])
+def get_bcv_rate():
+    try:
         res = requests.get("https://ve.dolarapi.com/v1/dolares/oficial", timeout=5)
         if res.ok:
             data = res.json()
