@@ -167,8 +167,8 @@ def verificar_y_sumar_referido(usuario_comprador_id):
     except Exception as e:
         print(f"Error al procesar referido en compra: {e}")
         
-# 📊 FUNCIÓN PARA REGISTRAR TASA DIARIA EN SUPABASE
-    def registrar_tasa_diaria(tasa_actual):
+   # 📊 FUNCIÓN PARA REGISTRAR TASA DIARIA EN SUPABASE
+def registrar_tasa_diaria(tasa_actual):
     if not supabase_client:
         return
     try:
@@ -182,17 +182,16 @@ def verificar_y_sumar_referido(usuario_comprador_id):
             print(f"[HISTORIAL] Tasa guardada para la fecha {hoy}: {tasa_actual} Bs.")
     except Exception as e:
         print(f"[HISTORIAL ERROR] No se pudo guardar la tasa diaria: {e}")
-        
-        # 📄 Asegúrate de que comience exactamente al borde izquierdo (sin espacios antes de 'def'):
-    @app.route("/", methods=["GET"])
-    def index():
-        is_active = verificar_sistema_activo()
-        return jsonify({
-            "status": "online" if is_active else "maintenance",
-            "service": "Álbum Digital Backend",
-            "version": "4.1.1-secure",
-            "is_online": is_active
-            }), 200
+
+@app.route("/", methods=["GET"])
+def index():
+    is_active = verificar_sistema_activo()
+    return jsonify({
+        "status": "online" if is_active else "maintenance", 
+        "service": "Álbum Digital Backend", 
+        "version": "4.1.1-secure",
+        "is_online": is_active
+    }), 200
     
     @app.route("/api/system-status", methods=["GET"])
     def api_system_status():
