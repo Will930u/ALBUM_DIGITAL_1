@@ -287,31 +287,29 @@ def api_feed_actividad():
                  return jsonify({"success": False, "message": "Datos incompletos o sin BD"}), 400
                 
             try:
-        res = supabase_client.table("usuarios").select("*").eq("username", username).execute()
-        user = res.data[0] if res.data and len(res.data) > 0 else None
-
-        if not user or user.get("password_hash") != password:
-            return jsonify({"success": False, "message": "Usuario o contraseña incorrectos"}), 401
-
-        if user.get("bloqueado") is True:
-            return jsonify({"success": False, "bloqueado": True, "message": "Cuenta bloqueada"}), 403
-
-        session_token = secrets.token_hex(32)
-        
-        supabase_client.table("usuarios").update({
-            "session_token": session_token
-        }).eq("id", user.get("id")).execute()
-
-        registrar_conexion(user.get("id"), "login")
-
-        return jsonify({
-            "success": True, 
-            "user_id": user.get("id"),
-            "session_token": session_token
-        }), 200
-    except Exception as e:
-        print(f"Error en login: {e}")
-        return jsonify({"success": False, "message": str(e)}), 500
+                res = supabase_client.table("usuarios").select("*").eq("username", username).execute()
+                user = res.data[0] if res.data and len(res.data) > 0 else None
+                
+                if not user or user.get("password_hash") != password:
+                    return jsonify({"success": False, "message": "Usuario o contraseña incorrectos"}), 401
+                if user.get("bloqueado") is True:
+                    return jsonify({"success": False, "bloqueado": True, "message": "Cuenta bloqueada"}), 403
+                session_token = secrets.token_hex(32)
+                
+                supabase_client.table("usuarios").update({
+                    "session_token": session_token
+                }).eq("id", user.get("id")).execute()
+                
+                registrar_conexion(user.get("id"), "login")
+                
+                return jsonify({
+                    "success": True,
+                    "user_id": user.get("id"),
+                    "session_token": session_token
+                    }), 200
+            except Exception as e:
+                print(f"Error en login: {e}")
+                return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/api/register", methods=["POST"])
 def api_register():
