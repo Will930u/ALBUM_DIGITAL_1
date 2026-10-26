@@ -434,23 +434,24 @@ def obtener_link_referido():
     except Exception as e:
         print(f"Error en obtener_link_referido: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
+        
         @app.route("/api/solicitar-recuperacion", methods=["POST"])
-def solicitar_recuperacion():
-    data = request.get_json(silent=True) or {}
-    username = str(data.get("username", "")).strip()
-    email = str(data.get("email", "")).strip()
-    cedula = str(data.get("cedula", "")).strip()
-    telefono = str(data.get("telefono", "")).strip()
-
-    if not all([username, email, cedula, telefono]):
-        return jsonify({"success": False, "message": "Faltan datos obligatorios."}), 400
-
-    if not supabase_client:
-        return jsonify({"success": False, "message": "Error de base de datos."}), 400
-
-    try:
-        res = supabase_client.table("usuarios").select("*").eq("username", username).execute()
-        user = res.data[0] if res.data and len(res.data) > 0 else None
+        def solicitar_recuperacion():
+            data = request.get_json(silent=True) or {}
+            username = str(data.get("username", "")).strip()
+            email = str(data.get("email", "")).strip()
+            cedula = str(data.get("cedula", "")).strip()
+            telefono = str(data.get("telefono", "")).strip()
+            
+        if not all([username, email, cedula, telefono]):
+             return jsonify({"success": False, "message": "Faltan datos obligatorios."}), 400
+            
+        if not supabase_client:
+            return jsonify({"success": False, "message": "Error de base de datos."}), 400
+            
+        try:
+             res = supabase_client.table("usuarios").select("*").eq("username", username).execute()
+             user = res.data[0] if res.data and len(res.data) > 0 else None
 
         if not user:
             return jsonify({"success": False, "message": "El nombre de usuario no existe en el sistema."}), 404
