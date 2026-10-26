@@ -166,8 +166,8 @@ def verificar_y_sumar_referido(usuario_comprador_id):
                     }).eq("id", padrino_id).execute()
     except Exception as e:
         print(f"Error al procesar referido en compra: {e}")
-        
-   # 📊 FUNCIÓN PARA REGISTRAR TASA DIARIA EN SUPABASE
+
+# 📊 FUNCIÓN PARA REGISTRAR TASA DIARIA EN SUPABASE
 def registrar_tasa_diaria(tasa_actual):
     if not supabase_client:
         return
@@ -206,7 +206,7 @@ def get_bcv_rate():
             data = res.json()
             promedio = data.get("promedio", 0)
             if promedio > 0:
-                registrar_tasa_diaria(promedio) # 👈 Guarda automáticamente la tasa al consultarla
+                registrar_tasa_diaria(promedio)
             return jsonify({"status": "success", "promedio": promedio}), 200
         return jsonify({"status": "error", "message": "No se pudo obtener la tasa BCV"}), 502
     except Exception as e:
@@ -272,44 +272,44 @@ def api_feed_actividad():
     except Exception as e:
         print(f"Error en /api/feed-actividad: {e}")
         return jsonify({"status": "error", "message": str(e)}), 500
+
+@app.route("/api/login", methods=["POST"])
+@limiter.limit("5 per minute")
+def api_login():
+    if not verificar_sistema_activo():
+         return jsonify({"success": False, "message": "La plataforma se encuentra en mantenimiento temporalmente."}), 403
         
-        @app.route("/api/login", methods=["POST"])
-        @limiter.limit("5 per minute")
-        def api_login():
-            if not verificar_sistema_activo():
-                 return jsonify({"success": False, "message": "La plataforma se encuentra en mantenimiento temporalmente."}), 403
-                
-            data = request.get_json(silent=True) or {}
-            username = str(data.get("username", "")).strip()
-            password = str(data.get("password", "")).strip()
-            
-            if not username or not password or not supabase_client:
-                 return jsonify({"success": False, "message": "Datos incompletos o sin BD"}), 400
-                
-            try:
-                res = supabase_client.table("usuarios").select("*").eq("username", username).execute()
-                user = res.data[0] if res.data and len(res.data) > 0 else None
-                
-                if not user or user.get("password_hash") != password:
-                    return jsonify({"success": False, "message": "Usuario o contraseña incorrectos"}), 401
-                if user.get("bloqueado") is True:
-                    return jsonify({"success": False, "bloqueado": True, "message": "Cuenta bloqueada"}), 403
-                session_token = secrets.token_hex(32)
-                
-                supabase_client.table("usuarios").update({
-                    "session_token": session_token
-                }).eq("id", user.get("id")).execute()
-                
-                registrar_conexion(user.get("id"), "login")
-                
-                return jsonify({
-                    "success": True,
-                    "user_id": user.get("id"),
-                    "session_token": session_token
-                    }), 200
-            except Exception as e:
-                print(f"Error en login: {e}")
-                return jsonify({"success": False, "message": str(e)}), 500
+    data = request.get_json(silent=True) or {}
+    username = str(data.get("username", "")).strip()
+    password = str(data.get("password", "")).strip()
+    
+    if not username or not password or not supabase_client:
+         return jsonify({"success": False, "message": "Datos incompletos o sin BD"}), 400
+        
+    try:
+        res = supabase_client.table("usuarios").select("*").eq("username", username).execute()
+        user = res.data[0] if res.data and len(res.data) > 0 else None
+        
+        if not user or user.get("password_hash") != password:
+            return jsonify({"success": False, "message": "Usuario o contraseña incorrectos"}), 401
+        if user.get("bloqueado") is True:
+            return jsonify({"success": False, "bloqueado": True, "message": "Cuenta bloqueada"}), 403
+        session_token = secrets.token_hex(32)
+        
+        supabase_client.table("usuarios").update({
+            "session_token": session_token
+        }).eq("id", user.get("id")).execute()
+        
+        registrar_conexion(user.get("id"), "login")
+        
+        return jsonify({
+            "success": True,
+            "user_id": user.get("id"),
+            "session_token": session_token
+        }), 200
+    except Exception as e:
+        print(f"Error en login: {e}")
+        return jsonify({"success": False, "message": str(e)}), 500
 
 @app.route("/api/register", methods=["POST"])
 def api_register():
@@ -434,7 +434,7 @@ def obtener_link_referido():
     except Exception as e:
         print(f"Error en obtener_link_referido: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
-        
+
 @app.route("/api/solicitar-recuperacion", methods=["POST"])
 def solicitar_recuperacion():
     data = request.get_json(silent=True) or {}
@@ -628,6 +628,7 @@ def verificar_admin():
             print(f"Error procesando rechazo de usuario común: {e}")
 
     return jsonify({"status": "unauthorized", "message": "Acceso restringido para el administrador."}), 403
+
 @app.route("/api/admin/toggle-bloqueo", methods=["POST"])
 def admin_toggle_bloqueo():
     data = request.get_json(silent=True) or {}
@@ -750,7 +751,6 @@ def admin_metricas():
         print(f"Error en admin_metricas: {e}")
         return jsonify({"error": str(e)}), 500
 
-# 📊 NUEVO ENDPOINT DE MÉTRICAS FINANCIERAS (P&L y Devaluación)
 @app.route("/api/admin/metricas-financieras", methods=["GET"])
 @limiter.limit("30 per minute")
 def obtener_metricas_financieras():
@@ -816,6 +816,7 @@ def admin_purgar():
         return jsonify({"success": True}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 @app.route("/api/notificar-compra", methods=["POST"])
 @limiter.limit("3 per 5 minutes")
 def notificar_compra():
