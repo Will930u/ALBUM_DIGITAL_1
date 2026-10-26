@@ -60,18 +60,19 @@ async function checkAdminSessionSecurity(userId) {
       return;
     }
 
-    // Actualizar métricas automáticamente cada 2 segundos si la pestaña está activa
+    // Actualizar métricas automáticamente cada 3 segundos si la pestaña de métricas está activa
     setInterval(() => {
       const metricTab = document.getElementById('adminContentMetricas');
       if (metricTab && !metricTab.classList.contains('hidden')) {
         renderFinancialMetrics();
       }
-    }, 2000);
+    }, 3000);
 
   } catch (e) {
     console.error("Error en verificación de seguridad en vivo:", e);
   }
 }
+
 function switchAdminTab(tab) {
   document.getElementById('adminContentPagos').classList.add('hidden');
   document.getElementById('adminContentRetiros').classList.add('hidden');
@@ -283,6 +284,7 @@ async function processAdminWithdrawal(wId, accion) {
     console.error('Error de conexión al procesar retiro:', err);
   }
 }
+
 async function uploadStickerImagesBatch(e) {
   e.preventDefault();
   alert("La carga masiva de imágenes para las 1000 barajitas se gestiona directamente en el servidor seguro.");
@@ -311,7 +313,7 @@ function changeChartPeriod(period) {
 }
 
 async function clearOperationalMetrics() {
-  if (!confirm("⚠️ ¿Estás seguro de que deseas limpiar y reiniciar las métricas operativas y la gráfica de movimientos? (Esto no afecta el total de usuarios registrados ni los usuarios en línea).")) return;
+  if (!confirm("⚠️ ¿Estás seguro de que deseas limpiar y reiniciar las métricas operativas y la gráfica de movimientos?")) return;
 
   try {
     const res = await fetch(`${API_URL}/api/admin/purgar`, { method: 'POST' });
@@ -328,12 +330,18 @@ async function clearOperationalMetrics() {
 
 async function renderFinancialMetrics() {
   try {
+    // 1️⃣ Cargar Métricas Operativas Generales
     const res = await fetch(`${API_URL}/api/admin/metricas`);
     const data = await res.json();
     
+    // 2️⃣ Cargar Métricas Financieras Avanzadas (P&L y Devaluación)
+    const resFin = await fetch(`${API_URL}/api/admin/metricas-financieras`);
+    const dataFin = await resFin.json();
+    const metricasPnl = dataFin.metricas || {};
+
     const totalSalesBs = data.total_sales || 0;
     const bcvRate = data.bcv_rate || 1.0;
-    const totalSalesUsd = bcvRate > 0 ? totalSalesBs / bcvRate : 0;
+    const totalSalesUsd = metricasPnl.total_ingresos_usd || (bcvRate > 0 ? totalSalesBs / bcvRate : 0);
     
     const approvedCount = data.approved_count || 0;
     const stickersSold = data.stickers_sold || 0;
@@ -341,6 +349,7 @@ async function renderFinancialMetrics() {
     const onlineUsers = data.usuarios_online || 0;
     const transaccionesReales = data.transacciones || [];
 
+    // Actualizar elementos de usuarios y ventas básicas
     const elTotalUsers = document.getElementById('metricTotalUsers');
     const elOnlineUsers = document.getElementById('metricOnlineUsers');
     if (elTotalUsers) elTotalUsers.innerText = totalUsers;
@@ -361,6 +370,23 @@ async function renderFinancialMetrics() {
     if (elNetBs) elNetBs.innerText = `Bs. ${(totalSalesBs * 0.70).toLocaleString('es-VE', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
     if (elNetUsd) elNetUsd.innerText = `($${(totalSalesUsd * 0.70).toFixed(2)} USD)`;
 
+    // 3️⃣ Pintar Módulo Avanzado P&L
+    const elTotalPaidHitosUsd = document.getElementById('metricTotalPaidHitosUsd');
+    const elNetProfitRealUsd = document.getElementById('metricNetProfitRealUsd');
+    
+    if (elTotalPaidHitosUsd) {
+      elTotalPaidHitosUsd.innerText = `$${(metricasPnl.total_pagado_premios_usd || 0.00).toFixed(2)} USD`;
+    }
+    if (elNetProfitRealUsd) {
+      const gananciaReal = metricasPnl.ganancia_neta_real_usd || 0.00;
+      elNetProfitRealUsd.innerText = `$${gananciaReal.toFixed(2)} USD`;
+      if (gananciaReal < 0) {
+        elNetProfitRealUsd.className = "text-2xl font-extrabold text-red-400";
+      } else {
+        elNetProfitRealUsd.className = "text-2xl font-extrabold text-emerald-300";
+      }
+    }
+
     const elCountApp = document.getElementById('metricCountApproved');
     const elStickers = document.getElementById('metricTotalStickersSold');
     const elBcv = document.getElementById('metricBcvReference');
@@ -368,6 +394,7 @@ async function renderFinancialMetrics() {
     if (elStickers) elStickers.innerText = stickersSold;
     if (elBcv) elBcv.innerText = `Bs. ${bcvRate.toFixed(2)}`;
 
+    // 4️⃣ Configurar Gráfica de Movimientos
     let chartLabels = [];
     let chartDataValues = [];
 
