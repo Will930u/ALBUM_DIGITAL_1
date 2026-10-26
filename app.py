@@ -123,7 +123,6 @@ def verificar_y_sumar_referido(usuario_comprador_id):
     if not supabase_client:
         return
     try:
-        # Consultamos también la cantidad de barajitas que posee el comprador
         res_comprador = supabase_client.table("usuarios").select("referido_por, primera_compra_referido_hecha, cantidad_barajitas").eq("id", usuario_comprador_id).execute()
         if not res_comprador.data:
             return
@@ -133,7 +132,6 @@ def verificar_y_sumar_referido(usuario_comprador_id):
         ya_conto = comprador.get("primera_compra_referido_hecha", False)
         cantidad_barajitas = int(comprador.get("cantidad_barajitas", 0) or 0)
         
-        # 🔑 REGLA NUEVA: Solo cuenta si tiene al menos 5 barajitas y no ha sido contabilizado antes
         if padrino_id and not ya_conto and cantidad_barajitas >= 5:
             supabase_client.table("usuarios").update({"primera_compra_referido_hecha": True}).eq("id", usuario_comprador_id).execute()
             
@@ -153,8 +151,6 @@ def verificar_y_sumar_referido(usuario_comprador_id):
                 
                 if nuevos_referidos >= 10 and bonos_mes < 1:
                     saldo_actual_bs = float(padrino.get("saldo_bs") or 0.0)
-                    # Nota: El bono de $5.00 USD equivale en Bs según tu tasa actual o equivalente fijo. 
-                    # Mantenemos el cálculo de saldo que ya utilizabas:
                     nuevo_saldo_bs = saldo_actual_bs + 180.0
                     
                     supabase_client.table("usuarios").update({
@@ -171,7 +167,22 @@ def verificar_y_sumar_referido(usuario_comprador_id):
     except Exception as e:
         print(f"Error al procesar referido en compra: {e}")
 
-@app.route("/", methods=["GET"])
+# 📊 FUNCIÓN PARA REGISTRAR TASA DIARIA EN SUPABASE
+def registrar_tasa_diaria(tasa_actual):
+    if not supabase_client:
+        return
+    try:
+        hoy = datetime.now().strftime('%Y-%m-%d')
+        res = supabase_client.table("historial_tasas").select("id").eq("fecha", hoy).execute()
+        if not res.data:
+            supabase_client.table("historial_tasas").insert({
+                "fecha": hoy,
+                "tasa_bcv": float(tasa_actual)
+            }).execute()
+            print(f"[HISTORIAL] Tasa guardada para la fecha {hoy}: {tasa_actual} Bs.")
+    except Exception as e:
+        print(f"[HISTORIAL ERROR] No se pudo guardar la tasa diaria: {e}")
+        @app.route("/", methods=["GET"])
 def index():
     is_active = verificar_sistema_activo()
     return jsonify({
@@ -192,7 +203,10 @@ def get_bcv_rate():
         res = requests.get("https://ve.dolarapi.com/v1/dolares/oficial", timeout=5)
         if res.ok:
             data = res.json()
-            return jsonify({"status": "success", "promedio": data.get("promedio", 0)}), 200
+            promedio = data.get("promedio", 0)
+            if promedio > 0:
+                registrar_tasa_diaria(promedio) # 👈 Guarda automáticamente la tasa al consultarla
+            return jsonify({"status": "success", "promedio": promedio}), 200
         return jsonify({"status": "error", "message": "No se pudo obtener la tasa BCV"}), 502
     except Exception as e:
         return jsonify({"status": "error", "details": str(e)}), 500
@@ -315,7 +329,6 @@ def api_register():
     if not all([username, email, password]):
         return jsonify({"error": "Faltan campos obligatorios"}), 400
 
-    # 🛡️ VALIDACIÓN DE LONGITUD DE CONTRASEÑA (Máximo 12 caracteres)
     if len(password) > 12:
         return jsonify({"error": "La contraseña no puede tener más de 12 caracteres."}), 400
 
@@ -370,6 +383,7 @@ def api_register():
         }), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 400
+
 @app.route("/api/referidos/obtener-link", methods=["POST"])
 def obtener_link_referido():
     data = request.get_json(silent=True) or {}
@@ -421,8 +435,7 @@ def obtener_link_referido():
     except Exception as e:
         print(f"Error en obtener_link_referido: {e}")
         return jsonify({"success": False, "message": str(e)}), 500
-
-@app.route("/api/solicitar-recuperacion", methods=["POST"])
+        @app.route("/api/solicitar-recuperacion", methods=["POST"])
 def solicitar_recuperacion():
     data = request.get_json(silent=True) or {}
     username = str(data.get("username", "")).strip()
@@ -611,8 +624,7 @@ def verificar_admin():
             print(f"Error procesando rechazo de usuario común: {e}")
 
     return jsonify({"status": "unauthorized", "message": "Acceso restringido para el administrador."}), 403
-
-@app.route("/api/admin/toggle-bloqueo", methods=["POST"])
+    @app.route("/api/admin/toggle-bloqueo", methods=["POST"])
 def admin_toggle_bloqueo():
     data = request.get_json(silent=True) or {}
     usuario_id = str(data.get("usuario_id", "")).strip()
@@ -734,6 +746,52 @@ def admin_metricas():
         print(f"Error en admin_metricas: {e}")
         return jsonify({"error": str(e)}), 500
 
+# 📊 NUEVO ENDPOINT DE MÉTRICAS FINANCIERAS (P&L y Devaluación)
+@app.route("/api/admin/metricas-financieras", methods=["GET"])
+@limiter.limit("30 per minute")
+def obtener_metricas_financieras():
+    if not supabase_client:
+        return jsonify({"status": "error", "message": "Base de datos no disponible"}), 500
+
+    try:
+        ventas_res = supabase_client.table("transacciones").select("monto_bs, monto").eq("estado", "aprobado").execute()
+        ventas_data = ventas_res.data or []
+
+        retiros_res = supabase_client.table("retiros").select("monto_bs, monto_usd, milestone, tipo").eq("estado", "aprobado").execute()
+        retiros_data = retiros_res.data or []
+
+        total_ingresos_bs = sum(float(v.get("monto_bs") or v.get("monto") or 0) for v in ventas_data)
+        
+        bcv_actual = 1.0
+        try:
+            r_bcv = requests.get("https://ve.dolarapi.com/v1/dolares/oficial", timeout=3)
+            if r_bcv.ok:
+                bcv_actual = float(r_bcv.json().get("promedio", 1.0))
+        except:
+            pass
+
+        total_ingresos_usd_historico = total_ingresos_bs / bcv_actual if bcv_actual > 0 else 0
+        total_egresos_usd = sum(float(r.get("monto_usd", 100.0)) for r in retiros_data)
+
+        comision_teorica_usd = total_ingresos_usd_historico * 0.30
+        pozo_premios_usd = total_ingresos_usd_historico * 0.70
+
+        ganancia_neta_usd = comision_teorica_usd - (total_egresos_usd - pozo_premios_usd if total_egresos_usd > pozo_premios_usd else 0)
+
+        return jsonify({
+            "status": "success",
+            "metricas": {
+                "total_ingresos_bs": round(total_ingresos_bs, 2),
+                "total_ingresos_usd": round(total_ingresos_usd_historico, 2),
+                "total_pagado_premios_usd": round(total_egresos_usd, 2),
+                "comision_plataforma_30_usd": round(comision_teorica_usd, 2),
+                "ganancia_neta_real_usd": round(ganancia_neta_usd, 2)
+            }
+        }), 200
+
+    except Exception as e:
+        return jsonify({"status": "error", "message": str(e)}), 500
+
 @app.route("/api/admin/usuarios", methods=["GET"])
 def admin_usuarios():
     if not supabase_client:
@@ -754,8 +812,7 @@ def admin_purgar():
         return jsonify({"success": True}), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
-@app.route("/api/notificar-compra", methods=["POST"])
+        @app.route("/api/notificar-compra", methods=["POST"])
 @limiter.limit("3 per 5 minutes")
 def notificar_compra():
     if not verificar_sistema_activo():
@@ -880,7 +937,7 @@ def procesar_compra_admin():
     return jsonify({"status": "error", "message": "Sin conexión a BD"}), 500
 
 @app.route("/api/notificar-retiro", methods=["POST"])
-@limiter.limit("2 per 10 minutes")
+@limiter.limit("10 per minute")
 def notificar_retiro():
     if not verificar_sistema_activo():
         return jsonify({"status": "error", "message": "La plataforma está apagada temporalmente."}), 403
@@ -901,20 +958,18 @@ def notificar_retiro():
     if not all([usuario_id, monto_bs, datos_pago]):
         return jsonify({"status": "error", "message": "Campos incompletos"}), 400
 
+    w_id = None
     if supabase_client:
         try:
-            # 1️⃣ Verificar el estado actual del usuario en la base de datos
             usr_res = supabase_client.table("usuarios").select("cantidad_barajitas").eq("id", usuario_id).execute()
             if not usr_res.data:
                 return jsonify({"status": "error", "message": "Usuario no encontrado."}), 404
             
             user_barajitas = int(usr_res.data[0].get("cantidad_barajitas", 0) or 0)
 
-            # 2️⃣ Validar que el usuario realmente posea las barajitas del hito que intenta reclamar
             if milestone > 0 and milestone < 1000 and user_barajitas < milestone:
                 return jsonify({"status": "error", "message": f"No cumples con las barajitas requeridas para este hito ({user_barajitas}/{milestone})."}), 400
 
-            # 3️⃣ Evitar duplicados: Verificar si ya existe una solicitud pendiente o aprobada para este mismo hito
             if milestone > 0 and milestone < 1000:
                 ret_existente = supabase_client.table("retiros").select("id, estado").eq("usuario_id", str(usuario_id)).eq("milestone", milestone).execute()
                 if ret_existente.data:
@@ -922,7 +977,6 @@ def notificar_retiro():
                         if r.get("estado") in ["pendiente", "aprobado"]:
                             return jsonify({"status": "error", "message": f"Ya tienes una solicitud para el Hito #{milestone} en estado '{r.get('estado')}'."}), 400
 
-            # 4️⃣ Insertar la solicitud de retiro de forma segura
             res_insert = supabase_client.table("retiros").insert({
                 "usuario_id": str(usuario_id),
                 "tipo": str(tipo),
@@ -933,7 +987,8 @@ def notificar_retiro():
                 "estado": "pendiente"
             }).execute()
 
-            w_id = res_insert.data[0].get("id") if res_insert.data else None
+            if res_insert.data and len(res_insert.data) > 0:
+                w_id = res_insert.data[0].get("id")
 
         except Exception as e:
             return jsonify({"status": "error", "message": str(e)}), 500
@@ -941,7 +996,7 @@ def notificar_retiro():
     mensaje = f"🏆 <b>SOLICITUD DE RETIRO / HITO (#{milestone})</b> [ID:{w_id}]\n\n👤 <b>Usuario:</b> <code>{usuario_id}</code>\n💰 <b>Monto Bs.:</b> {float(monto_bs):.2f}\n📱 <b>Pago Móvil:</b> {datos_pago}"
     send_telegram_message(TELEGRAM_ADMIN_CHAT_ID, mensaje)
     return jsonify({"status": "success", "telegram_sent": True}), 200
-    
+
 @app.route("/api/procesar-retiro-admin", methods=["POST"])
 def procesar_retiro_admin():
     data = request.get_json(silent=True) or {}
@@ -1078,7 +1133,6 @@ def telegram_webhook():
 
     if supabase_client:
         try:
-            # 🎛️ MANEJO DE LOS BOTONES DE ENCENDIDO / APAGADO DE LA PLATAFORMA
             if data_str in ["system_on", "system_off"]:
                 new_status = True if data_str == "system_on" else False
                 supabase_client.table("system_config").upsert({"key": "is_online", "value": new_status}).execute()
